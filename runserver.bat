@@ -1,9 +1,11 @@
 echo "Starting server........................................."
 
 @REM django-admin startproject qlkcl
+@REM django-admin startapp api
 
 python manage.py runserver
 
+@REM python manage.py makemigrations
 @REM python manage.py migrate
 
 @REM python manage.py createsuperuser

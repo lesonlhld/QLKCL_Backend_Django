@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", "qlkcl9n_06hzwn9@9jh_-qowzmr7gdhaz8_lp8idpdahtvsmofg*r+yletrungson")
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-vdw3x+px8+o6$geqyc$w29z1&nq-%nv9$es3byvj@tyrkc74r)")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
@@ -145,6 +145,7 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 django_heroku.settings(locals())
