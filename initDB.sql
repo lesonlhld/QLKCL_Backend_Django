@@ -1,3 +1,5 @@
+-- In pgAdmin4, using the folowing command to setup DB, or set up by hand
+
 -- Superuser: qlkcl_superuser
 CREATE ROLE qlkcl_superuser WITH
 	LOGIN
