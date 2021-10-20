@@ -5,13 +5,7 @@ from utils.enums import RoleName
 
 class Role(models.Model):
 
-    name = models.CharField(
-        max_length=32,
-        choices=RoleName.choices,
-        default=RoleName.MEMBER,
-        unique=True,
-        null=False,
-    )
+    name = models.CharField(max_length=32, unique=True, null=False)
 
     created_at = models.DateTimeField(auto_now_add=True, auto_now=False)
 
