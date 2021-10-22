@@ -32,7 +32,7 @@ class ExceptionHandler:
         default_message = (500, messages.CONTACT_ADMIN_FOR_SUPPORT)
         switcher = {
             exceptions.ValidationException: (400, str(exception)),
-            exceptions.InvalidArgumentException: (400, exception.message),
+            exceptions.InvalidArgumentException: (400, exception.message) if hasattr(exception, 'message') else (400, str(exception)),
             exceptions.NotFoundException: (404, str(exception)),
             exceptions.AuthenticationException: (401, str(exception)),
             ValidationError: (400, messages.INVALID_ARGUMENT),
