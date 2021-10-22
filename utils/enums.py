@@ -44,6 +44,7 @@ class HealthStatus(models.TextChoices):
     SERIOUS = 'SERIOUS'
 
 class Disease(models.TextChoices):
+    # now not use
     NONE = 'NONE'
     TIEU_DUONG = 'TIEU_DUONG'
     UNG_THU = 'UNG_THU'
