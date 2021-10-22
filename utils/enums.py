@@ -54,3 +54,19 @@ class Disease(models.TextChoices):
     BENH_TIM_MACH = 'BENH_TIM_MACH'
     BENH_LY_MACH_MAU_NAO = 'BENH_LY_MACH_MAU_NAO'
     OTHER = 'OTHER'
+
+class SymptomType(models.TextChoices):
+    MAIN = 'MAIN'
+    EXTRA = 'EXTRA'
+
+class TestStatus(models.TextChoices):
+    WAITING = 'WAITING'
+    DONE = 'DONE'
+
+class TestResult(models.TextChoices):
+    NEGATIVE = 'NEGATIVE'
+    POSITIVE = 'POSITIVE'
+
+class TestType(models.TextChoices):
+    QUICK = 'QUICK'
+    RT_PCR = 'RT-PCR'

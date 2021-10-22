@@ -220,12 +220,7 @@ class Member(models.Model):
         blank=True,
     )
 
-    background_disease = models.CharField(
-        max_length=64,
-        choices=Disease.choices,
-        default=Disease.NONE,
-        null=False,
-    )
+    background_disease = models.TextField(null=True, blank=True)
 
     background_disease_note = models.TextField(null=True, blank=True)
 

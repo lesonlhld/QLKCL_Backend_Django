@@ -87,9 +87,10 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     
     'address',
+    'form',
     'quarantine_ward',
-    'user_account',
     'role',
+    'user_account',
 
     'utils',
 ]
