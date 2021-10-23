@@ -59,9 +59,7 @@ class CustomUser(AbstractBaseUser):
         blank=True,
     )
 
-    first_name = models.CharField(max_length=128, null=True, blank=True)
-
-    last_name = models.CharField(max_length=128, null=True, blank=True)
+    full_name = models.CharField(max_length=256, null=False)
 
     phone_number = models.CharField(max_length=16, unique=True, null=False)
 
