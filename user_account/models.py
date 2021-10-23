@@ -59,9 +59,7 @@ class CustomUser(AbstractBaseUser):
         blank=True,
     )
 
-    first_name = models.CharField(max_length=128, null=True, blank=True)
-
-    last_name = models.CharField(max_length=128, null=True, blank=True)
+    full_name = models.CharField(max_length=256, null=False)
 
     phone_number = models.CharField(max_length=16, unique=True, null=False)
 
@@ -114,11 +112,13 @@ class CustomUser(AbstractBaseUser):
         blank=True,
     )
 
-    address = models.TextField(null=True, blank=True)
+    detail_address = models.TextField(null=True, blank=True)
 
     health_insurance_number = models.CharField(max_length=64, null=True, blank=True)
 
     identity_number = models.CharField(max_length=12, null=True, blank=True)
+
+    passport_number = models.CharField(max_length=12, null=True, blank=True)
 
     verified = models.BooleanField(default=False, null=False)
 
@@ -129,7 +129,7 @@ class CustomUser(AbstractBaseUser):
         null=False,
     )
 
-    quanrantine_ward = models.ForeignKey(
+    quarantine_ward = models.ForeignKey(
         to='quarantine_ward.QuarantineWard',
         on_delete=models.SET_NULL,
         related_name='custom_user_x_quanrantine_ward',
@@ -190,13 +190,11 @@ class Member(models.Model):
         null=False,
     )
 
-    quarantined_place_before = models.CharField(max_length=128, null=True, blank=True)
-
     positive_tested_before = models.BooleanField(default=False, null=False)
 
     abroad = models.BooleanField(default=False, null=False)
 
-    quarantined_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+    quarantined_at = models.CharField(max_length=10, null=True, blank=True)
 
     quarantined_status = models.CharField(
         max_length=32,
@@ -227,6 +225,8 @@ class Member(models.Model):
     )
 
     background_disease = models.TextField(null=True, blank=True)
+
+    other_background_disease = models.TextField(null=True, blank=True)
 
     background_disease_note = models.TextField(null=True, blank=True)
 
