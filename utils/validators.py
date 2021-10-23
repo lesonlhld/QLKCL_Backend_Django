@@ -1,5 +1,9 @@
 import re
 from abc import ABC, abstractclassmethod
+import datetime
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.db import models
 from . import messages, exceptions
 
 class AbstractValidator(ABC):
@@ -8,13 +12,83 @@ class AbstractValidator(ABC):
         pass
 
 class PhoneNumberValidator(AbstractValidator):
-    PHONE_PATTERN = '^[+]{0,1}[0-9]{5,13}$'
+    PHONE_PATTERN = '^[+]{0,1}[0-9]{9,13}$'
+    default_message = {'phone_number': messages.INVALID}
 
     @classmethod
-    def valid(cls, value, message=messages.INVALID_PHONE_NUMBER):
+    def valid(cls, value, message=default_message):
         if bool(re.match(cls.PHONE_PATTERN, value)):
             return value
         raise exceptions.ValidationException(message)
+
+class EmailValidator(AbstractValidator):
+    EMAIL_PATTERN = '^[a-zA-Z0-9](([.]{1}|[_]{1}|[-]{1}|[+]{1})?[a-zA-Z0-9])*[@]([a-z0-9]+([.]{1}|-)?)*[a-zA-Z0-9]+[.]{1}[a-z]{2,253}$'
+    default_message = {'email': messages.INVALID}
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        if bool(re.match(cls.EMAIL_PATTERN, value)):
+            return value
+        raise exceptions.ValidationException(message)
+
+class DateStringValidator(AbstractValidator):
+    DATE_PATTERN = '^[0-9]{2}/[0-9]{2}/[0-9]{4}$'
+    default_message = {'date_string': messages.INVALID}
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        if not bool(re.match(cls.DATE_PATTERN, value)):
+            raise exceptions.ValidationException(message)
+        try:
+            datetime.datetime.strptime(value, '%d/%m/%Y')
+            return value
+        except Exception as exception:
+            raise exceptions.ValidationException(message)
+
+class EnumValidator(AbstractValidator):
+    default_message = {'enum': messages.INVALID}
+
+    @classmethod
+    def valid(cls, value, enum_cls, message=default_message):
+        value = value.upper()
+        if value in [v.value for v in enum_cls.__members__.values()]:
+            return value
+        elif value in [k for k in enum_cls.__members__.keys()]:
+            return str(enum_cls[value])
+        raise exceptions.ValidationException(message)
+
+class ModelInstanceExistenceValidator(AbstractValidator):
+    default_message = {'object': messages.NOT_EXIST}
+
+    @classmethod
+    def valid(cls, model_cls, query_expr: models.Q, message=default_message):
+        try:
+            if isinstance(model_cls, models.query.QuerySet):  # check if a queryset is passed
+                return model_cls.get(query_expr)
+            else:
+                return model_cls.objects.get(query_expr)
+
+        except Exception as exception:
+            raise exceptions.NotFoundException(message)
+
+class BooleanValidator(AbstractValidator):
+    default_message = {'boolean': messages.INVALID}
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        if isinstance(value, str):
+            if value.lower() in ("y", "yes", "t", "true", "1"):
+                return True
+            elif value.lower() in ("n", "no", "f", "false", "0"):
+                return False
+            else:
+                raise exceptions.ValidationException(message)
+        elif isinstance(value, int) and value in (0, 1):
+            return bool(value)
+        elif isinstance(value, bool):
+            return value
+        else:
+            raise exceptions.ValidationException(message)
 
 class PositiveFloatValidator(AbstractValidator):
 
