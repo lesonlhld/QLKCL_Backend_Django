@@ -1,11 +1,33 @@
 import re
 from abc import ABC, abstractclassmethod
 from . import messages, exceptions
+from django.db import models
 
 class AbstractValidator(ABC):
     @abstractclassmethod
     def valid(cls, value, message=messages.VALIDATION_EXCEPTION, *args, **kwargs):
         pass
+
+class ModelInstanceExistenceValidator(AbstractValidator):
+    @classmethod
+    def valid(cls, model_cls, query_expr: models.Q, message=messages.NOT_FOUND_EXCEPTION):
+        try:
+            if isinstance(model_cls, models.query.QuerySet):  # check if a queryset is passed
+                return model_cls.get(query_expr)
+            else:
+                return model_cls.objects.get(query_expr)
+
+        except Exception as exception:
+            raise exceptions.NotFoundException(message)
+
+class EmailValidator(AbstractValidator):
+    EMAIL_PATTERN = '^[a-zA-Z0-9](([.]{1}|[_]{1}|[-]{1}|[+]{1})?[a-zA-Z0-9])*[@]([a-z0-9]+([.]{1}|-)?)*[a-zA-Z0-9]+[.]{1}[a-z]{2,253}$'
+
+    @classmethod
+    def valid(cls, value, message=messages.INVALID_EMAIL):
+        if bool(re.match(cls.EMAIL_PATTERN, value)):
+            return value
+        raise exceptions.ValidationException(message)
 
 class PhoneNumberValidator(AbstractValidator):
     PHONE_PATTERN = '^[+]{0,1}[0-9]{5,13}$'

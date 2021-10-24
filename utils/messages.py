@@ -23,3 +23,10 @@ CODE_NOT_FOUND = 'Code is not exist'
 CODE_EXIST = 'Code is already exist'
 
 INVALID_POSITIVE_FLOAT = 'Value must be positive float'
+
+COUNTRY_NOT_FOUND = 'Country code is not exist'
+CITY_NOT_FOUND = 'City code is not exist'
+DISTRICT_NOT_FOUND = 'District code is not exist'
+WARD_NOT_FOUND = 'Ward code is not exist'
+USER_NOT_FOUND = 'User is not exist'
+
