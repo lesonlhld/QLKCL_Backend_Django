@@ -12,9 +12,19 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from os.path import join, dirname
+from dotenv import load_dotenv
 import os
 import dj_database_url
 import django_heroku
+
+# Setup environment
+ENVIRONMENT = 'development'
+
+env_file_name = ('.env.production' if ENVIRONMENT == 'production' else '.env.development')
+print('== file_name: ', env_file_name)
+dotenv_path = join(dirname(__file__), '../' + env_file_name)
+load_dotenv(dotenv_path)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

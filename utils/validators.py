@@ -1,8 +1,8 @@
 import re
+import os
+import json
 from abc import ABC, abstractclassmethod
 import datetime
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
 from django.db import models
 from . import messages, exceptions
 
@@ -20,6 +20,66 @@ class PhoneNumberValidator(AbstractValidator):
         if bool(re.match(cls.PHONE_PATTERN, value)):
             return value
         raise exceptions.ValidationException(message)
+
+class PasswordValidator(AbstractValidator):
+    default_message = {'password': messages.INVALID}
+
+    # Password rule
+    PASSWORD_LENGTH_MIN = int(os.environ.get("PASSWORD_LENGTH_MIN"))
+    NOT_ENTIRELY_NUMBERIC = True if os.environ.get(
+        "NOT_ENTIRELY_NUMBERIC") == 'True' else False
+    CONTAIN_NUMBER = True if os.environ.get(
+        "CONTAIN_NUMBER") == 'True' else False
+    CONTAIN_UPPERCASE_CHARACTERS = True if os.environ.get(
+        "CONTAIN_UPPERCASE_CHARACTERS") == 'True' else False
+    CONTAIN_SPECIAL_CHARACTERS = True if os.environ.get(
+        "CONTAIN_SPECIAL_CHARACTERS") == 'True' else False
+    SPECIAL_CHARACTERS = os.environ.get("SPECIAL_CHARACTERS")
+
+    # Pattern
+    ONLY_NUMBERIC_DIGIT_PATTERN = '^[0-9]*$'
+
+    @classmethod
+    def _is_password_too_short(cls, value):
+        return len(value) < cls.PASSWORD_LENGTH_MIN
+
+    @classmethod
+    def _has_only_number(cls, value):
+        return bool(re.match(cls.ONLY_NUMBERIC_DIGIT_PATTERN, value))
+
+    @classmethod
+    def _has_number(cls, value):
+        return any(letter.isnumeric() or letter.isdigit() for letter in value)
+
+    @classmethod
+    def _has_uppercase_character(cls, value):
+        return bool(re.match(cls.UPPERCASE_PATTERN, value))
+
+    @classmethod
+    def _has_special_character(cls, value):
+        regex = re.compile(cls.SPECIAL_CHARACTERS)
+        return bool(regex.search(value))
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        errors = []
+        if value != '':
+            if cls._is_password_too_short(value):
+                errors += [messages.TOO_SHORT]
+            if cls.NOT_ENTIRELY_NUMBERIC and cls._has_only_number(value):
+                errors += [messages.ENTIRELY_NUMERIC]
+            if cls.CONTAIN_NUMBER and not (cls._has_number(value)):
+                errors += [messages.MUST_CONTAIN_NUMBER]
+            if cls.CONTAIN_UPPERCASE_CHARACTERS and not (cls._has_uppercase_character(value)):
+                errors += [messages.MUST_CONTAIN_UPPERCASE_CHARACTERS]
+            if cls.CONTAIN_SPECIAL_CHARACTERS and not (cls._has_uppercase_character(value)):
+                errors += [messages.MUST_CONTAIN_SPECIAL_CHARACTERS + cls.CONTAIN_SPECIAL_CHARACTERS]
+        else:
+            errors += [messages.EMPTY]
+
+        if errors:
+            raise exceptions.ValidationException(message={'password': errors})
+        return value
 
 class EmailValidator(AbstractValidator):
     EMAIL_PATTERN = '^[a-zA-Z0-9](([.]{1}|[_]{1}|[-]{1}|[+]{1})?[a-zA-Z0-9])*[@]([a-z0-9]+([.]{1}|-)?)*[a-zA-Z0-9]+[.]{1}[a-z]{2,253}$'

@@ -19,6 +19,11 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_phone_number'):
             self._phone_number = validators.PhoneNumberValidator.valid(self._phone_number)
 
+    def is_validate_password(self):
+        if hasattr(self, '_password'):
+            value = self._password
+            validators.PasswordValidator.valid(value)
+
     def is_validate_email(self):
         if hasattr(self, '_email'):
             self._email = validators.EmailValidator.valid(self._email)
@@ -181,6 +186,12 @@ class UserValidator(validators.AbstractRequestValidate):
             except Exception as exception:
                 return False
         return True
+
+    def extra_validate_to_register_member(self):
+        if hasattr(self, '_phone_number') and self.is_phone_number_exist():
+            raise exceptions.ValidationException({'phone_number': messages.EXIST})
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
 
     def extra_validate_to_create_member(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():

@@ -121,7 +121,7 @@ class CustomUser(AbstractBaseUser):
 
     passport_number = models.CharField(max_length=12, null=True, blank=True)
 
-    verified = models.BooleanField(default=False, null=False)
+    email_verified = models.BooleanField(default=False, null=False)
 
     status = models.CharField(
         max_length=32,

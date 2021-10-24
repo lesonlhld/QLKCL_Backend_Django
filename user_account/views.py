@@ -8,6 +8,7 @@ from .models import CustomUser, Member
 from .serializers import CustomUserSerializer, MemberSerializer
 from role.models import Role
 from utils import exceptions, messages
+from utils.enums import CustomUserStatus
 from utils.views import AbstractView
 from utils.tools import room_to_quarantine_ward
 
@@ -16,6 +17,77 @@ from utils.tools import room_to_quarantine_ward
 class MemberAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='register', detail=False)
+    def register_member(self, request):
+        """For someone outside to register quarantine
+
+        Args:
+            + phone_number: String
+            + password: String
+            + quarantine_ward_id: int
+        """
+
+        accept_fields = [
+            'phone_number', 'password',
+            'quarantine_ward_id', 
+        ]
+
+        require_fields = [
+            'phone_number', 'password',
+            'quarantine_ward_id', 
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields([
+                'phone_number', 'password',
+            ])
+
+            validator.extra_validate_to_register_member()
+
+            # create CustomUser
+
+            list_to_create_custom_user = ['phone_number', 'quarantine_ward']
+
+            dict_to_create_custom_user = validator.get_data(list_to_create_custom_user)
+
+            custom_user = CustomUser(**dict_to_create_custom_user)
+            password = accepted_fields['password']
+            custom_user.set_password(password)
+            custom_user.created_by = request.user
+            custom_user.updated_by = request.user
+            custom_user.role = Role.objects.get(name='MEMBER')
+            custom_user.status = CustomUserStatus.WAITING
+
+            # create Member
+
+            member = Member()
+            member.custom_user = custom_user
+
+            custom_user.save()
+            member.save()
+
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            member_serializer = MemberSerializer(member, many=False)
+            
+            response_data = dict()
+            response_data['custom_user'] = custom_user_serializer.data
+            response_data['member'] = member_serializer.data
+            
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
 
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)
