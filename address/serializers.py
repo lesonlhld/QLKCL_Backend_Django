@@ -7,11 +7,24 @@ class CountrySerializer(serializers.ModelSerializer):
         model = Country
         fields = '__all__'
 
+class BaseCountrySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Country
+        fields = ['name']
+
+
 class CitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = City
         fields = '__all__'
+
+class BaseCitySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = City
+        fields = ['name']
 
 class DistrictSerializer(serializers.ModelSerializer):
 
@@ -19,8 +32,20 @@ class DistrictSerializer(serializers.ModelSerializer):
         model = District
         fields = '__all__'
 
+class BaseDistrictSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = District
+        fields = ['name']
+
 class WardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ward
         fields = '__all__'
+
+class BaseWardSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Ward
+        fields = ['name']

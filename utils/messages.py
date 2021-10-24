@@ -8,8 +8,9 @@ NETWORK_EXCEPTION = 'Network exception'
 VALIDATION_EXCEPTION = 'Validation exception'
 DUPLICATE = 'Object is already exist'
 
-EXIST = 'exist'
-NOT_EXIST = 'not exist'
+EXIST = 'Exist'
+NOT_EXIST = 'Not exist'
+INVALID = 'Invalid'
 
 INVALID_PHONE_NUMBER = 'Invalid phone number'
 
