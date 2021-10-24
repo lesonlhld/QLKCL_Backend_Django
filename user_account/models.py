@@ -237,3 +237,15 @@ class Member(models.Model):
         null=True,
         blank=True,
     )
+
+    @property
+    def quarantine_floor(self):
+        return self.quarantine_room.quarantine_floor
+
+    @property
+    def quarantine_building(self):
+        return self.quarantine_floor.quarantine_building
+
+    @property
+    def quarantine_ward(self):
+        return self.quarantine_building.quarantine_ward

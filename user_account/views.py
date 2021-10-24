@@ -1,12 +1,15 @@
+from django.db.models import manager
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action
 from .validators.user import UserValidator
 from .models import CustomUser, Member
+from .serializers import CustomUserSerializer, MemberSerializer
 from role.models import Role
 from utils import exceptions, messages
 from utils.views import AbstractView
+from utils.tools import room_to_quarantine_ward
 
 # Create your views here.
 
@@ -125,7 +128,65 @@ class MemberAPI(AbstractView):
             member = Member(**dict_to_create_member)
             member.custom_user = custom_user
             member.save()
+
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            member_serializer = MemberSerializer(member, many=False)
             
-            return self.response_handler.handle(data='')
+            response_data = dict()
+            response_data['custom_user'] = custom_user_serializer.data
+            response_data['member'] = member_serializer.data
+            
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get', detail=False)
+    def get_user(self, request):
+        """Get a user
+
+        Args:
+            - id: int
+        """
+
+        accept_fields = [
+            'id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+
+            custom_user = None
+
+            if 'id' in accepted_fields.keys():
+                if validator.is_id_exist():
+                    custom_user = validator.get_field('custom_user')
+                else:
+                    raise exceptions.NotFoundException({'id': messages.NOT_EXIST})
+            else:
+                custom_user = request.user
+            
+            response_data = dict()
+
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+
+            response_data['custom_user'] = custom_user_serializer.data
+
+            if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
+                member = custom_user.member_x_custom_user
+                member_serializer = MemberSerializer(member, many=False)
+
+                response_data['member'] = member_serializer.data
+            
+            return self.response_handler.handle(data=response_data)
+        
         except Exception as exception:
             return self.exception_handler.handle(exception)
