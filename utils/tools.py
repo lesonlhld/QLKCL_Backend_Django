@@ -17,3 +17,20 @@ def split_input_list(str_list):
     new_list = [s for s in new_list if s != '']
 
     return new_list
+
+def room_to_quarantine_ward(room):
+    """
+    Now not use
+    From room, return a dict of quarantine_ward, quarantine_building, quarantine_floor, quarantine_room
+    """
+
+    floor = room.quarantine_floor
+    building = floor.quarantine_building
+    quarantine_ward = building.quarantine_ward
+
+    return {
+        'quarantine_ward': quarantine_ward,
+        'quarantine_building': building,
+        'quarantine_floor': floor,
+        'quarantine_room': room,
+    }

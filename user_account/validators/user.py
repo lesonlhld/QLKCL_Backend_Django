@@ -74,6 +74,18 @@ class UserValidator(validators.AbstractRequestValidate):
                 except Exception as exception:
                     raise exceptions.NotFoundException({'background_disease': messages.NOT_EXIST})
 
+    def is_id_exist(self):
+        if hasattr(self, '_id'):
+            try:
+                self._custom_user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(id=self._id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
     def is_phone_number_exist(self):
         if hasattr(self, '_phone_number'):
             try:
