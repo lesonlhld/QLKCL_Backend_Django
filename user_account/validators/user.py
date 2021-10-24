@@ -183,20 +183,37 @@ class UserValidator(validators.AbstractRequestValidate):
         return True
 
     def extra_validate_to_create_member(self):
-        if self.is_phone_number_exist():
+        if hasattr(self, '_phone_number') and self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.EXIST})
-        if not self.is_nationality_code_exist():
+        if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
             raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
-        if not self.is_country_code_exist():
+        if hasattr(self, '_country_code') and not self.is_country_code_exist():
             raise exceptions.NotFoundException({'country_code': messages.NOT_EXIST})
-        if not self.is_city_id_exist():
+        if hasattr(self, '_city_id') and not self.is_city_id_exist():
             raise exceptions.NotFoundException({'city_id': messages.NOT_EXIST})
-        if not self.is_district_id_exist():
+        if hasattr(self, '_district_id') and not self.is_district_id_exist():
             raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
-        if not self.is_ward_id_exist():
+        if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
             raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
-        if not self.is_quarantine_ward_id_exist():
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
-        if not self.is_quarantine_room_id_exist():
+        if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
             raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
-        
+
+    def extra_validate_to_update_user(self):
+        if hasattr(self, '_id') and not self.is_id_exist():
+            raise exceptions.NotFoundException({'id': messages.NOT_EXIST})
+        if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
+            raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
+        if hasattr(self, '_country_code') and not self.is_country_code_exist():
+            raise exceptions.NotFoundException({'country_code': messages.NOT_EXIST})
+        if hasattr(self, '_city_id') and not self.is_city_id_exist():
+            raise exceptions.NotFoundException({'city_id': messages.NOT_EXIST})
+        if hasattr(self, '_district_id') and not self.is_district_id_exist():
+            raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
+        if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
+            raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
+            raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
