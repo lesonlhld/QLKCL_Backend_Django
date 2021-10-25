@@ -158,7 +158,8 @@ class AbstractRequestValidate(ABC):
     def get_data(self, keys):
         result = dict()
         for key in keys:
-            result[key] = self.get_field(key)
+            if self.has_field(key):
+                result[key] = self.get_field(key)
         return result
 
     def has_field(self, key: str):

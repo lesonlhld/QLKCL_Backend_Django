@@ -25,10 +25,11 @@ class CustomUserManager(BaseUserManager):
         """
         if not phone_number:
             raise ValueError('Users must have an phone number')
-        user = CustomUser(phone_number=phone_number, **extra_fields)
-        user.set_password(password)
-        user.save()
-        return user
+        custom_user = CustomUser(phone_number=phone_number, **extra_fields)
+        custom_user.set_password(password)
+        custom_user.save()
+
+        return custom_user
 
     def create_administrator(self, phone_number, password, **extra_fields):
         """
@@ -240,12 +241,21 @@ class Member(models.Model):
 
     @property
     def quarantine_floor(self):
-        return self.quarantine_room.quarantine_floor
+        if self.quarantine_room:
+            return self.quarantine_room.quarantine_floor
+        else:
+            return None
 
     @property
     def quarantine_building(self):
-        return self.quarantine_floor.quarantine_building
+        if self.quarantine_floor:
+            return self.quarantine_floor.quarantine_building
+        else:
+            return None
 
     @property
     def quarantine_ward(self):
-        return self.quarantine_building.quarantine_ward
+        if self.quarantine_building:
+            return self.quarantine_building.quarantine_ward
+        else:
+            return None
