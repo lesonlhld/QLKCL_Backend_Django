@@ -2,7 +2,15 @@ from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
 from address.models import Country, City, District, Ward
 from role.models import Role
-from utils.enums import Gender, CustomUserStatus, RoleName
+from utils.enums import (
+    Gender,
+    CustomUserStatus,
+    RoleName,
+    MemberLabel,
+    MemberQuarantinedStatus,
+    HealthStatus,
+    Disease,
+)
 
 # Create your models here.
 
@@ -17,20 +25,21 @@ class CustomUserManager(BaseUserManager):
         """
         if not phone_number:
             raise ValueError('Users must have an phone number')
-        user = CustomUser(phone_number=phone_number, **extra_fields)
-        user.set_password(password)
-        user.save()
-        return user
+        custom_user = CustomUser(phone_number=phone_number, **extra_fields)
+        custom_user.set_password(password)
+        custom_user.save()
+
+        return custom_user
 
     def create_administrator(self, phone_number, password, **extra_fields):
         """
         Create and save a Administrator with the given phone number and password.
         """
-        admin_role = Role.objects.get(name=RoleName.ADMINISTRATOR)
-        extra_fields.setdefault('role', admin_role)
+        extra_fields.setdefault('admin', True)
+        extra_fields.setdefault('staff', True)
 
-        if extra_fields.get('role') is not admin_role:
-            raise ValueError('Superuser must have role=ADMINISTRATOR')
+        if not (extra_fields.get('admin') and extra_fields.get('staff')):
+            raise ValueError('Superuser must have admin=True, staff=True')
         return self.create_user(phone_number, password, **extra_fields)
 
     def delete_user(self, phone_number):
@@ -51,9 +60,7 @@ class CustomUser(AbstractBaseUser):
         blank=True,
     )
 
-    first_name = models.CharField(max_length=128, null=True, blank=True)
-
-    last_name = models.CharField(max_length=128, null=True, blank=True)
+    full_name = models.CharField(max_length=256, null=False)
 
     phone_number = models.CharField(max_length=16, unique=True, null=False)
 
@@ -106,11 +113,13 @@ class CustomUser(AbstractBaseUser):
         blank=True,
     )
 
-    address = models.TextField(null=True, blank=True)
+    detail_address = models.TextField(null=True, blank=True)
 
     health_insurance_number = models.CharField(max_length=64, null=True, blank=True)
 
     identity_number = models.CharField(max_length=12, null=True, blank=True)
+
+    passport_number = models.CharField(max_length=12, null=True, blank=True)
 
     verified = models.BooleanField(default=False, null=False)
 
@@ -121,13 +130,19 @@ class CustomUser(AbstractBaseUser):
         null=False,
     )
 
-    quanrantine_ward = models.ForeignKey(
+    quarantine_ward = models.ForeignKey(
         to='quarantine_ward.QuarantineWard',
         on_delete=models.SET_NULL,
         related_name='custom_user_x_quanrantine_ward',
         null=True,
         blank=True,
     )
+
+    # Don't care about two field
+
+    admin = models.BooleanField(default=False, null=False) # a superuser
+
+    staff = models.BooleanField(default=False, null=False) # a admin user; non super-user
 
     role = models.ForeignKey(
         to='role.Role',
@@ -158,3 +173,89 @@ class CustomUser(AbstractBaseUser):
         null=True,
         blank=True,
     )
+
+class Member(models.Model):
+
+    custom_user = models.OneToOneField(
+        to=CustomUser,
+        on_delete=models.CASCADE,
+        related_name='member_x_custom_user',
+        primary_key=False,
+        null=False,
+    )
+
+    label = models.CharField(
+        max_length=8,
+        choices=MemberLabel.choices,
+        default=MemberLabel.F0,
+        null=False,
+    )
+
+    positive_tested_before = models.BooleanField(default=False, null=False)
+
+    abroad = models.BooleanField(default=False, null=False)
+
+    quarantined_at = models.CharField(max_length=10, null=True, blank=True)
+
+    quarantined_status = models.CharField(
+        max_length=32,
+        choices=MemberQuarantinedStatus.choices,
+        default=MemberQuarantinedStatus.QUARANTINING,
+        null=False,
+    )
+
+    last_tested = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+
+    health_status = models.CharField(
+        max_length=32,
+        choices=HealthStatus.choices,
+        default=HealthStatus.NORMAL,
+        null=False,
+    )
+
+    health_note = models.TextField(null=True, blank=True)
+
+    positive_test = models.BooleanField(default=False, null=False)
+
+    care_staff = models.ForeignKey(
+        to=CustomUser,
+        on_delete=models.SET_NULL,
+        related_name='member_x_care_staff',
+        null=True,
+        blank=True,
+    )
+
+    background_disease = models.TextField(null=True, blank=True)
+
+    other_background_disease = models.TextField(null=True, blank=True)
+
+    background_disease_note = models.TextField(null=True, blank=True)
+
+    quarantine_room = models.ForeignKey(
+        to='quarantine_ward.QuarantineRoom',
+        on_delete=models.SET_NULL,
+        related_name='member_x_quarantine_room',
+        null=True,
+        blank=True,
+    )
+
+    @property
+    def quarantine_floor(self):
+        if self.quarantine_room:
+            return self.quarantine_room.quarantine_floor
+        else:
+            return None
+
+    @property
+    def quarantine_building(self):
+        if self.quarantine_floor:
+            return self.quarantine_floor.quarantine_building
+        else:
+            return None
+
+    @property
+    def quarantine_ward(self):
+        if self.quarantine_building:
+            return self.quarantine_building.quarantine_ward
+        else:
+            return None
