@@ -5,6 +5,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.db import models
 from . import messages, exceptions
+from django.db import models
 
 class AbstractValidator(ABC):
     @abstractclassmethod
@@ -89,6 +90,15 @@ class BooleanValidator(AbstractValidator):
             return value
         else:
             raise exceptions.ValidationException(message)
+
+class PositiveIntegerValidator(AbstractValidator):
+    
+    @classmethod
+    def valid(cls, value, message = messages.INVALID_POSITIVE_INTEGER):  
+        value = float(value)
+        if not value >= 0 or abs(float(value) - int(value)) > 0:
+            raise exceptions.ValidationException(message)
+        return value
 
 class PositiveFloatValidator(AbstractValidator):
 
