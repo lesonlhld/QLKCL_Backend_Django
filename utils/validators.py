@@ -12,27 +12,6 @@ class AbstractValidator(ABC):
     def valid(cls, value, message=messages.VALIDATION_EXCEPTION, *args, **kwargs):
         pass
 
-class ModelInstanceExistenceValidator(AbstractValidator):
-    @classmethod
-    def valid(cls, model_cls, query_expr: models.Q, message=messages.NOT_FOUND_EXCEPTION):
-        try:
-            if isinstance(model_cls, models.query.QuerySet):  # check if a queryset is passed
-                return model_cls.get(query_expr)
-            else:
-                return model_cls.objects.get(query_expr)
-
-        except Exception as exception:
-            raise exceptions.NotFoundException(message)
-
-class EmailValidator(AbstractValidator):
-    EMAIL_PATTERN = '^[a-zA-Z0-9](([.]{1}|[_]{1}|[-]{1}|[+]{1})?[a-zA-Z0-9])*[@]([a-z0-9]+([.]{1}|-)?)*[a-zA-Z0-9]+[.]{1}[a-z]{2,253}$'
-
-    @classmethod
-    def valid(cls, value, message=messages.INVALID_EMAIL):
-        if bool(re.match(cls.EMAIL_PATTERN, value)):
-            return value
-        raise exceptions.ValidationException(message)
-
 class PhoneNumberValidator(AbstractValidator):
     PHONE_PATTERN = '^[+]{0,1}[0-9]{9,13}$'
     default_message = {'phone_number': messages.INVALID}
@@ -111,6 +90,15 @@ class BooleanValidator(AbstractValidator):
             return value
         else:
             raise exceptions.ValidationException(message)
+
+class PositiveIntegerValidator(AbstractValidator):
+    
+    @classmethod
+    def valid(cls, value, message = messages.INVALID_POSITIVE_INTEGER):  
+        value = float(value)
+        if not value >= 0 or abs(float(value) - int(value)) > 0:
+            raise exceptions.ValidationException(message)
+        return value
 
 class PositiveFloatValidator(AbstractValidator):
 

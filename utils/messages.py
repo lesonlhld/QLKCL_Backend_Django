@@ -24,10 +24,20 @@ CODE_NOT_FOUND = 'Code is not exist'
 CODE_EXIST = 'Code is already exist'
 
 INVALID_POSITIVE_FLOAT = 'Value must be positive float'
+INVALID_POSITIVE_INTEGER = 'Value must be positive integer'
 
 COUNTRY_NOT_FOUND = 'Country code is not exist'
 CITY_NOT_FOUND = 'City code is not exist'
 DISTRICT_NOT_FOUND = 'District code is not exist'
 WARD_NOT_FOUND = 'Ward code is not exist'
 USER_NOT_FOUND = 'User is not exist'
+QUARANTINE_WARD_NOT_FOUND = 'Quarantine Ward is not exist'
+QUARANTINE_BUILDING_NOT_FOUND = 'Quarantine Building is not exist'
+QUARANTINE_FLOOR_NOT_FOUND = 'Quarantine Floor is not exist'
+QUARANTINE_ROOM_NOT_FOUND = 'Quarantine Room is not exist'
+
+INVALID_STATUS = 'Invalid status'
+INVALID_TYPE = 'Invalid type'
+INVALID_QUARANTINE_TIME = 'Quarantine time must be positive float'
+INVALID_CAPACITY_NUMBER = 'Capacity number must be positive integer'
 
