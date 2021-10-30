@@ -8,6 +8,7 @@ class QuarantineWardStatus(models.TextChoices):
     UNKNOWN = 'UNKNOWN'
 
 class CustomUserStatus(models.TextChoices):
+    WAITING = 'WAITING'
     LOCKED = 'LOCKED',
     AVAILABLE = 'AVAILABLE'
 
@@ -65,6 +66,7 @@ class TestStatus(models.TextChoices):
     DONE = 'DONE'
 
 class TestResult(models.TextChoices):
+    NONE = 'NONE'
     NEGATIVE = 'NEGATIVE'
     POSITIVE = 'POSITIVE'
 

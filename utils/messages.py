@@ -12,18 +12,31 @@ EXIST = 'Exist'
 NOT_EXIST = 'Not exist'
 INVALID = 'Invalid'
 
-INVALID_PHONE_NUMBER = 'Invalid phone number'
+EMPTY = 'EMPTY'
+
+CANNOT_CONVERT_STRING_TO_INT = 'Cannot convert string to int'
+CANNOT_CONVERT_STRING_TO_FLOAT = 'Cannot convert string to float'
 
 CODE_EMPTY = 'Code must not be empty'
 NAME_EMPTY = 'Name must not be empty'
 ADDRESS_EMPTY = 'Address must not be empty'
 PHONE_EMPTY = 'Phone must not be empty'
+QUARANTINE_ROOM_EMPTY = 'Quarantine room must not empty'
 
 CODE_NOT_FOUND = 'Code is not exist'
+MEMBER_NOT_FOUND = 'Member is not exist'
+TEST_NOT_FOUND = 'Test is not exist'
 
 CODE_EXIST = 'Code is already exist'
 
 INVALID_POSITIVE_FLOAT = 'Value must be positive float'
+INVALID_PHONE_NUMBER = 'Invalid phone number'
+
+TOO_SHORT = 'TOO_SHORT'
+ENTIRELY_NUMERIC = 'ENTIRELY_NUMERIC'
+MUST_CONTAIN_NUMBER = 'MUST_CONTAIN_NUMBER'
+MUST_CONTAIN_UPPERCASE_CHARACTERS = 'MUST_CONTAIN_UPPERCASE_CHARACTERS'
+MUST_CONTAIN_SPECIAL_CHARACTERS = 'MUST_CONTAIN_SPECIAL_CHARACTERS'
 INVALID_POSITIVE_INTEGER = 'Value must be positive integer'
 
 COUNTRY_NOT_FOUND = 'Country code is not exist'
