@@ -1,8 +1,12 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from utils import validators
 from rest_framework import permissions
 from rest_framework.decorators import action
-from .models import BackgroundDisease, Symptom
+from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test
+from .validators.medical_declaration import MedicalDeclarationValidator
+from .validators.test import TestValidator
+from .serializers import MedicalDeclarationSerializer, TestSerializer
 from utils import exceptions, messages
 from utils.enums import SymptomType
 from utils.views import AbstractView
@@ -87,5 +91,210 @@ class SymptomAPI(AbstractView):
                     disease.save()
 
             return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class MedicalDeclarationAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_medical_declaration(self, request):
+        """Create a medical declaration
+
+        Args:
+            - phone_number: String
+            - heartbeat: int
+            - temperature: float
+            - breathing: int
+            - spo2: float
+            - blood_pressure: float
+            - main_symptoms: String '<id>,<id>,<id>'
+            - extra_symptoms: String '<id>,<id>,<id>'
+            - other_symptoms: String
+        """
+
+        accept_fields = [
+            'phone_number', 'heartbeat', 'temperature', 
+            'breathing', 'spo2', 'blood_pressure',
+            'main_symptoms', 'extra_symptoms', 'other_symptoms',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = MedicalDeclarationValidator(**accepted_fields)
+            validator.is_valid_fields([
+                'phone_number', 'heartbeat', 'temperature',
+                'breathing', 'spo2', 'blood_pressure',
+                'main_symptoms', 'extra_symptoms',
+            ])
+            
+            validator.extra_validate_to_create_medical_declaration()
+
+            list_to_create_medical_declaration = [key for key in accepted_fields.keys()]
+            list_to_create_medical_declaration = set(list_to_create_medical_declaration) - {'phone_number'}
+
+            dict_to_create_medical_declaration = validator.get_data(list_to_create_medical_declaration)
+
+            medical_declaration = MedicalDeclaration(**dict_to_create_medical_declaration)
+            
+            for_user = request.user
+            if 'phone_number' in accepted_fields.keys():
+                for_user = validator.get_field('custom_user')
+
+            medical_declaration.user = for_user
+            medical_declaration.created_by = request.user
+            medical_declaration.save()
+
+            serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get', detail=False)
+    def get_medical_declaration(self, request):
+        """Get a medical declaration
+
+        Args:
+            + id: String
+        """
+
+        accept_fields = [
+            'id',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = MedicalDeclarationValidator(**accepted_fields)
+
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_get_medical_declaration()
+
+            medical_declaration = validator.get_field('medical_declaration')
+
+            serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class TestAPI(AbstractView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_test(self, request):
+        """Create a test
+
+        Args:
+            - user_id: String
+            - status: String ['WAITING', 'DONE']
+            - type: String ['QUICK', 'RT-PCR']
+            - result: String ['NONE', 'NEGATIVE', 'POSITIVE']
+        """
+
+        accept_fields = [
+            'user_id', 'status', 'type',
+            'result',
+        ]
+
+        require_fields = [
+            'user_id', 'status', 'type',
+            'result',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = TestValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields([
+                'status', 'type', 'result',
+            ])
+            
+            validator.extra_validate_to_create_test()
+
+            list_to_create_test = [key for key in accepted_fields.keys()]
+            list_to_create_test = set(list_to_create_test) - {'user_id'}
+            list_to_create_test = list(list_to_create_test) + ['user']
+
+            dict_to_create_test = validator.get_data(list_to_create_test)
+
+            test = Test(**dict_to_create_test)
+
+            test.created_by = request.user
+            test.save()
+
+            serializer = TestSerializer(test, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get', detail=False)
+    def get_test(self, request):
+        """Get a test
+
+        Args:
+            + id: String
+        """
+
+        accept_fields = [
+            'id',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = TestValidator(**accepted_fields)
+
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_get_test()
+
+            test = validator.get_field('test')
+
+            serializer = TestSerializer(test, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)

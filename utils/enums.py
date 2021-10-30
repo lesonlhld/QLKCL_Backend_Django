@@ -66,6 +66,7 @@ class TestStatus(models.TextChoices):
     DONE = 'DONE'
 
 class TestResult(models.TextChoices):
+    NONE = 'NONE'
     NEGATIVE = 'NEGATIVE'
     POSITIVE = 'POSITIVE'
 

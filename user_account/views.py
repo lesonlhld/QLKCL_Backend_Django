@@ -10,7 +10,7 @@ from role.models import Role
 from utils import exceptions, messages
 from utils.enums import CustomUserStatus
 from utils.views import AbstractView
-from utils.tools import room_to_quarantine_ward
+from utils.tools import split_input_list
 
 # Create your views here.
 
@@ -382,5 +382,48 @@ class MemberAPI(AbstractView):
             custom_user.save()
 
             return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='accept', detail=False)
+    def accept_members(self, request):
+        """Accept some members
+
+        Args:
+            + member_ids: String
+        """
+
+        accept_fields = [
+            'member_ids',
+        ]
+
+        require_fields = [
+            'member_ids',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+
+            validator.extra_validate_to_accept_member()
+
+            # accept members
+
+            members = validator.get_field('members')
+
+            for member in members:
+                member.status = CustomUserStatus.AVAILABLE
+                member.save()
+            
+            return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
             return self.exception_handler.handle(exception)

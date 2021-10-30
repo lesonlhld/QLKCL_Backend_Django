@@ -91,6 +91,16 @@ class UserValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def get_user_by_id(self, id):
+        try:
+            user = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=CustomUser,
+                query_expr=Q(id=id),
+            )
+            return user
+        except Exception as exception:
+            return None
+
     def is_phone_number_exist(self):
         if hasattr(self, '_phone_number'):
             try:
@@ -228,3 +238,15 @@ class UserValidator(validators.AbstractRequestValidate):
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
             raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+
+    def extra_validate_to_accept_member(self):
+        if hasattr(self, '_member_ids'):
+            self._member_ids = split_input_list(self._member_ids)
+            self._members = []
+            for id in self._member_ids:
+                user = self.get_user_by_id(id)
+                if not user:
+                    raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
+                if hasattr(user, 'member_x_custom_user') and not user.member_x_custom_user.quarantine_room:
+                    raise exceptions.ValidationException({'main': f'Member has id {id}: ' + messages.QUARANTINE_ROOM_EMPTY})
+                self._members += [user]
