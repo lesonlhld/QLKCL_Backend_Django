@@ -1,3 +1,5 @@
+import os
+from random import randint
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
 from address.models import Country, City, District, Ward
@@ -11,6 +13,9 @@ from utils.enums import (
     HealthStatus,
     Disease,
 )
+
+def user_code_generator():
+    return ''.join(str(randint(0, 9)) for i in range(int(os.environ.get("USER_CODE_LENGTH", '15'))))
 
 # Create your models here.
 
@@ -52,6 +57,13 @@ class CustomUser(AbstractBaseUser):
 
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = [] # Phone number & Password are required by default.
+
+    code = models.CharField(
+        max_length=18,
+        unique=True,
+        default=user_code_generator,
+        null=False,
+    )
 
     email = models.EmailField(
         verbose_name='email address',
