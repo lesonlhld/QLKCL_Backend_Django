@@ -91,15 +91,38 @@ class UserValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
-    def get_user_by_id(self, id):
+    def get_user_by_code(self, code):
         try:
             user = validators.ModelInstanceExistenceValidator.valid(
                 model_cls=CustomUser,
-                query_expr=Q(id=id),
+                query_expr=Q(code=code),
             )
             return user
         except Exception as exception:
             return None
+        
+    def is_code_exist(self, code=None):
+        if code:
+            try:
+                value = code
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(code=value),
+                )
+                return True
+            except Exception as exception:
+                return False
+        else:
+            if hasattr(self, '_code'):
+                try:
+                    self._custom_user = validators.ModelInstanceExistenceValidator.valid(
+                        model_cls=CustomUser,
+                        query_expr=Q(code=self._code),
+                    )
+                    return True
+                except Exception as exception:
+                    return False
+            return True
 
     def is_phone_number_exist(self):
         if hasattr(self, '_phone_number'):
@@ -222,8 +245,8 @@ class UserValidator(validators.AbstractRequestValidate):
             raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
 
     def extra_validate_to_update_user(self):
-        if hasattr(self, '_id') and not self.is_id_exist():
-            raise exceptions.NotFoundException({'id': messages.NOT_EXIST})
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
         if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
             raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
         if hasattr(self, '_country_code') and not self.is_country_code_exist():
@@ -240,13 +263,13 @@ class UserValidator(validators.AbstractRequestValidate):
             raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
 
     def extra_validate_to_accept_member(self):
-        if hasattr(self, '_member_ids'):
-            self._member_ids = split_input_list(self._member_ids)
+        if hasattr(self, '_member_codes'):
+            self._member_codes = split_input_list(self._member_codes)
             self._members = []
-            for id in self._member_ids:
-                user = self.get_user_by_id(id)
+            for code in self._member_codes:
+                user = self.get_user_by_code(code)
                 if not user:
                     raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
                 if hasattr(user, 'member_x_custom_user') and not user.member_x_custom_user.quarantine_room:
-                    raise exceptions.ValidationException({'main': f'Member has id {id}: ' + messages.QUARANTINE_ROOM_EMPTY})
+                    raise exceptions.ValidationException({'main': f'Member has code {code}: ' + messages.QUARANTINE_ROOM_EMPTY})
                 self._members += [user]
