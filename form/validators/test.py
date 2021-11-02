@@ -38,24 +38,34 @@ class TestValidator(validators.AbstractRequestValidate):
                 message={'result': messages.INVALID},
             )
 
-    def is_id_exist(self):
-        if hasattr(self, '_id'):
+    def is_code_exist(self, code=None):
+        if code:
             try:
-                self._test = validators.ModelInstanceExistenceValidator.valid(
+                validators.ModelInstanceExistenceValidator.valid(
                     model_cls=Test,
-                    query_expr=Q(id=self._id),
+                    query_expr=Q(code=code),
                 )
                 return True
             except Exception as exception:
                 return False
-        return False
+        else:
+            if hasattr(self, '_code'):
+                try:
+                    self._test = validators.ModelInstanceExistenceValidator.valid(
+                        model_cls=Test,
+                        query_expr=Q(code=self._code),
+                    )
+                    return True
+                except Exception as exception:
+                    return False
+            return False
 
-    def is_user_id_exist(self):
-        if hasattr(self, '_user_id'):
+    def is_user_code_exist(self):
+        if hasattr(self, '_user_code'):
             try:
                 self._user = validators.ModelInstanceExistenceValidator.valid(
                     model_cls=CustomUser,
-                    query_expr=Q(id=self._user_id),
+                    query_expr=Q(code=self._user_code),
                 )
                 return True
             except Exception as exception:
@@ -63,9 +73,13 @@ class TestValidator(validators.AbstractRequestValidate):
         return False
 
     def extra_validate_to_create_test(self):
-        if hasattr(self, '_user_id') and not self.is_user_id_exist():
-            raise exceptions.ValidationException({'user_id': messages.NOT_EXIST})
+        if hasattr(self, '_user_code') and not self.is_user_code_exist():
+            raise exceptions.ValidationException({'user_code': messages.NOT_EXIST})
 
     def extra_validate_to_get_test(self):
-        if hasattr(self, '_id') and not self.is_id_exist():
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.ValidationException({'main': messages.TEST_NOT_FOUND})
+
+    def extra_validate_to_update_test(self):
+        if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.ValidationException({'main': messages.TEST_NOT_FOUND})
