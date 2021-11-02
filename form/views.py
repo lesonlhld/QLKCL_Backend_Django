@@ -1,3 +1,6 @@
+import os
+import datetime
+from random import randint
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from utils import validators
@@ -203,25 +206,37 @@ class MedicalDeclarationAPI(AbstractView):
 class TestAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
+    def custom_test_code_generator(self, user_code):
+        first_part_length = int(os.environ.get("TEST_CODE_USER_CODE_LENGTH", "3"))
+        first_part = ('0000000000' + str(user_code))[-first_part_length:]
+        
+        second_part_length = int(os.environ.get("TEST_CODE_TIMESTAMP_LENGTH", "6"))
+        second_part = ('0000000000' + str(int(datetime.datetime.now().timestamp())))[-second_part_length:]
+
+        third_part_length = int(os.environ.get("TEST_CODE_RANDOM_LENGTH", "6"))
+        third_part = ''.join(str(randint(0, 9)) for i in range(third_part_length))
+
+        return first_part + second_part + third_part
+
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)
     def create_test(self, request):
         """Create a test
 
         Args:
-            - user_id: String
+            - user_code: String
             - status: String ['WAITING', 'DONE']
             - type: String ['QUICK', 'RT-PCR']
             - result: String ['NONE', 'NEGATIVE', 'POSITIVE']
         """
 
         accept_fields = [
-            'user_id', 'status', 'type',
+            'user_code', 'status', 'type',
             'result',
         ]
 
         require_fields = [
-            'user_id', 'status', 'type',
+            'user_code', 'status', 'type',
             'result',
         ]
 
@@ -243,13 +258,16 @@ class TestAPI(AbstractView):
             validator.extra_validate_to_create_test()
 
             list_to_create_test = [key for key in accepted_fields.keys()]
-            list_to_create_test = set(list_to_create_test) - {'user_id'}
+            list_to_create_test = set(list_to_create_test) - {'user_code'}
             list_to_create_test = list(list_to_create_test) + ['user']
 
             dict_to_create_test = validator.get_data(list_to_create_test)
 
             test = Test(**dict_to_create_test)
 
+            test.code = self.custom_test_code_generator(test.user.code)
+            while (validator.is_code_exist(test.code)):
+                test.code = self.custom_test_code_generator(test.user.code)
             test.created_by = request.user
             test.save()
 
@@ -265,15 +283,15 @@ class TestAPI(AbstractView):
         """Get a test
 
         Args:
-            + id: String
+            + code: String
         """
 
         accept_fields = [
-            'id',
+            'code',
         ]
 
         require_fields = [
-            'id',
+            'code',
         ]
 
         try:
@@ -292,6 +310,63 @@ class TestAPI(AbstractView):
             validator.extra_validate_to_get_test()
 
             test = validator.get_field('test')
+
+            serializer = TestSerializer(test, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='update', detail=False)
+    def update_test(self, request):
+        """Update a test
+
+        Args:
+            + code: String
+            - status: String ['WAITING', 'DONE']
+            - type: String ['QUICK', 'RT-PCR']
+            - result: String ['NONE', 'NEGATIVE', 'POSITIVE']
+        """
+
+        accept_fields = [
+            'code', 'status', 'type',
+            'result',
+        ]
+
+        require_fields = [
+            'code',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = TestValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields([
+                'status', 'type', 'result',
+            ])
+            
+            validator.extra_validate_to_update_test()
+
+            test = validator.get_field('test')
+
+            list_to_update_test = [key for key in accepted_fields.keys()]
+            list_to_update_test = set(list_to_update_test) - {'code'}
+
+            dict_to_update_test = validator.get_data(list_to_update_test)
+
+            for attr, value in dict_to_update_test.items(): 
+                setattr(test, attr, value)
+
+            test.updated_by = request.user
+            test.save()
 
             serializer = TestSerializer(test, many=False)
 

@@ -1,3 +1,5 @@
+import os
+from random import randint
 from django.db import models
 from user_account.models import CustomUser
 from utils.enums import SymptomType, TestStatus, TestResult, TestType
@@ -59,9 +61,17 @@ class MedicalDeclaration(models.Model):
         blank=True,
     )
 
+def test_code_generator():
+    return ''.join(str(randint(0, 9)) for i in range(int(os.environ.get("TEST_CODE_LENGTH", '15'))))
+
 class Test(models.Model):
 
-    code = models.CharField(max_length=32, null=True, blank=True)
+    code = models.CharField(
+        max_length=32,
+        unique=True,
+        default=test_code_generator,
+        null=False,
+    )
 
     status = models.CharField(
         max_length=16,
