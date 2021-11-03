@@ -42,9 +42,6 @@ class CustomUserManager(BaseUserManager):
         """
         Create and save a Administrator with the given phone number and password.
         """
-        extra_fields.setdefault('admin', True)
-        extra_fields.setdefault('staff', True)
-
         role = None
         try:
             role = validators.ModelInstanceExistenceValidator.valid(
@@ -57,8 +54,6 @@ class CustomUserManager(BaseUserManager):
         
         extra_fields.setdefault('role', role)
 
-        if not (extra_fields.get('admin') and extra_fields.get('staff')):
-            raise ValueError('Superuser must have admin=True, staff=True')
         return self.create_user(phone_number, password, **extra_fields)
 
     def delete_user(self, phone_number):
@@ -163,12 +158,6 @@ class CustomUser(AbstractBaseUser):
         null=True,
         blank=True,
     )
-
-    # Don't care about two field
-
-    admin = models.BooleanField(default=False, null=False) # a superuser
-
-    staff = models.BooleanField(default=False, null=False) # a admin user; non super-user
 
     role = models.ForeignKey(
         to='role.Role',
