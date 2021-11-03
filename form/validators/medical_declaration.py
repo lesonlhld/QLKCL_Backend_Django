@@ -4,7 +4,7 @@ from user_account.models import CustomUser
 from form.models import Symptom
 from utils import validators, messages, exceptions
 from utils.enums import SymptomType
-from utils.tools import split_input_list
+from utils.tools import split_input_list, date_string_to_timestamp
 
 class MedicalDeclarationValidator(validators.AbstractRequestValidate):
 
@@ -98,10 +98,22 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def is_user_code_exist(self):
+        if hasattr(self, '_user_code'):
+            try:
+                self._user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(code=self._user_code),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
     def is_phone_number_exist(self):
         if hasattr(self, '_phone_number'):
             try:
-                self._custom_user = validators.ModelInstanceExistenceValidator.valid(
+                self._user = validators.ModelInstanceExistenceValidator.valid(
                     model_cls=CustomUser,
                     query_expr=Q(phone_number=self._phone_number),
                 )
@@ -117,3 +129,13 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
     def extra_validate_to_get_medical_declaration(self):
         if hasattr(self, '_id') and not self.is_id_exist():
             raise exceptions.ValidationException({'id': messages.NOT_EXIST})
+
+    def extra_validate_to_filter_medical_declaration(self):
+        if hasattr(self, '_user_code') and not self.is_user_code_exist():
+            raise exceptions.ValidationException({'main': messages.USER_NOT_FOUND})
+        if hasattr(self, '_created_at_max'):
+            validators.DateStringValidator.valid(self._created_at_max, message={'created_at_max': messages.INVALID})
+            self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
+        if hasattr(self, '_created_at_min'):
+            validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
+            self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)

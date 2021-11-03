@@ -1,4 +1,7 @@
 import re
+import datetime
+from datetime import timezone
+import pytz
 
 def split_input_list(str_list):
     """
@@ -17,6 +20,17 @@ def split_input_list(str_list):
     new_list = [s for s in new_list if s != '']
 
     return new_list
+
+def date_string_to_timestamp(date, option=0):
+    newday = datetime.datetime.strptime(date, '%d/%m/%Y')
+
+    if option==1:
+        newday += datetime.timedelta(days=1)
+
+    day = ('0' + str(newday.day))[-2:]
+    month = ('0' + str(newday.month))[-2:]
+    year = ('000' + str(newday.year))[-4:]
+    return f'{year}-{month}-{day} 00:00:00+07'
 
 def room_to_quarantine_ward(room):
     """

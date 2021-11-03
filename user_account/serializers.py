@@ -25,7 +25,7 @@ class BaseCustomUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['full_name']
+        fields = ['full_name', 'birthday']
 
 class MemberSerializer(serializers.ModelSerializer):
 
