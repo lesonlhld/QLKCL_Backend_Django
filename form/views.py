@@ -3,13 +3,20 @@ import datetime
 from random import randint
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from utils import validators
+from utils.views import paginate_data
 from rest_framework import permissions
 from rest_framework.decorators import action
 from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test
 from .validators.medical_declaration import MedicalDeclarationValidator
 from .validators.test import TestValidator
-from .serializers import MedicalDeclarationSerializer, TestSerializer
+from .serializers import (
+    MedicalDeclarationSerializer,
+    FilterMedicalDeclarationSerializer,
+    TestSerializer,
+    FilterTestSerializer,
+)
+from .filters.medical_declaration import MedicalDeclarationFilter
+from .filters.test import TestFilter
 from utils import exceptions, messages
 from utils.enums import SymptomType
 from utils.views import AbstractView
@@ -151,7 +158,7 @@ class MedicalDeclarationAPI(AbstractView):
             
             for_user = request.user
             if 'phone_number' in accepted_fields.keys():
-                for_user = validator.get_field('custom_user')
+                for_user = validator.get_field('user')
 
             medical_declaration.user = for_user
             medical_declaration.created_by = request.user
@@ -200,6 +207,62 @@ class MedicalDeclarationAPI(AbstractView):
             serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
 
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_medical_declaration(self, request):
+        """Get a list of medical declarations
+
+        Args:
+            - user_code: String
+            - created_at_max: String 'dd/mm/yyyy'
+            - created_at_min: String 'dd/mm/yyyy'
+            - page: int
+            - page_size: int
+            - search: String
+        """
+
+        accept_fields = [
+            'user_code', 'page', 'page_size', 'search',
+            'created_at_max', 'created_at_min',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = MedicalDeclarationValidator(**accepted_fields)
+
+            validator.extra_validate_to_filter_medical_declaration()
+
+            query_set = MedicalDeclaration.objects.all()
+
+            list_to_filter_medical_declaration = [key for key in accepted_fields.keys()]
+            list_to_filter_medical_declaration = set(list_to_filter_medical_declaration) - \
+            {'page', 'page_size'}
+
+            dict_to_filter_medical_declaration = validator.get_data(list_to_filter_medical_declaration)
+
+            dict_to_filter_medical_declaration.setdefault('order_by', '-created_at')
+
+            filter = MedicalDeclarationFilter(dict_to_filter_medical_declaration, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = FilterMedicalDeclarationSerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
+
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
@@ -371,5 +434,64 @@ class TestAPI(AbstractView):
             serializer = TestSerializer(test, many=False)
 
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_test(self, request):
+        """Get a list of tests
+
+        Args:
+            - user_code: String
+            - status: String ['WAITING', 'DONE']
+            - created_at_max: String 'dd/mm/yyyy'
+            - created_at_min: String 'dd/mm/yyyy'
+            - page: int
+            - page_size: int
+            - search: String
+        """
+
+        accept_fields = [
+            'user_code', 'status',
+            'created_at_max', 'created_at_min',
+            'page', 'page_size', 'search',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = TestValidator(**accepted_fields)
+
+            validator.is_valid_fields(['status'])
+            validator.extra_validate_to_filter_test()
+
+            query_set = Test.objects.all()
+
+            list_to_filter_test = [key for key in accepted_fields.keys()]
+            list_to_filter_test = set(list_to_filter_test) - \
+            {'page', 'page_size'}
+
+            dict_to_filter_test = validator.get_data(list_to_filter_test)
+
+            dict_to_filter_test.setdefault('order_by', '-created_at')
+
+            filter = TestFilter(dict_to_filter_test, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = FilterTestSerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
+
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)

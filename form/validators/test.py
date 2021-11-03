@@ -4,7 +4,7 @@ from user_account.models import CustomUser
 from form.models import Symptom
 from utils import validators, messages, exceptions
 from utils.enums import TestStatus, TestType, TestResult
-from utils.tools import split_input_list
+from utils.tools import split_input_list, date_string_to_timestamp
 
 class TestValidator(validators.AbstractRequestValidate):
 
@@ -83,3 +83,14 @@ class TestValidator(validators.AbstractRequestValidate):
     def extra_validate_to_update_test(self):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.ValidationException({'main': messages.TEST_NOT_FOUND})
+
+    def extra_validate_to_filter_test(self):
+        if hasattr(self, '_user_code') and not self.is_user_code_exist():
+            raise exceptions.ValidationException({'main': messages.USER_NOT_FOUND})
+        if hasattr(self, '_created_at_max'):
+            validators.DateStringValidator.valid(self._created_at_max, message={'created_at_max': messages.INVALID})
+            self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
+        if hasattr(self, '_created_at_min'):
+            validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
+            self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)
+        

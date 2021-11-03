@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from django.core.exceptions import (
     ValidationError,
@@ -5,10 +6,74 @@ from django.core.exceptions import (
 )
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.core.paginator import Paginator
 from rest_framework import viewsets
 from . import messages, exceptions
 
 # Create your views here.
+
+def paginate_data(request, data):
+    """
+    Function to handle pagination data.
+
+    Params:
+
+    data: array data.
+
+    request: request object that contain paginate info
+
+    page: page to show (Default is 1).
+
+    page_size: Defaults is 10 (PAGE_SIZE=10).
+
+    Return a JSON data:
+
+    response_data = {
+        "totalRows": total,
+        "totalPages": total_pages,
+        "currentPage": page_number,
+        "content": content
+    }
+    """
+
+    PAGE_SIZE = int(os.environ.get("PAGE_SIZE"))
+    PAGE_SIZE_MAX = int(os.environ.get("PAGE_SIZE_MAX"))
+
+    page = int(request.data.get("page", 1))
+    page_size = int(request.data.get("page_size", PAGE_SIZE))
+
+    # Handle page_size = 'all'
+    # page_size = 0 for get all
+    if page_size == 0:
+        page_size = len(data) + 1
+    elif page_size < 0:
+        raise ValueError({'main': messages.NEGATIVE_PAGE_SIZE})
+    elif page_size > PAGE_SIZE_MAX:
+        raise ValueError({'main': messages.OVER_PAGE_SIZE_MAX + PAGE_SIZE_MAX})
+
+    paginator = Paginator(data, page_size)
+
+    total_pages = paginator.num_pages
+
+    if int(total_pages) < page:
+        page_number = page
+        content = []
+    else:
+        current_page = paginator.page(page)
+        page_number = current_page.number
+        content = current_page.object_list
+
+    total = paginator.count
+
+    response_data = {
+        "totalRows": total,
+        "totalPages": total_pages,
+        "currentPage": page_number,
+        "content": content,
+        "pageSize": page_size,
+    }
+
+    return response_data
 
 class JsonResponseHandler:
 
@@ -36,7 +101,7 @@ class ExceptionHandler:
             exceptions.NotFoundException: (400, exception.message) if hasattr(exception, 'message') else (400, str(exception)),
             exceptions.AuthenticationException: (401, str(exception)),
             ValidationError: (400, messages.INVALID_ARGUMENT),
-            ValueError: (400, str(exception)),
+            ValueError: (400, exception.message) if hasattr(exception, 'message') else (400, str(exception)),
             FieldError: (400, messages.FIELD_NOT_SUPPORT),
             KeyError: (400, messages.FIELD_NOT_SUPPORT),
             exceptions.NetworkException: (500, str(exception)),
