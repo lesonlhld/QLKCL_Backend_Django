@@ -2,6 +2,7 @@ import os
 from random import randint
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
+from django.db.models import Q
 from address.models import Country, City, District, Ward
 from role.models import Role
 from utils.enums import (
@@ -13,6 +14,7 @@ from utils.enums import (
     HealthStatus,
     Disease,
 )
+from utils import validators
 
 def user_code_generator():
     return ''.join(str(randint(0, 9)) for i in range(int(os.environ.get("USER_CODE_LENGTH", '15'))))
@@ -42,6 +44,18 @@ class CustomUserManager(BaseUserManager):
         """
         extra_fields.setdefault('admin', True)
         extra_fields.setdefault('staff', True)
+
+        role = None
+        try:
+            role = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=Role,
+                query_expr=Q(name='ADMINISTRATOR'),
+            )
+        except Exception as exception:
+            role = Role(name='ADMINISTRATOR')
+            role.save()
+        
+        extra_fields.setdefault('role', role)
 
         if not (extra_fields.get('admin') and extra_fields.get('staff')):
             raise ValueError('Superuser must have admin=True, staff=True')
