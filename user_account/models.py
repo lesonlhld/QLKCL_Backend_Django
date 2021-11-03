@@ -1,5 +1,8 @@
+import os
+from random import randint
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.db import models
+from django.db.models import Q
 from address.models import Country, City, District, Ward
 from role.models import Role
 from utils.enums import (
@@ -11,6 +14,10 @@ from utils.enums import (
     HealthStatus,
     Disease,
 )
+from utils import validators
+
+def user_code_generator():
+    return ''.join(str(randint(0, 9)) for i in range(int(os.environ.get("USER_CODE_LENGTH", '15'))))
 
 # Create your models here.
 
@@ -35,11 +42,18 @@ class CustomUserManager(BaseUserManager):
         """
         Create and save a Administrator with the given phone number and password.
         """
-        extra_fields.setdefault('admin', True)
-        extra_fields.setdefault('staff', True)
+        role = None
+        try:
+            role = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=Role,
+                query_expr=Q(name='ADMINISTRATOR'),
+            )
+        except Exception as exception:
+            role = Role(name='ADMINISTRATOR')
+            role.save()
+        
+        extra_fields.setdefault('role', role)
 
-        if not (extra_fields.get('admin') and extra_fields.get('staff')):
-            raise ValueError('Superuser must have admin=True, staff=True')
         return self.create_user(phone_number, password, **extra_fields)
 
     def delete_user(self, phone_number):
@@ -52,6 +66,13 @@ class CustomUser(AbstractBaseUser):
 
     USERNAME_FIELD = 'phone_number'
     REQUIRED_FIELDS = [] # Phone number & Password are required by default.
+
+    code = models.CharField(
+        max_length=18,
+        unique=True,
+        default=user_code_generator,
+        null=False,
+    )
 
     email = models.EmailField(
         verbose_name='email address',
@@ -121,7 +142,7 @@ class CustomUser(AbstractBaseUser):
 
     passport_number = models.CharField(max_length=12, null=True, blank=True)
 
-    verified = models.BooleanField(default=False, null=False)
+    email_verified = models.BooleanField(default=False, null=False)
 
     status = models.CharField(
         max_length=32,
@@ -137,12 +158,6 @@ class CustomUser(AbstractBaseUser):
         null=True,
         blank=True,
     )
-
-    # Don't care about two field
-
-    admin = models.BooleanField(default=False, null=False) # a superuser
-
-    staff = models.BooleanField(default=False, null=False) # a admin user; non super-user
 
     role = models.ForeignKey(
         to='role.Role',

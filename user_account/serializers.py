@@ -21,6 +21,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         exclude = ['password']
 
+class BaseCustomUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = ['full_name', 'birthday']
+
 class MemberSerializer(serializers.ModelSerializer):
 
     quarantine_room = BaseQuarantineRoomSerializer(many=False)

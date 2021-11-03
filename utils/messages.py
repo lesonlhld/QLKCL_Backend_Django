@@ -12,32 +12,48 @@ EXIST = 'Exist'
 NOT_EXIST = 'Not exist'
 INVALID = 'Invalid'
 
-INVALID_PHONE_NUMBER = 'Invalid phone number'
+EMPTY = 'EMPTY'
+
+CANNOT_CONVERT_STRING_TO_INT = 'Cannot convert string to int'
+CANNOT_CONVERT_STRING_TO_FLOAT = 'Cannot convert string to float'
 
 CODE_EMPTY = 'Code must not be empty'
 NAME_EMPTY = 'Name must not be empty'
 ADDRESS_EMPTY = 'Address must not be empty'
 PHONE_EMPTY = 'Phone must not be empty'
+QUARANTINE_ROOM_EMPTY = 'Quarantine room must not empty'
 
 CODE_NOT_FOUND = 'Code is not exist'
-
-CODE_EXIST = 'Code is already exist'
-
-INVALID_POSITIVE_FLOAT = 'Value must be positive float'
-INVALID_POSITIVE_INTEGER = 'Value must be positive integer'
-
+USER_NOT_FOUND = 'User is not exist'
+MEMBER_NOT_FOUND = 'Member is not exist'
+TEST_NOT_FOUND = 'Test is not exist'
 COUNTRY_NOT_FOUND = 'Country code is not exist'
 CITY_NOT_FOUND = 'City code is not exist'
 DISTRICT_NOT_FOUND = 'District code is not exist'
 WARD_NOT_FOUND = 'Ward code is not exist'
-USER_NOT_FOUND = 'User is not exist'
 QUARANTINE_WARD_NOT_FOUND = 'Quarantine Ward is not exist'
 QUARANTINE_BUILDING_NOT_FOUND = 'Quarantine Building is not exist'
 QUARANTINE_FLOOR_NOT_FOUND = 'Quarantine Floor is not exist'
 QUARANTINE_ROOM_NOT_FOUND = 'Quarantine Room is not exist'
+
+CODE_EXIST = 'Code is already exist'
+
+INVALID_POSITIVE_FLOAT = 'Value must be positive float'
+INVALID_PHONE_NUMBER = 'Invalid phone number'
+
+# password
+TOO_SHORT = 'TOO_SHORT'
+ENTIRELY_NUMERIC = 'ENTIRELY_NUMERIC'
+MUST_CONTAIN_NUMBER = 'MUST_CONTAIN_NUMBER'
+MUST_CONTAIN_UPPERCASE_CHARACTERS = 'MUST_CONTAIN_UPPERCASE_CHARACTERS'
+MUST_CONTAIN_SPECIAL_CHARACTERS = 'MUST_CONTAIN_SPECIAL_CHARACTERS'
+INVALID_POSITIVE_INTEGER = 'Value must be positive integer'
 
 INVALID_STATUS = 'Invalid status'
 INVALID_TYPE = 'Invalid type'
 INVALID_QUARANTINE_TIME = 'Quarantine time must be positive float'
 INVALID_CAPACITY_NUMBER = 'Capacity number must be positive integer'
 
+# paging
+NEGATIVE_PAGE_SIZE = 'Page size must be integer'
+OVER_PAGE_SIZE_MAX = 'Page size must not be greater than '
