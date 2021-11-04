@@ -4,8 +4,8 @@ from address.models import Country, City, District, Ward
 from quarantine_ward.models import QuarantineWard, QuarantineRoom
 from form.models import BackgroundDisease
 from utils import validators, messages, exceptions
-from utils.enums import Gender, MemberLabel
-from utils.tools import split_input_list
+from utils.enums import Gender, MemberLabel, CustomUserStatus
+from utils.tools import split_input_list, date_string_to_timestamp
 
 class UserValidator(validators.AbstractRequestValidate):
 
@@ -49,6 +49,14 @@ class UserValidator(validators.AbstractRequestValidate):
                 value=self._label,
                 enum_cls=MemberLabel,
                 message={'label': messages.INVALID},
+            )
+
+    def is_validate_status(self):
+        if hasattr(self, '_status'):
+            self._status = validators.EnumValidator.valid(
+                value=self._status,
+                enum_cls=CustomUserStatus,
+                message={'status': messages.INVALID},
             )
 
     def is_validate_quarantined_at(self):
@@ -273,3 +281,12 @@ class UserValidator(validators.AbstractRequestValidate):
                 if hasattr(user, 'member_x_custom_user') and not user.member_x_custom_user.quarantine_room:
                     raise exceptions.ValidationException({'main': f'Member has code {code}: ' + messages.QUARANTINE_ROOM_EMPTY})
                 self._members += [user]
+
+    def extra_validate_to_filter_member(self):
+        self._role_name = 'MEMBER'
+        if hasattr(self, '_created_at_max'):
+            validators.DateStringValidator.valid(self._created_at_max, message={'created_at_max': messages.INVALID})
+            self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
+        if hasattr(self, '_created_at_min'):
+            validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
+            self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)

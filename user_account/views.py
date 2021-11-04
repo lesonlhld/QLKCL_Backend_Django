@@ -6,11 +6,12 @@ from rest_framework import permissions
 from rest_framework.decorators import action
 from .validators.user import UserValidator
 from .models import CustomUser, Member
-from .serializers import CustomUserSerializer, MemberSerializer
+from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer
+from .filters.user import UserFilter
 from role.models import Role
 from utils import exceptions, messages
 from utils.enums import CustomUserStatus
-from utils.views import AbstractView
+from utils.views import AbstractView, paginate_data
 
 # Create your views here.
 
@@ -444,5 +445,65 @@ class MemberAPI(AbstractView):
                 member.save()
             
             return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_member(self, request):
+        """Get a list of members
+
+        Args:
+            - status: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE']
+            - created_at_max: String 'dd/mm/yyyy'
+            - created_at_min: String 'dd/mm/yyyy'
+            - page: int
+            - page_size: int
+            - search: String
+        """
+
+        accept_fields = [
+            'status',
+            'created_at_max', 'created_at_min',
+            'page', 'page_size', 'search',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+
+            validator.is_valid_fields(['status'])
+            validator.extra_validate_to_filter_member()
+
+            query_set = CustomUser.objects.all()
+
+            list_to_filter_user = [key for key in accepted_fields.keys()]
+            list_to_filter_user = set(list_to_filter_user) - \
+            {'page', 'page_size'}
+            list_to_filter_user = list(list_to_filter_user) + \
+            ['role_name']
+
+            dict_to_filter_user = validator.get_data(list_to_filter_user)
+
+            dict_to_filter_user.setdefault('order_by', '-created_at')
+
+            filter = UserFilter(dict_to_filter_user, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = FilterMemberSerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
+
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)

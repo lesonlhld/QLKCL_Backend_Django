@@ -1,6 +1,6 @@
 import re
 import datetime
-from datetime import timezone
+from datetime import time, timezone
 import pytz
 
 def split_input_list(str_list):
@@ -31,6 +31,10 @@ def date_string_to_timestamp(date, option=0):
     month = ('0' + str(newday.month))[-2:]
     year = ('000' + str(newday.year))[-4:]
     return f'{year}-{month}-{day} 00:00:00+07'
+
+def timestamp_string_to_date_string(timestamp_string):
+    timestamp_string = str(timestamp_string)
+    return timestamp_string[8:10] + '/' + timestamp_string[5:7] + '/' + timestamp_string[0:4]
 
 def room_to_quarantine_ward(room):
     """
