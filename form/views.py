@@ -447,6 +447,8 @@ class TestAPI(AbstractView):
             - status: String ['WAITING', 'DONE']
             - created_at_max: String 'dd/mm/yyyy'
             - created_at_min: String 'dd/mm/yyyy'
+            - updated_at_max: String 'dd/mm/yyyy'
+            - updated_at_min: String 'dd/mm/yyyy'
             - page: int
             - page_size: int
             - search: String
@@ -455,6 +457,7 @@ class TestAPI(AbstractView):
         accept_fields = [
             'user_code', 'status',
             'created_at_max', 'created_at_min',
+            'updated_at_max', 'updated_at_min',
             'page', 'page_size', 'search',
         ]
 

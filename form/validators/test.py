@@ -93,4 +93,10 @@ class TestValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_created_at_min'):
             validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
             self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)
+        if hasattr(self, '_updated_at_max'):
+            validators.DateStringValidator.valid(self._updated_at_max, message={'updated_at_max': messages.INVALID})
+            self._updated_at_max = date_string_to_timestamp(self._updated_at_max, 1)
+        if hasattr(self, '_updated_at_min'):
+            validators.DateStringValidator.valid(self._updated_at_min, message={'updated_at_min': messages.INVALID})
+            self._updated_at_min = date_string_to_timestamp(self._updated_at_min, 0)
         
