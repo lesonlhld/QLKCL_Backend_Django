@@ -1,16 +1,16 @@
 import django_filters
 from django.db.models import Q
-from ..models import Test
+from ..models import CustomUser, Member
 
-class TestFilter(django_filters.FilterSet):
-
-    user_code = django_filters.CharFilter(
-        field_name='user__code',
-        lookup_expr='iexact',
-    )
+class UserFilter(django_filters.FilterSet):
 
     status = django_filters.CharFilter(
         field_name='status',
+        lookup_expr='iexact',
+    )
+
+    role_name = django_filters.CharFilter(
+        field_name='role__name',
         lookup_expr='iexact',
     )
 
@@ -24,20 +24,9 @@ class TestFilter(django_filters.FilterSet):
         lookup_expr='lte',
     )
 
-    updated_at_min = django_filters.DateTimeFilter(
-        field_name='updated_at',
-        lookup_expr='gte',
-    )
-
-    updated_at_max = django_filters.DateTimeFilter(
-        field_name='updated_at',
-        lookup_expr='lte',
-    )
-
     order_by = django_filters.OrderingFilter(
         fields=(
             ('created_at', 'created_at'),
-            ('updated_at', 'updated_at'),
         ),
     )
 
@@ -45,12 +34,12 @@ class TestFilter(django_filters.FilterSet):
 
     def query_search(self, queryset, name, value):
         query = (
-            Q(user__full_name__icontains=value) |
+            Q(full_name__icontains=value) |
             Q(code__iexact=value)
         )
         qs = queryset.filter(query)
         return qs
 
     class Meta:
-        model = Test
+        model = CustomUser
         fields = []

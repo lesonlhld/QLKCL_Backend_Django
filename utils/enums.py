@@ -9,6 +9,7 @@ class QuarantineWardStatus(models.TextChoices):
 
 class CustomUserStatus(models.TextChoices):
     WAITING = 'WAITING'
+    REFUSED = 'REFUSED'
     LOCKED = 'LOCKED',
     AVAILABLE = 'AVAILABLE'
 
