@@ -2,8 +2,9 @@ import os
 import datetime
 from random import randint
 from django.views.decorators.csrf import csrf_exempt
+import rest_framework
 from rest_framework import permissions
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
 from .models import CustomUser, Member
 from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer
@@ -18,6 +19,11 @@ from utils.views import AbstractView, paginate_data
 class MemberAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'register_member':
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()
 
     def custom_user_code_generator(self, quarantine_ward_id):
         first_part_length = int(os.environ.get("USER_CODE_QUARANTINE_WARD_ID_LENGTH", "3"))
@@ -82,8 +88,6 @@ class MemberAPI(AbstractView):
             while (validator.is_code_exist(custom_user.code)):
                 custom_user.code = self.custom_user_code_generator(custom_user.quarantine_ward.id)
             
-            custom_user.created_by = request.user
-            custom_user.updated_by = request.user
             custom_user.role = Role.objects.get(name='MEMBER')
             custom_user.status = CustomUserStatus.WAITING
 
@@ -442,6 +446,8 @@ class MemberAPI(AbstractView):
 
             for member in members:
                 member.status = CustomUserStatus.AVAILABLE
+                member.created_by = request.user
+                member.updated_by = request.user
                 member.save()
             
             return self.response_handler.handle(data=messages.SUCCESS)
