@@ -90,6 +90,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
+            'code',
             'full_name', 'gender', 'birthday', 'quarantine_room',
             'phone_number', 'created_at',
             'quarantine_floor', 'quarantine_building', 'quarantine_ward',
