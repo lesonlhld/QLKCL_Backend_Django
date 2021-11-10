@@ -4,10 +4,7 @@ from address.serializers import (
     BaseCountrySerializer, BaseCitySerializer,
     BaseDistrictSerializer, BaseWardSerializer,
 )
-from quarantine_ward.serializers import (
-    BaseQuarantineRoomSerializer, BaseQuarantineFloorSerializer,
-    BaseQuarantineBuildingSerializer, BaseQuarantineWardSerializer,
-)
+
 from utils.tools import timestamp_string_to_date_string
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -27,6 +24,11 @@ class BaseCustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['full_name', 'birthday']
+        
+from quarantine_ward.serializers import (
+    BaseQuarantineRoomSerializer, BaseQuarantineFloorSerializer,
+    BaseQuarantineBuildingSerializer, BaseQuarantineWardSerializer,
+)
 
 class FilterMemberSerializer(serializers.ModelSerializer):
 
