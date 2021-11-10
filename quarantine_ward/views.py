@@ -1,6 +1,6 @@
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action
-from utils.views import AbstractView
+from utils.views import AbstractView, paginate_data
 from .models import (
     QuarantineWard,
     QuarantineBuilding,
@@ -12,7 +12,9 @@ from .serializers import (
     BaseQuarantineBuildingSerializer,
     BaseQuarantineFloorSerializer,
     BaseQuarantineRoomSerializer,
+    FilterQuarantineWardSerializer
 )
+from .filters.quarantine_ward import QuarantineWardFilter
 from .validators.quarantine_ward import QuarantineWardValidator
 from .validators.quarantine_building import QuarantineBuildingValidator
 from .validators.quarantine_floor import QuarantineFloorValidator
@@ -202,6 +204,60 @@ class QuarantineWardAPI (AbstractView):
 
             serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+    
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_quarantineward(self, request):
+        """Get a list of Quarantine Wards
+
+        Args:
+            - created_at_max: String 'dd/mm/yyyy'
+            - created_at_min: String 'dd/mm/yyyy'
+            - page: int
+            - page_size: int
+            - search: String
+        """
+
+        accept_fields = [
+            'page', 'page_size', 'search',
+            'created_at_max', 'created_at_min',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = QuarantineWardValidator(**accepted_fields)
+
+            validator.filter_validate()
+
+            query_set = QuarantineWard.objects.all()
+
+            list_to_filter = [key for key in accepted_fields.keys()]
+            list_to_filter = set(list_to_filter) - {'page', 'page_size'}
+
+            dict_to_filter = validator.get_data(list_to_filter)
+
+            dict_to_filter.setdefault('order_by', '-created_at')
+
+            filter = QuarantineWardFilter(dict_to_filter, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = FilterQuarantineWardSerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
+
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
