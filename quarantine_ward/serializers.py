@@ -8,22 +8,22 @@ class BaseQuarantineRoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineRoom
-        fields = ['name']
+        fields = ['id', 'name']
 
 class BaseQuarantineFloorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineFloor
-        fields = ['name']
+        fields = ['id', 'name']
 
 class BaseQuarantineBuildingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineBuilding
-        fields = ['name']
+        fields = ['id', 'name']
 
 class BaseQuarantineWardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineWard
-        fields = ['full_name']
+        fields = ['id', 'full_name']

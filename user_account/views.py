@@ -13,6 +13,7 @@ from role.models import Role
 from utils import exceptions, messages
 from utils.enums import CustomUserStatus
 from utils.views import AbstractView, paginate_data
+from utils.tools import date_string_to_timestamp, timestamp_string_to_date_string
 
 # Create your views here.
 
@@ -461,6 +462,9 @@ class MemberAPI(AbstractView):
 
         Args:
             - status: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE']
+            - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS']
+            - positive_test: boolean
+            - is_last_tested: boolean
             - created_at_max: String 'dd/mm/yyyy'
             - created_at_min: String 'dd/mm/yyyy'
             - page: int
@@ -469,7 +473,8 @@ class MemberAPI(AbstractView):
         """
 
         accept_fields = [
-            'status',
+            'status', 'health_status_list', 'positive_test',
+            'is_last_tested',
             'created_at_max', 'created_at_min',
             'page', 'page_size', 'search',
         ]
@@ -485,16 +490,16 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
 
-            validator.is_valid_fields(['status'])
+            validator.is_valid_fields(['status', 'positive_test', 'health_status_list', 'is_last_tested',])
             validator.extra_validate_to_filter_member()
 
             query_set = CustomUser.objects.all()
 
             list_to_filter_user = [key for key in accepted_fields.keys()]
             list_to_filter_user = set(list_to_filter_user) - \
-            {'page', 'page_size'}
+            {'is_last_tested', 'page', 'page_size'}
             list_to_filter_user = list(list_to_filter_user) + \
-            ['role_name']
+            ['last_tested', 'role_name']
 
             dict_to_filter_user = validator.get_data(list_to_filter_user)
 
