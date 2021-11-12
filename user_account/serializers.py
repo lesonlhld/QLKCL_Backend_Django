@@ -17,6 +17,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     city = BaseCitySerializer(many=False)
     district = BaseDistrictSerializer(many=False)
     ward = BaseWardSerializer(many=False)
+    quarantine_ward = BaseQuarantineWardSerializer(many=False)
 
     class Meta:
         model = CustomUser
