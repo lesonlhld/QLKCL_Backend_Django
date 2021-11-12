@@ -1,10 +1,12 @@
+import os
+import datetime
 from django.db.models import Q
 from ..models import CustomUser, Member
 from address.models import Country, City, District, Ward
 from quarantine_ward.models import QuarantineWard, QuarantineRoom
 from form.models import BackgroundDisease
 from utils import validators, messages, exceptions
-from utils.enums import Gender, MemberLabel, CustomUserStatus
+from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus
 from utils.tools import split_input_list, date_string_to_timestamp
 
 class UserValidator(validators.AbstractRequestValidate):
@@ -57,6 +59,30 @@ class UserValidator(validators.AbstractRequestValidate):
                 value=self._status,
                 enum_cls=CustomUserStatus,
                 message={'status': messages.INVALID},
+            )
+
+    def is_validate_positive_test(self):
+        if hasattr(self, '_positive_test'):
+            self._positive_test = validators.BooleanValidator.valid(
+                value=self._positive_test,
+                message={'positive_test': messages.INVALID},
+            )
+
+    def is_validate_health_status_list(self):
+        if hasattr(self, '_health_status_list'):
+            self._new_health_status_list = split_input_list(self._health_status_list)
+            for item in self._new_health_status_list:
+                item = validators.EnumValidator.valid(
+                    value=item,
+                    enum_cls=HealthStatus,
+                    message={'health_status': messages.INVALID},
+                )
+
+    def is_validate_is_last_tested(self):
+        if hasattr(self, '_is_last_tested'):
+            self._is_last_tested = validators.BooleanValidator.valid(
+                value=self._is_last_tested,
+                message={'is_last_tested': messages.INVALID},
             )
 
     def is_validate_quarantined_at(self):
@@ -290,3 +316,11 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_created_at_min'):
             validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
             self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)
+        if hasattr(self, '_positive_test'):
+            if (self._positive_test):
+                self._positive_test = 'true'
+            else:
+                self._positive_test = 'false'
+        if hasattr(self, '_is_last_tested') and self._is_last_tested:
+            test_day = int(os.environ.get('TEST_DAY', 5))
+            self._last_tested = str(datetime.datetime.now() - datetime.timedelta(days=test_day))

@@ -11,7 +11,7 @@ class BaseCountrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Country
-        fields = ['name']
+        fields = ['id', 'code', 'name']
 
 
 class CitySerializer(serializers.ModelSerializer):
@@ -24,7 +24,7 @@ class BaseCitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = City
-        fields = ['name']
+        fields = ['id', 'name']
 
 class DistrictSerializer(serializers.ModelSerializer):
 
@@ -36,7 +36,7 @@ class BaseDistrictSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = District
-        fields = ['name']
+        fields = ['id', 'name']
 
 class WardSerializer(serializers.ModelSerializer):
 
@@ -48,4 +48,4 @@ class BaseWardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ward
-        fields = ['name']
+        fields = ['id', 'name']
