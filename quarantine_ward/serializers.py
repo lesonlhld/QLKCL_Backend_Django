@@ -1,33 +1,39 @@
 from rest_framework import serializers
+from user_account.models import CustomUser
 from .models import (
     QuarantineWard, QuarantineBuilding,
     QuarantineFloor, QuarantineRoom,
 )
-from user_account.serializers import BaseCustomUserSerializer
+
+class BaseCustomUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = ['code', 'full_name', 'birthday']
 
 class BaseQuarantineRoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineRoom
-        fields = '__all__'
+        fields = ['id', 'name']
 
 class BaseQuarantineFloorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineFloor
-        fields = '__all__'
+        fields = ['id', 'name']
 
 class BaseQuarantineBuildingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineBuilding
-        fields = '__all__'
+        fields = ['id', 'name']
 
 class BaseQuarantineWardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineWard
-        fields = '__all__'
+        fields = ['id', 'full_name']
 
 class QuarantineWardWithBuildingSerializer(serializers.ModelSerializer):
 
@@ -68,6 +74,3 @@ class FilterQuarantineRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuarantineRoom
         fields = ['id', 'name', 'capacity', 'quarantine_floor']
-
-
-    
