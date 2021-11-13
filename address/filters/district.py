@@ -1,11 +1,11 @@
 import django_filters
 from django.db.models import Q
-from ..models import City
+from ..models import District
 
-class CityFilter(django_filters.FilterSet):
+class DistrictFilter(django_filters.FilterSet):
 
-    country_code = django_filters.CharFilter(
-        field_name='country__code',
+    city_id = django_filters.CharFilter(
+        field_name='city__id',
         lookup_expr='iexact',
     )
 
@@ -19,5 +19,5 @@ class CityFilter(django_filters.FilterSet):
         return qs
 
     class Meta:
-        model = City
+        model = District
         fields = []
