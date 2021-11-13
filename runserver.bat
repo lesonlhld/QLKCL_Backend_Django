@@ -20,6 +20,9 @@ python manage.py runserver
 @REM heroku run python manage.py migrate
 @REM heroku git:remote -a qlkcl
 @REM heroku run bash
+@REM heroku pg:psql -a <application_name>
+@REM \encoding UTF8
+@REM \copy address_city FROM 'C:\Users\leson\Downloads\city.csv' (format csv, header true, delimiter ',', encoding 'UTF8');
 
 
 @REM pip install virtualenv
