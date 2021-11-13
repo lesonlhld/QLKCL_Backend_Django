@@ -3,8 +3,13 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action
 from .models import Country, City, District, Ward
-from .serializers import CountrySerializer, CitySerializer, DistrictSerializer, WardSerializer
+from .serializers import (
+    CountrySerializer, CitySerializer, DistrictSerializer, WardSerializer,
+    BaseCitySerializer,
+)
 from .validators.country import CountryValidator
+from .validators.city import CityValidator
+from .filters.city import CityFilter
 from utils import exceptions, messages
 from utils.views import AbstractView
 
@@ -24,6 +29,7 @@ class CountryAPI(AbstractView):
         """
 
         try:
+            return self.response_handler.handle(data=messages.INVALID)
             user = request.user
             if not user.role.name == 'ADMINISTRATOR':
                 raise exceptions.AuthenticationException()
@@ -281,6 +287,59 @@ class CountryAPI(AbstractView):
             list_country = Country.objects.all()
 
             serializer = CountrySerializer(list_country, many=True)
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class CityAPI(AbstractView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_city(self, request):
+        """List all City
+
+        Args:
+            + country_code: String
+            - search: String
+        """
+
+        accept_fields = [
+            'country_code', 'search',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = CityValidator(**accepted_fields)
+
+            validator.is_missing_fields(['country_code',])
+            validator.extra_validate_to_filter_city()
+
+            query_set = City.objects.all()
+
+            list_to_filter_city = [key for key in accepted_fields.keys()]
+            list_to_filter_city = list_to_filter_city + \
+            [
+                'country_code',
+            ]
+
+            dict_to_filter_city = validator.get_data(list_to_filter_city)
+
+            filter = CityFilter(dict_to_filter_city, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = BaseCitySerializer(query_set, many=True)
+
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)

@@ -8,10 +8,10 @@ from .models import (
     QuarantineRoom,
 )
 from .serializers import (
-    BaseQuarantineWardSerializer,
-    BaseQuarantineBuildingSerializer,
-    BaseQuarantineFloorSerializer,
-    BaseQuarantineRoomSerializer,
+    QuarantineWardSerializer,
+    QuarantineBuildingSerializer,
+    QuarantineFloorSerializer,
+    QuarantineRoomSerializer,
     FilterQuarantineWardSerializer,
     FilterQuarantineBuildingSerializer,
     FilterQuarantineFloorSerializer,
@@ -60,7 +60,7 @@ class QuarantineWardAPI (AbstractView):
 
             quarantine_ward = validator.get_field('id')
 
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -116,7 +116,7 @@ class QuarantineWardAPI (AbstractView):
             quarantine_ward = QuarantineWard(**dict_to_create)
             quarantine_ward.save()
 
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -170,7 +170,7 @@ class QuarantineWardAPI (AbstractView):
             dict_to_update = validator.get_data(list_to_update)
             quarantine_ward.__dict__.update(**dict_to_update)
             quarantine_ward.save()
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -208,7 +208,7 @@ class QuarantineWardAPI (AbstractView):
             quarantine_ward = validator.get_field('id')
             quarantine_ward.delete()
 
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -301,7 +301,7 @@ class QuarantineBuildingAPI (AbstractView):
 
             quarantine_building = validator.get_field('id')
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -342,7 +342,7 @@ class QuarantineBuildingAPI (AbstractView):
             quarantine_building = QuarantineBuilding(**dict_to_create)
             quarantine_building.save()
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -384,7 +384,7 @@ class QuarantineBuildingAPI (AbstractView):
             quarantine_building.__dict__.update(**dict_to_update)
             quarantine_building.save()
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -422,7 +422,7 @@ class QuarantineBuildingAPI (AbstractView):
             quarantine_building = validator.get_field('id')
             quarantine_building.delete()
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -515,7 +515,7 @@ class QuarantineFloorAPI (AbstractView):
 
             quarantine_floor = validator.get_field('id')
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -556,7 +556,7 @@ class QuarantineFloorAPI (AbstractView):
             quarantine_floor = QuarantineFloor(**dict_to_create)
             quarantine_floor.save()
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -598,7 +598,7 @@ class QuarantineFloorAPI (AbstractView):
             quarantine_floor.__dict__.update(**dict_to_update)
             quarantine_floor.save()
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -636,7 +636,7 @@ class QuarantineFloorAPI (AbstractView):
             quarantine_floor = validator.get_field('id')
             quarantine_floor.delete()
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -729,7 +729,7 @@ class QuarantineRoomAPI(AbstractView):
 
             quarantine_room = validator.get_field('id')
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -771,7 +771,7 @@ class QuarantineRoomAPI(AbstractView):
             quarantine_room = QuarantineRoom(**dict_to_create)
             quarantine_room.save()
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -814,7 +814,7 @@ class QuarantineRoomAPI(AbstractView):
             quarantine_room.__dict__.update(**dict_to_update)
             quarantine_room.save()
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -852,7 +852,7 @@ class QuarantineRoomAPI(AbstractView):
             quarantine_room = validator.get_field('id')
             quarantine_room.delete()
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
