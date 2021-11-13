@@ -135,7 +135,7 @@ class MemberAPI(AbstractView):
             - quarantine_room_id: int
             - label: String [‘F0’, ‘F1’, ‘F2’, ‘F3’]
             - quarantined_at: String 'dd/mm/yyyy'
-            + positive_tested_before: boolean
+            - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
         """
@@ -156,7 +156,6 @@ class MemberAPI(AbstractView):
             'birthday', 'gender', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'quarantine_ward_id',
-            'positive_tested_before',
         ]
 
         custom_user_fields = [
@@ -223,6 +222,7 @@ class MemberAPI(AbstractView):
 
             member = Member(**dict_to_create_member)
             member.custom_user = custom_user
+            member.quarantined_at = timestamp_string_to_date_string(datetime.datetime.now())
 
             custom_user.save()
             member.save()
@@ -416,7 +416,7 @@ class MemberAPI(AbstractView):
         """Accept some members
 
         Args:
-            + member_codes: String
+            + member_codes: String <code>,<code>
         """
 
         accept_fields = [
@@ -443,14 +443,63 @@ class MemberAPI(AbstractView):
 
             # accept members
 
-            members = validator.get_field('members')
+            custom_users = validator.get_field('members')
 
-            for member in members:
-                member.status = CustomUserStatus.AVAILABLE
-                member.created_by = request.user
-                member.updated_by = request.user
-                member.save()
+            for custom_user in custom_users:
+                custom_user.status = CustomUserStatus.AVAILABLE
+                if hasattr(custom_user, 'member_x_custom_user'):
+                    member = custom_user.member_x_custom_user
+                    member.quarantined_at = timestamp_string_to_date_string(datetime.datetime.now())
+                    member.save()
+                custom_user.created_by = request.user
+                custom_user.updated_by = request.user
+                custom_user.save()
             
+            return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='refuse', detail=False)
+    def refuse_members(self, request):
+        """Refuse some members
+
+        Args:
+            + member_codes: String <code>,<code>
+        """
+
+        accept_fields = [
+            'member_codes',
+        ]
+
+        require_fields = [
+            'member_codes',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+
+            validator.extra_validate_to_refuse_member()
+
+            # refuse members
+
+            custom_users = validator.get_field('members')
+
+            for custom_user in custom_users:
+                custom_user.status = CustomUserStatus.REFUSED
+                custom_user.created_by = request.user
+                custom_user.updated_by = request.user
+                custom_user.save()
+
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -464,7 +513,8 @@ class MemberAPI(AbstractView):
             - status: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE']
             - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS']
             - positive_test: boolean
-            - is_last_tested: boolean
+            - is_last_tested: boolean - True để lọc những người cách ly đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
+            - can_finish_quarantine: boolean - True để lọc những người cách ly có thể hoàn thành cách ly, False hoặc không truyền đồng nghĩa không lọc
             - created_at_max: String 'dd/mm/yyyy'
             - created_at_min: String 'dd/mm/yyyy'
             - page: int
@@ -474,7 +524,7 @@ class MemberAPI(AbstractView):
 
         accept_fields = [
             'status', 'health_status_list', 'positive_test',
-            'is_last_tested',
+            'is_last_tested', 'can_finish_quarantine',
             'created_at_max', 'created_at_min',
             'page', 'page_size', 'search',
         ]
@@ -490,7 +540,10 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
 
-            validator.is_valid_fields(['status', 'positive_test', 'health_status_list', 'is_last_tested',])
+            validator.is_valid_fields([
+                'status', 'positive_test', 'health_status_list', 'is_last_tested',
+                'can_finish_quarantine',
+                ])
             validator.extra_validate_to_filter_member()
 
             query_set = CustomUser.objects.all()
@@ -499,7 +552,10 @@ class MemberAPI(AbstractView):
             list_to_filter_user = set(list_to_filter_user) - \
             {'is_last_tested', 'page', 'page_size'}
             list_to_filter_user = list(list_to_filter_user) + \
-            ['last_tested', 'role_name']
+            [
+                'last_tested_max', 'role_name', 'quarantined_at_max',
+                'positive_test', 'health_status_list',
+            ]
 
             dict_to_filter_user = validator.get_data(list_to_filter_user)
 
