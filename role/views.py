@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action
 from .models import Role
+from .serializers import RoleSerializer
 from utils import exceptions, messages, validators
 from utils.views import AbstractView
 
@@ -65,5 +66,21 @@ class RoleAPI(AbstractView):
                 member_role.save()
 
             return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_role(self, request):
+        """Get a list of roles
+
+        Args:
+            None
+        """
+
+        try:
+            serializer = RoleSerializer(Role.objects.all(), many=True)
+
+            return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)

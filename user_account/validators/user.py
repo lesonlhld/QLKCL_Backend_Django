@@ -7,7 +7,7 @@ from quarantine_ward.models import QuarantineWard, QuarantineRoom
 from form.models import BackgroundDisease
 from utils import validators, messages, exceptions
 from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus
-from utils.tools import split_input_list, date_string_to_timestamp
+from utils.tools import split_input_list, date_string_to_timestamp, timestamp_string_to_date_string
 
 class UserValidator(validators.AbstractRequestValidate):
 
@@ -97,6 +97,13 @@ class UserValidator(validators.AbstractRequestValidate):
             self._positive_tested_before = validators.BooleanValidator.valid(
                 self._positive_tested_before,
                 message={'positive_tested_before': messages.INVALID},
+            )
+
+    def is_validate_can_finish_quarantine(self):
+        if hasattr(self, '_can_finish_quarantine'):
+            self._can_finish_quarantine = validators.BooleanValidator.valid(
+                self._can_finish_quarantine,
+                message={'can_finish_quarantine': messages.INVALID},
             )
         
     def is_validate_background_disease(self):
@@ -308,6 +315,16 @@ class UserValidator(validators.AbstractRequestValidate):
                     raise exceptions.ValidationException({'main': f'Member has code {code}: ' + messages.QUARANTINE_ROOM_EMPTY})
                 self._members += [user]
 
+    def extra_validate_to_refuse_member(self):
+        if hasattr(self, '_member_codes'):
+            self._member_codes = split_input_list(self._member_codes)
+            self._members = []
+            for code in self._member_codes:
+                user = self.get_user_by_code(code)
+                if not user:
+                    raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
+                self._members += [user]
+
     def extra_validate_to_filter_member(self):
         self._role_name = 'MEMBER'
         if hasattr(self, '_created_at_max'):
@@ -322,5 +339,12 @@ class UserValidator(validators.AbstractRequestValidate):
             else:
                 self._positive_test = 'false'
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
-            test_day = int(os.environ.get('TEST_DAY', 5))
-            self._last_tested = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
+            test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
+            self._last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
+        if hasattr(self, '_can_finish_quarantine'):
+            if self._can_finish_quarantine:
+                self._positive_test = 'false'
+                self._health_status_list = HealthStatus.NORMAL
+                quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
+                self._quarantined_at_max = datetime.datetime.now() - datetime.timedelta(days=quarantine_day)
+                self._quarantined_at_max = timestamp_string_to_date_string(str(self._quarantined_at_max))
