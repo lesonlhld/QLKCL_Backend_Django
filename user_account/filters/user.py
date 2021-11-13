@@ -1,8 +1,9 @@
 import datetime
 import django_filters
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from ..models import CustomUser, Member
-from utils.tools import split_input_list, timestamp_string_to_date_string
+from utils.tools import split_input_list, timestamp_string_to_date_string, compare_date_string
 
 class UserFilter(django_filters.FilterSet):
 
@@ -27,10 +28,25 @@ class UserFilter(django_filters.FilterSet):
         qs = queryset.filter(query)
         return qs
 
-    last_tested = django_filters.DateTimeFilter(
+    last_tested_max = django_filters.DateTimeFilter(
         field_name='member_x_custom_user__last_tested',
         lookup_expr='lte',
     )
+
+    quarantined_at_max = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_at', method='query_quarantined_at_max')
+
+    def query_quarantined_at_max(self, queryset, name, value):
+        new_query_set = queryset.exclude()
+
+        for custom_user in queryset:
+            if hasattr(custom_user, 'member_x_custom_user'):
+                date = custom_user.member_x_custom_user.quarantined_at
+                if date:
+                    if compare_date_string(date, value) == -1:
+                        continue
+            new_query_set = new_query_set.exclude(id=custom_user.id)
+
+        return new_query_set
 
     role_name = django_filters.CharFilter(
         field_name='role__name',
