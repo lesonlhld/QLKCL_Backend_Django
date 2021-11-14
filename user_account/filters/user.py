@@ -42,7 +42,52 @@ class UserFilter(django_filters.FilterSet):
             if hasattr(custom_user, 'member_x_custom_user'):
                 date = custom_user.member_x_custom_user.quarantined_at
                 if date:
-                    if compare_date_string(date, value) == -1:
+                    if compare_date_string(date, value) != 1:
+                        continue
+            new_query_set = new_query_set.exclude(id=custom_user.id)
+
+        return new_query_set
+
+    quarantined_at_min = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_at', method='query_quarantined_at_min')
+
+    def query_quarantined_at_min(self, queryset, name, value):
+        new_query_set = queryset.exclude()
+
+        for custom_user in queryset:
+            if hasattr(custom_user, 'member_x_custom_user'):
+                date = custom_user.member_x_custom_user.quarantined_at
+                if date:
+                    if compare_date_string(date, value) != -1:
+                        continue
+            new_query_set = new_query_set.exclude(id=custom_user.id)
+
+        return new_query_set
+
+    quarantined_finished_at_max = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_finished_at', method='query_quarantined_finished_at_max')
+
+    def query_quarantined_finished_at_max(self, queryset, name, value):
+        new_query_set = queryset.exclude()
+
+        for custom_user in queryset:
+            if hasattr(custom_user, 'member_x_custom_user'):
+                date = custom_user.member_x_custom_user.quarantined_finished_at
+                if date:
+                    if compare_date_string(date, value) != 1:
+                        continue
+            new_query_set = new_query_set.exclude(id=custom_user.id)
+
+        return new_query_set
+
+    quarantined_finished_at_min = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_finished_at', method='query_quarantined_finished_at_min')
+
+    def query_quarantined_finished_at_min(self, queryset, name, value):
+        new_query_set = queryset.exclude()
+
+        for custom_user in queryset:
+            if hasattr(custom_user, 'member_x_custom_user'):
+                date = custom_user.member_x_custom_user.quarantined_finished_at
+                if date:
+                    if compare_date_string(date, value) != -1:
                         continue
             new_query_set = new_query_set.exclude(id=custom_user.id)
 
