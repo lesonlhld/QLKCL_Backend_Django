@@ -3,8 +3,17 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action
 from .models import Country, City, District, Ward
-from .serializers import CountrySerializer, CitySerializer, DistrictSerializer, WardSerializer
+from .serializers import (
+    CountrySerializer, CitySerializer, DistrictSerializer, WardSerializer,
+    BaseCitySerializer, BaseDistrictSerializer, BaseWardSerializer,
+)
 from .validators.country import CountryValidator
+from .validators.city import CityValidator
+from .validators.district import DistrictValidator
+from .validators.ward import WardValidator
+from .filters.city import CityFilter
+from .filters.district import DistrictFilter
+from .filters.ward import WardFilter
 from utils import exceptions, messages
 from utils.views import AbstractView
 
@@ -24,6 +33,7 @@ class CountryAPI(AbstractView):
         """
 
         try:
+            return self.response_handler.handle(data=messages.INVALID)
             user = request.user
             if not user.role.name == 'ADMINISTRATOR':
                 raise exceptions.AuthenticationException()
@@ -281,6 +291,153 @@ class CountryAPI(AbstractView):
             list_country = Country.objects.all()
 
             serializer = CountrySerializer(list_country, many=True)
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class CityAPI(AbstractView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_city(self, request):
+        """List cities of country
+
+        Args:
+            + country_code: String
+            - search: String
+        """
+
+        accept_fields = [
+            'country_code', 'search',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = CityValidator(**accepted_fields)
+
+            validator.is_missing_fields(['country_code',])
+            validator.extra_validate_to_filter_city()
+
+            query_set = City.objects.all()
+
+            list_to_filter_city = [key for key in accepted_fields.keys()]
+
+            dict_to_filter_city = validator.get_data(list_to_filter_city)
+
+            filter = CityFilter(dict_to_filter_city, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = BaseCitySerializer(query_set, many=True)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class DistrictAPI(AbstractView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_district(self, request):
+        """List districts of city
+
+        Args:
+            + city_id: int
+            - search: String
+        """
+
+        accept_fields = [
+            'city_id', 'search',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = DistrictValidator(**accepted_fields)
+
+            validator.is_missing_fields(['city_id',])
+            validator.extra_validate_to_filter_district()
+
+            query_set = District.objects.all()
+
+            list_to_filter_district = [key for key in accepted_fields.keys()]
+
+            dict_to_filter_district = validator.get_data(list_to_filter_district)
+
+            filter = DistrictFilter(dict_to_filter_district, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = BaseDistrictSerializer(query_set, many=True)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class WardAPI(AbstractView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_ward(self, request):
+        """List wards of district
+
+        Args:
+            + district_id: int
+            - search: String
+        """
+
+        accept_fields = [
+            'district_id', 'search',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = WardValidator(**accepted_fields)
+
+            validator.is_missing_fields(['district_id',])
+            validator.extra_validate_to_filter_ward()
+
+            query_set = Ward.objects.all()
+
+            list_to_filter_ward = [key for key in accepted_fields.keys()]
+
+            dict_to_filter_ward = validator.get_data(list_to_filter_ward)
+
+            filter = WardFilter(dict_to_filter_ward, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = BaseWardSerializer(query_set, many=True)
+
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
