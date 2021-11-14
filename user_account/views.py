@@ -2,16 +2,17 @@ import os
 import datetime
 from random import randint
 from django.views.decorators.csrf import csrf_exempt
-import rest_framework
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
 from .models import CustomUser, Member
 from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer
 from .filters.user import UserFilter
+from form.models import Test
+from form.filters.test import TestFilter
 from role.models import Role
 from utils import exceptions, messages
-from utils.enums import CustomUserStatus
+from utils.enums import CustomUserStatus, HealthStatus, TestStatus
 from utils.views import AbstractView, paginate_data
 from utils.tools import date_string_to_timestamp, timestamp_string_to_date_string
 
@@ -572,5 +573,138 @@ class MemberAPI(AbstractView):
             paginated_data = paginate_data(request, serializer.data)
 
             return self.response_handler.handle(data=paginated_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class HomeAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='manager', detail=False)
+    def manager_home(self, request):
+        """Get informations to display home screen for manager
+
+        Args:
+            None
+        """
+
+        try:
+
+            users_query_set = CustomUser.objects.all()
+            tests_query_set = Test.objects.all()
+
+            # Calculate number of waiting users
+
+            dict_to_filter_waiting_users = {
+                'role_name': 'MEMBER',
+                'status': CustomUserStatus.WAITING,
+            }
+
+            filter = UserFilter(dict_to_filter_waiting_users, queryset=users_query_set)
+
+            number_of_waiting_users = filter.qs.count()
+
+            # Calculate number of suspected users
+
+            dict_to_filter_suspected_users = {
+                'role_name': 'MEMBER',
+                'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
+            }
+
+            filter = UserFilter(dict_to_filter_suspected_users, queryset=users_query_set)
+
+            number_of_suspected_users = filter.qs.count()
+
+            # Calculate number of need test users
+
+            test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
+            last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
+
+            dict_to_filter_need_test_users = {
+                'role_name': 'MEMBER',
+                'last_tested_max': last_tested_max,
+            }
+
+            filter = UserFilter(dict_to_filter_need_test_users, queryset=users_query_set)
+
+            number_of_need_test_users = filter.qs.count()
+
+            # Calculate number of can finish users
+
+            positive_test = 'false'
+            health_status_list = HealthStatus.NORMAL
+            quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
+            quarantined_at_max = datetime.datetime.now() - datetime.timedelta(days=quarantine_day)
+            quarantined_at_max = timestamp_string_to_date_string(str(quarantined_at_max))
+
+            dict_to_filter_can_finish_users = {
+                'role_name': 'MEMBER',
+                'positive_test': positive_test,
+                'health_status_list': health_status_list,
+                'quarantined_at_max': quarantined_at_max,
+            }
+
+            filter = UserFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
+
+            number_of_can_finish_users = filter.qs.count()
+
+            # Calculate number of waiting tests
+
+            dict_to_filter_waiting_tests = {
+                'status': TestStatus.WAITING,
+            }
+
+            filter = TestFilter(dict_to_filter_waiting_tests, queryset=tests_query_set)
+
+            number_of_waiting_tests = filter.qs.count()
+
+            # Calculate number of member 'in' today
+
+            dict_of_in_members = dict()
+
+            for day_sub in range(3):
+                day = datetime.datetime.now() - datetime.timedelta(days=day_sub)
+                day = timestamp_string_to_date_string(str(day))
+
+                dict_to_filter_in_members = {
+                    'role_name': 'MEMBER',
+                    'quarantined_at_max': day,
+                    'quarantined_at_min': day,
+                }
+
+                filter = UserFilter(dict_to_filter_in_members, queryset=users_query_set)
+
+                dict_of_in_members[f'{day}'] = filter.qs.count()
+
+            # Calculate number of member 'out' today
+
+            dict_of_out_members = dict()
+
+            for day_sub in range(3):
+                day = datetime.datetime.now() - datetime.timedelta(days=day_sub)
+                day = timestamp_string_to_date_string(str(day))
+
+                dict_to_filter_in_members = {
+                    'role_name': 'MEMBER',
+                    'quarantined_finished_at_max': day,
+                    'quarantined_finished_at_min': day,
+                }
+
+                filter = UserFilter(dict_to_filter_in_members, queryset=users_query_set)
+
+                dict_of_out_members[f'{day}'] = filter.qs.count()
+
+            response_data = {
+                'number_of_waiting_users': number_of_waiting_users,
+                'number_of_suspected_users': number_of_suspected_users,
+                'number_of_need_test_users': number_of_need_test_users,
+                'number_of_can_finish_users': number_of_can_finish_users,
+                'number_of_waiting_tests': number_of_waiting_tests,
+                'in': dict_of_in_members,
+                'out': dict_of_out_members,
+            }
+
+            return self.response_handler.handle(data=response_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
