@@ -10,25 +10,37 @@ def forwards_func(apps, schema_editor):
     users = CustomUser.objects.using(db_alias).all()
 
     for user in users:
-        if user.email:
-            test_users = CustomUser.objects.using(db_alias).filter(email=user.email)
-            if len(test_users) >= 2:
-                user.email = None
+        if user.email == '':
+            user.email = None
+        else:
+            if user.email != None:
+                test_users = CustomUser.objects.using(db_alias).filter(email=user.email)
+                if len(test_users) >= 2:
+                    user.email = None
 
-        if user.health_insurance_number:
-            test_users = CustomUser.objects.using(db_alias).filter(health_insurance_number=user.health_insurance_number)
-            if len(test_users) >= 2:
-                user.health_insurance_number = None
+        if user.health_insurance_number == '':
+            user.health_insurance_number = None
+        else:
+            if user.health_insurance_number != None:
+                test_users = CustomUser.objects.using(db_alias).filter(health_insurance_number=user.health_insurance_number)
+                if len(test_users) >= 2:
+                    user.health_insurance_number = None
 
-        if user.identity_number:
-            test_users = CustomUser.objects.using(db_alias).filter(identity_number=user.identity_number)
-            if len(test_users) >= 2:
-                user.identity_number = None
+        if user.identity_number == '':
+            user.identity_number = None
+        else:
+            if user.identity_number != None:
+                test_users = CustomUser.objects.using(db_alias).filter(identity_number=user.identity_number)
+                if len(test_users) >= 2:
+                    user.identity_number = None
 
-        if user.passport_number:
-            test_users = CustomUser.objects.using(db_alias).filter(passport_number=user.passport_number)
-            if len(test_users) >= 2:
-                user.passport_number = None
+        if user.passport_number == '':
+            user.passport_number = None
+        else:
+            if user.passport_number != None:
+                test_users = CustomUser.objects.using(db_alias).filter(passport_number=user.passport_number)
+                if len(test_users) >= 2:
+                    user.passport_number = None
         
         user.save()
 
