@@ -438,11 +438,13 @@ class QuarantineBuildingAPI (AbstractView):
             - page: int
             - page_size: int
             - search: String
+            - quarantine_ward: int (id)
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
             'created_at_max', 'created_at_min',
+            'quarantine_ward',
         ]
 
         try:
@@ -647,16 +649,15 @@ class QuarantineFloorAPI (AbstractView):
         """Get a list of Quarantine Floors
 
         Args:
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
             - page: int
             - page_size: int
             - search: String
+            - quarantine_building: int (id)
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
-            'created_at_max', 'created_at_min',
+            'quarantine_building',
         ]
 
         try:
@@ -863,16 +864,15 @@ class QuarantineRoomAPI(AbstractView):
         """Get a list of Quarantine Rooms
 
         Args:
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
             - page: int
             - page_size: int
             - search: String
+            - quarantine_floor: int (id)
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
-            'created_at_max', 'created_at_min',
+            'quarantine_floor',
         ]
 
         try:
