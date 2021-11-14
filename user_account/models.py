@@ -77,6 +77,7 @@ class CustomUser(AbstractBaseUser):
     email = models.EmailField(
         verbose_name='email address',
         max_length=254,
+        unique=True,
         null=True,
         blank=True,
     )
@@ -136,11 +137,11 @@ class CustomUser(AbstractBaseUser):
 
     detail_address = models.TextField(null=True, blank=True)
 
-    health_insurance_number = models.CharField(max_length=64, null=True, blank=True)
+    health_insurance_number = models.CharField(max_length=64, unique=True, null=True, blank=True)
 
-    identity_number = models.CharField(max_length=12, null=True, blank=True)
+    identity_number = models.CharField(max_length=12, unique=True, null=True, blank=True)
 
-    passport_number = models.CharField(max_length=12, null=True, blank=True)
+    passport_number = models.CharField(max_length=12, unique=True, null=True, blank=True)
 
     email_verified = models.BooleanField(default=False, null=False)
 
