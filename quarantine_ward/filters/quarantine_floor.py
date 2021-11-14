@@ -4,6 +4,11 @@ from ..models import QuarantineFloor
 
 class QuarantineFloorFilter(django_filters.FilterSet):
 
+    quarantine_building = django_filters.CharFilter(
+        field_name='quarantine_building__id',
+        lookup_expr='iexact',
+    )
+
     order_by = django_filters.OrderingFilter(
         fields=(
             ('name', 'name'),
