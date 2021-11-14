@@ -132,6 +132,114 @@ class UserValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def is_email_exist(self):
+        if hasattr(self, '_email'):
+            try:
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(email=self._email),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
+    def is_new_email_valid(self):
+        if hasattr(self, '_email'):
+            try:
+                found_user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(email=self._email),
+                )
+                if found_user == self._custom_user:
+                    return True
+                else:
+                    return False
+            except Exception as exception:
+                return True
+        return False
+
+    def is_health_insurance_number_exist(self):
+        if hasattr(self, '_health_insurance_number'):
+            try:
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(health_insurance_number=self._health_insurance_number),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
+    def is_new_health_insurance_number_valid(self):
+        if hasattr(self, '_health_insurance_number'):
+            try:
+                found_user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(health_insurance_number=self._health_insurance_number),
+                )
+                if found_user == self._custom_user:
+                    return True
+                else:
+                    return False
+            except Exception as exception:
+                return True
+        return False
+
+    def is_identity_number_exist(self):
+        if hasattr(self, '_identity_number'):
+            try:
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(identity_number=self._identity_number),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
+    def is_new_identity_number_valid(self):
+        if hasattr(self, '_identity_number'):
+            try:
+                found_user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(identity_number=self._identity_number),
+                )
+                if found_user == self._custom_user:
+                    return True
+                else:
+                    return False
+            except Exception as exception:
+                return True
+        return False
+
+    def is_passport_number_exist(self):
+        if hasattr(self, '_passport_number'):
+            try:
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(passport_number=self._passport_number),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
+    def is_new_passport_number_valid(self):
+        if hasattr(self, '_passport_number'):
+            try:
+                found_user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(passport_number=self._passport_number),
+                )
+                if found_user == self._custom_user:
+                    return True
+                else:
+                    return False
+            except Exception as exception:
+                return True
+        return False
+
     def get_user_by_code(self, code):
         try:
             user = validators.ModelInstanceExistenceValidator.valid(
@@ -270,6 +378,14 @@ class UserValidator(validators.AbstractRequestValidate):
     def extra_validate_to_create_member(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.EXIST})
+        if hasattr(self, '_email') and self.is_email_exist():
+            raise exceptions.ValidationException({'email': messages.EXIST})
+        if hasattr(self, '_health_insurance_number') and self.is_health_insurance_number_exist():
+            raise exceptions.ValidationException({'health_insurance_number': messages.EXIST})
+        if hasattr(self, '_identity_number') and self.is_identity_number_exist():
+            raise exceptions.ValidationException({'identity_number': messages.EXIST})
+        if hasattr(self, '_passport_number') and self.is_passport_number_exist():
+            raise exceptions.ValidationException({'passport_number': messages.EXIST})
         if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
             raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
         if hasattr(self, '_country_code') and not self.is_country_code_exist():
@@ -288,6 +404,14 @@ class UserValidator(validators.AbstractRequestValidate):
     def extra_validate_to_update_user(self):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
+        if hasattr(self, '_email') and not self.is_new_email_valid():
+            raise exceptions.NotFoundException({'email': messages.EXIST})
+        if hasattr(self, '_health_insurance_number') and not self.is_new_health_insurance_number_valid():
+            raise exceptions.NotFoundException({'health_insurance_number': messages.EXIST})
+        if hasattr(self, '_identity_number') and not self.is_new_identity_number_valid():
+            raise exceptions.NotFoundException({'identity_number': messages.EXIST})
+        if hasattr(self, '_passport_number') and not self.is_new_passport_number_valid():
+            raise exceptions.NotFoundException({'passport_number': messages.EXIST})
         if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
             raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
         if hasattr(self, '_country_code') and not self.is_country_code_exist():
