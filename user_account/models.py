@@ -213,6 +213,8 @@ class Member(models.Model):
 
     quarantined_at = models.CharField(max_length=10, null=True, blank=True)
 
+    quarantined_finished_at = models.CharField(max_length=10, null=True, blank=True)
+
     quarantined_status = models.CharField(
         max_length=32,
         choices=MemberQuarantinedStatus.choices,
@@ -231,7 +233,7 @@ class Member(models.Model):
 
     health_note = models.TextField(null=True, blank=True)
 
-    positive_test = models.BooleanField(default=False, null=False)
+    positive_test = models.BooleanField(null=True, blank=True)
 
     care_staff = models.ForeignKey(
         to=CustomUser,
