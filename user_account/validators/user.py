@@ -148,6 +148,13 @@ class UserValidator(validators.AbstractRequestValidate):
                 except Exception as exception:
                     raise exceptions.NotFoundException({'background_disease': messages.NOT_EXIST})
 
+    def is_validate_abroad(self):
+        if hasattr(self, '_abroad'):
+            self._abroad = validators.BooleanValidator.valid(
+                self._abroad,
+                message={'abroad': messages.INVALID},
+            )
+
     def is_id_exist(self):
         if hasattr(self, '_id'):
             try:
@@ -373,6 +380,37 @@ class UserValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def check_country_ward_relationship(self):
+        if hasattr(self, '_ward'):
+            if not hasattr(self, '_district'):
+                self._district = self._ward.district
+                self._district_id = self._ward.district.id
+            else:
+                if self._district != self._ward.district:
+                    raise exceptions.ValidationException({'country_ward_relationship': messages.INVALID})
+            # print('ward ' + str(self._ward_id))
+        
+        if hasattr(self, '_district'):
+            if not hasattr(self, '_city'):
+                self._city = self._district.city
+                self._city_id = self._district.city.id
+            else:
+                if self._city != self._district.city:
+                    raise exceptions.ValidationException({'country_ward_relationship': messages.INVALID})
+            # print('district ' + str(self._district_id))
+
+        if hasattr(self, '_city'):
+            if not hasattr(self, '_country'):
+                self._country = self._city.country
+                self._country_code = self._city.country.code
+            else:
+                if self._country != self._city.country:
+                    raise exceptions.ValidationException({'country_ward_relationship': messages.INVALID})
+            # print('city ' + str(self._city_id))
+        
+        # if hasattr(self, '_country'):
+        #     print('country ' + str(self._country_code))
+
     def is_quarantine_ward_id_exist(self):
         if hasattr(self, '_quarantine_ward_id'):
             try:
@@ -479,6 +517,7 @@ class UserValidator(validators.AbstractRequestValidate):
             raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
         if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
             raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
+        self.check_country_ward_relationship()
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
@@ -505,6 +544,7 @@ class UserValidator(validators.AbstractRequestValidate):
             raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
         if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
             raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
+        self.check_country_ward_relationship()
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
@@ -562,3 +602,8 @@ class UserValidator(validators.AbstractRequestValidate):
                 quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
                 self._quarantined_at_max = datetime.datetime.now() - datetime.timedelta(days=quarantine_day)
                 self._quarantined_at_max = timestamp_string_to_date_string(str(self._quarantined_at_max))
+        if hasattr(self, '_abroad'):
+            if (self._abroad):
+                self._abroad = 'true'
+            else:
+                self._abroad = 'false'

@@ -118,6 +118,11 @@ class UserFilter(django_filters.FilterSet):
         lookup_expr='iexact',
     )
 
+    abroad = django_filters.CharFilter(
+        field_name='member_x_custom_user__abroad',
+        lookup_expr='iexact',
+    )
+
     role_name = django_filters.CharFilter(
         field_name='role__name',
         lookup_expr='iexact',
