@@ -27,9 +27,17 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 class BaseCustomUserSerializer(serializers.ModelSerializer):
 
+    health_status = serializers.SerializerMethodField('get_health_status')
+
+    def get_health_status(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.health_status
+        else:
+            return None
+
     class Meta:
         model = CustomUser
-        fields = ['code', 'full_name', 'birthday']
+        fields = ['code', 'full_name', 'birthday', 'gender', 'health_status',]
 
 class FilterMemberSerializer(serializers.ModelSerializer):
 
