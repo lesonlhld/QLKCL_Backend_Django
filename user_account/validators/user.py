@@ -3,7 +3,7 @@ import datetime
 from django.db.models import Q
 from ..models import CustomUser, Member
 from address.models import Country, City, District, Ward
-from quarantine_ward.models import QuarantineWard, QuarantineRoom
+from quarantine_ward.models import QuarantineWard, QuarantineRoom, QuarantineBuilding, QuarantineFloor
 from form.models import BackgroundDisease
 from utils import validators, messages, exceptions
 from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus
@@ -90,6 +90,34 @@ class UserValidator(validators.AbstractRequestValidate):
             self._quarantined_at = validators.DateStringValidator.valid(
                 self._quarantined_at,
                 message={'quarantined_at': messages.INVALID}
+            )
+
+    def is_validate_quarantined_at_max(self):
+        if hasattr(self, '_quarantined_at_max'):
+            self._quarantined_at_max = validators.DateStringValidator.valid(
+                self._quarantined_at_max,
+                message={'quarantined_at_max': messages.INVALID}
+            )
+
+    def is_validate_quarantined_at_min(self):
+        if hasattr(self, '_quarantined_at_min'):
+            self._quarantined_at_min = validators.DateStringValidator.valid(
+                self._quarantined_at_min,
+                message={'quarantined_at_min': messages.INVALID}
+            )
+
+    def is_validate_created_at_max(self):
+        if hasattr(self, '_created_at_max'):
+            self._created_at_max = validators.DateStringValidator.valid(
+                self._created_at_max,
+                message={'created_at_max': messages.INVALID}
+            )
+
+    def is_validate_created_at_min(self):
+        if hasattr(self, '_created_at_min'):
+            self._created_at_min = validators.DateStringValidator.valid(
+                self._created_at_min,
+                message={'created_at_min': messages.INVALID}
             )
 
     def is_validate_positive_tested_before(self):
@@ -357,6 +385,30 @@ class UserValidator(validators.AbstractRequestValidate):
                 return False
         return True
 
+    def is_quarantine_building_id_exist(self):
+        if hasattr(self, '_quarantine_building_id'):
+            try:
+                self._quarantine_building = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineBuilding,
+                    query_expr=Q(id=self._quarantine_building_id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return True
+
+    def is_quarantine_floor_id_exist(self):
+        if hasattr(self, '_quarantine_floor_id'):
+            try:
+                self._quarantine_floor = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineFloor,
+                    query_expr=Q(id=self._quarantine_floor_id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return True
+
     def is_quarantine_room_id_exist(self):
         if hasattr(self, '_quarantine_room_id'):
             try:
@@ -368,6 +420,37 @@ class UserValidator(validators.AbstractRequestValidate):
             except Exception as exception:
                 return False
         return True
+
+    def check_quarantine_ward_room_relationship(self):
+        if hasattr(self, '_quarantine_room'):
+            if not hasattr(self, '_quarantine_floor'):
+                self._quarantine_floor = self._quarantine_room.quarantine_floor
+                self._quarantine_floor_id = self._quarantine_room.quarantine_floor.id
+            else:
+                if self._quarantine_floor != self._quarantine_room.quarantine_floor:
+                    raise exceptions.ValidationException({'quarantine_ward_room_relationship': messages.INVALID})
+            # print('room ' + str(self._quarantine_room_id))
+        
+        if hasattr(self, '_quarantine_floor'):
+            if not hasattr(self, '_quarantine_building'):
+                self._quarantine_building = self._quarantine_floor.quarantine_building
+                self._quarantine_building_id = self._quarantine_floor.quarantine_building.id
+            else:
+                if self._quarantine_building != self._quarantine_floor.quarantine_building:
+                    raise exceptions.ValidationException({'quarantine_ward_room_relationship': messages.INVALID})
+            # print('floor ' + str(self._quarantine_floor_id))
+
+        if hasattr(self, '_quarantine_building'):
+            if not hasattr(self, '_quarantine_ward'):
+                self._quarantine_ward = self._quarantine_building.quarantine_ward
+                self._quarantine_ward_id = self._quarantine_building.quarantine_ward.id
+            else:
+                if self._quarantine_ward != self._quarantine_building.quarantine_ward:
+                    raise exceptions.ValidationException({'quarantine_ward_room_relationship': messages.INVALID})
+            # print('building ' + str(self._quarantine_building_id))
+        
+        # if hasattr(self, '_quarantine_ward'):
+        #     print('ward ' + str(self._quarantine_ward_id))
 
     def extra_validate_to_register_member(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():
@@ -451,11 +534,18 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def extra_validate_to_filter_member(self):
         self._role_name = 'MEMBER'
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_building_id') and not self.is_quarantine_building_id_exist():
+            raise exceptions.NotFoundException({'quarantine_building_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_floor_id') and not self.is_quarantine_floor_id_exist():
+            raise exceptions.NotFoundException({'quarantine_floor_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
+            raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        self.check_quarantine_ward_room_relationship()
         if hasattr(self, '_created_at_max'):
-            validators.DateStringValidator.valid(self._created_at_max, message={'created_at_max': messages.INVALID})
             self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
         if hasattr(self, '_created_at_min'):
-            validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
             self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)
         if hasattr(self, '_positive_test'):
             if (self._positive_test):
