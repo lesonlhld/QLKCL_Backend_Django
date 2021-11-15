@@ -524,6 +524,7 @@ class MemberAPI(AbstractView):
             - quarantine_building_id: String
             - quarantine_floor_id: String
             - quarantine_room_id: String
+            - abroad: boolean - True để lọc những người cách ly nhập cảnh, False để lọc những người không nhập cảnh, không truyền để không lọc
             - label: String ['F0', 'F1', 'F2', 'F3']
             - page: int
             - page_size: int
@@ -537,7 +538,7 @@ class MemberAPI(AbstractView):
             'quarantined_at_max', 'quarantined_at_min',
             'quarantine_ward_id', 'quarantine_building_id',
             'quarantine_floor_id', 'quarantine_room_id',
-            'label',
+            'label', 'abroad',
             'page', 'page_size', 'search',
         ]
 
@@ -555,7 +556,7 @@ class MemberAPI(AbstractView):
             validator.is_valid_fields([
                 'status', 'positive_test', 'health_status_list', 'is_last_tested',
                 'can_finish_quarantine', 'created_at_max', 'created_at_min',
-                'quarantined_at_max', 'quarantined_at_min', 'label',
+                'quarantined_at_max', 'quarantined_at_min', 'label', 'abroad',
             ])
             validator.extra_validate_to_filter_member()
 
