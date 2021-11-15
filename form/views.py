@@ -14,6 +14,8 @@ from .serializers import (
     FilterMedicalDeclarationSerializer,
     TestSerializer,
     FilterTestSerializer,
+    BaseBackgroundDiseaseSerializer,
+    BaseSymptomSerializer,
 )
 from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
@@ -58,6 +60,23 @@ class BackgroundDiseaseAPI(AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_background_disease(self, request):
+        """List all background disease
+
+        Args:
+            None
+        """
+
+        try:
+            serializer = BaseBackgroundDiseaseSerializer(BackgroundDisease.objects.all(), many=True)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+
 class SymptomAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
@@ -101,6 +120,28 @@ class SymptomAPI(AbstractView):
                     disease.save()
 
             return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_symptom(self, request):
+        """List all symptom
+
+        Args:
+            None
+        """
+
+        try:
+            response_data = dict()
+
+            serializer = BaseSymptomSerializer(Symptom.objects.filter(type=SymptomType.MAIN), many=True)
+            response_data['main'] = serializer.data
+
+            serializer = BaseSymptomSerializer(Symptom.objects.filter(type=SymptomType.EXTRA), many=True)
+            response_data['extra'] = serializer.data
+
+            return self.response_handler.handle(data=response_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 

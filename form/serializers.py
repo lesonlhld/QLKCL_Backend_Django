@@ -1,6 +1,18 @@
 from rest_framework import serializers
-from .models import MedicalDeclaration, Test
+from .models import MedicalDeclaration, Test, BackgroundDisease, Symptom
 from user_account.serializers import BaseCustomUserSerializer
+
+class BaseBackgroundDiseaseSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = BackgroundDisease
+        fields = ['id', 'name',]
+
+class BaseSymptomSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Symptom
+        fields = ['id', 'name',]
 
 class MedicalDeclarationSerializer(serializers.ModelSerializer):
 
