@@ -59,11 +59,12 @@ class QuarantineBuildingSerializer(serializers.ModelSerializer):
 
 class QuarantineWardSerializer(serializers.ModelSerializer):
 
+    main_manager = BaseCustomUserSerializer(many=False)
     country = BaseCountrySerializer(many=False)
     city = BaseCitySerializer(many=False)
     district = BaseDistrictSerializer(many=False)
     ward = BaseWardSerializer(many=False)
-    
+
     class Meta:
         model = QuarantineWard
         fields = '__all__'
