@@ -93,6 +93,31 @@ class UserFilter(django_filters.FilterSet):
 
         return new_query_set
 
+    quarantine_ward_id = django_filters.CharFilter(
+        field_name='member_x_custom_user__quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id',
+        lookup_expr='iexact',
+    )
+
+    quarantine_building_id = django_filters.CharFilter(
+        field_name='member_x_custom_user__quarantine_room__quarantine_floor__quarantine_building__id',
+        lookup_expr='iexact',
+    )
+
+    quarantine_floor_id = django_filters.CharFilter(
+        field_name='member_x_custom_user__quarantine_room__quarantine_floor__id',
+        lookup_expr='iexact',
+    )
+
+    quarantine_room_id = django_filters.CharFilter(
+        field_name='member_x_custom_user__quarantine_room__id',
+        lookup_expr='iexact',
+    )
+
+    label = django_filters.CharFilter(
+        field_name='member_x_custom_user__label',
+        lookup_expr='iexact',
+    )
+
     role_name = django_filters.CharFilter(
         field_name='role__name',
         lookup_expr='iexact',
