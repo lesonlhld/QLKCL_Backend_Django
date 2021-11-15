@@ -1,5 +1,9 @@
 from rest_framework import serializers
 from user_account.models import CustomUser
+from address.serializers import (
+    BaseCountrySerializer, BaseCitySerializer,
+    BaseDistrictSerializer, BaseWardSerializer,
+)
 from .models import (
     QuarantineWard, QuarantineBuilding,
     QuarantineFloor, QuarantineRoom,
@@ -55,6 +59,11 @@ class QuarantineBuildingSerializer(serializers.ModelSerializer):
 
 class QuarantineWardSerializer(serializers.ModelSerializer):
 
+    country = BaseCountrySerializer(many=False)
+    city = BaseCitySerializer(many=False)
+    district = BaseDistrictSerializer(many=False)
+    ward = BaseWardSerializer(many=False)
+    
     class Meta:
         model = QuarantineWard
         fields = '__all__'
