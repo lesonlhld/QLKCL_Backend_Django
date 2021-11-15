@@ -518,6 +518,13 @@ class MemberAPI(AbstractView):
             - can_finish_quarantine: boolean - True để lọc những người cách ly có thể hoàn thành cách ly, False hoặc không truyền đồng nghĩa không lọc
             - created_at_max: String 'dd/mm/yyyy'
             - created_at_min: String 'dd/mm/yyyy'
+            - quarantined_at_max: String 'dd/mm/yyyy'
+            - quarantined_at_min: String 'dd/mm/yyyy'
+            - quarantine_ward_id: String
+            - quarantine_building_id: String
+            - quarantine_floor_id: String
+            - quarantine_room_id: String
+            - label: String ['F0', 'F1', 'F2', 'F3']
             - page: int
             - page_size: int
             - search: String
@@ -527,6 +534,10 @@ class MemberAPI(AbstractView):
             'status', 'health_status_list', 'positive_test',
             'is_last_tested', 'can_finish_quarantine',
             'created_at_max', 'created_at_min',
+            'quarantined_at_max', 'quarantined_at_min',
+            'quarantine_ward_id', 'quarantine_building_id',
+            'quarantine_floor_id', 'quarantine_room_id',
+            'label',
             'page', 'page_size', 'search',
         ]
 
@@ -543,8 +554,9 @@ class MemberAPI(AbstractView):
 
             validator.is_valid_fields([
                 'status', 'positive_test', 'health_status_list', 'is_last_tested',
-                'can_finish_quarantine',
-                ])
+                'can_finish_quarantine', 'created_at_max', 'created_at_min',
+                'quarantined_at_max', 'quarantined_at_min', 'label',
+            ])
             validator.extra_validate_to_filter_member()
 
             query_set = CustomUser.objects.all()

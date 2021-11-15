@@ -33,4 +33,8 @@ class FilterTestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Test
-        fields = ['code', 'user', 'status', 'result', 'created_at', 'updated_at']
+        fields = [
+            'code', 'user', 'status', 'result',
+            'type',
+            'created_at', 'updated_at',
+        ]
