@@ -55,5 +55,6 @@ INVALID_QUARANTINE_TIME = 'Quarantine time must be positive float'
 INVALID_CAPACITY_NUMBER = 'Capacity number must be positive integer'
 
 # paging
-NEGATIVE_PAGE_SIZE = 'Page size must be integer'
+NEGATIVE_PAGE = 'Page must be positive integer'
+NEGATIVE_PAGE_SIZE = 'Page size must be positive integer'
 OVER_PAGE_SIZE_MAX = 'Page size must not be greater than '
