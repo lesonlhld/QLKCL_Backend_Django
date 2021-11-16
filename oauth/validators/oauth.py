@@ -16,6 +16,7 @@ class OauthValidator(validators.AbstractRequestValidate):
     def is_validate_email(self):
         if hasattr(self, '_email'):
             self._email = validators.EmailValidator.valid(self._email)
+            return self.is_email_exist()
     
     def is_email_exist(self):
         if hasattr(self, '_email'):
