@@ -102,6 +102,26 @@ class PassportValidator(AbstractValidator):
             return value
         raise exceptions.ValidationException(message)
 
+class HealthInsuranceNumberValidator(AbstractValidator):
+    HEALTH_INSURANCE_NUMBER_PATTERN = '^[A-Z0-9]{12,18}$'
+    default_message = {'health_insurance_number': messages.INVALID}
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        if bool(re.match(cls.HEALTH_INSURANCE_NUMBER_PATTERN, value)):
+            return value
+        raise exceptions.ValidationException(message)
+
+class IdentityNumberValidator(AbstractValidator):
+    IDENTITY_NUMBER_PATTERN = '^[0-9]{9,12}$'
+    default_message = {'identity_number': messages.INVALID}
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        if bool(re.match(cls.IDENTITY_NUMBER_PATTERN, value)):
+            return value
+        raise exceptions.ValidationException(message)
+
 class DateStringValidator(AbstractValidator):
     DATE_PATTERN = '^[0-9]{2}/[0-9]{2}/[0-9]{4}$'
     default_message = {'date_string': messages.INVALID}
