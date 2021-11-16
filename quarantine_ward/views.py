@@ -171,7 +171,7 @@ class QuarantineWardAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -414,7 +414,7 @@ class QuarantineBuildingAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -648,7 +648,7 @@ class QuarantineFloorAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
