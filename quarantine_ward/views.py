@@ -1,7 +1,6 @@
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
-from QLKCL_Backend_Django.utils import exceptions
 from utils.views import AbstractView, paginate_data
 from .models import (
     QuarantineWard,
