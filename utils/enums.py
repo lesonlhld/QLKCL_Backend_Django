@@ -74,3 +74,7 @@ class TestResult(models.TextChoices):
 class TestType(models.TextChoices):
     QUICK = 'QUICK'
     RT_PCR = 'RT-PCR'
+
+class ResetPasswordType(models.TextChoices):
+    USER_INPUT = 'USER_INPUT'
+    SYSTEM_HANDLE = 'SYSTEM_HANDLE'
