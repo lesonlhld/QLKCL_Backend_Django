@@ -39,17 +39,27 @@ def paginate_data(request, data):
     PAGE_SIZE = int(os.environ.get("PAGE_SIZE"))
     PAGE_SIZE_MAX = int(os.environ.get("PAGE_SIZE_MAX"))
 
-    page = int(request.data.get("page", 1))
-    page_size = int(request.data.get("page_size", PAGE_SIZE))
+    try:
+        page = int(request.data.get("page", 1))
+    except Exception as exception:
+        raise ValueError(messages.NEGATIVE_PAGE)
+
+    try:
+        page_size = int(request.data.get("page_size", PAGE_SIZE))
+    except Exception as exception:
+        raise ValueError(messages.NEGATIVE_PAGE_SIZE)
 
     # Handle page_size = 'all'
     # page_size = 0 for get all
     if page_size == 0:
         page_size = len(data) + 1
     elif page_size < 0:
-        raise ValueError({'main': messages.NEGATIVE_PAGE_SIZE})
+        raise ValueError(messages.NEGATIVE_PAGE_SIZE)
     elif page_size > PAGE_SIZE_MAX:
-        raise ValueError({'main': messages.OVER_PAGE_SIZE_MAX + PAGE_SIZE_MAX})
+        raise ValueError(messages.OVER_PAGE_SIZE_MAX + str(PAGE_SIZE_MAX))
+
+    if page <= 0:
+        raise ValueError(messages.NEGATIVE_PAGE)
 
     paginator = Paginator(data, page_size)
 

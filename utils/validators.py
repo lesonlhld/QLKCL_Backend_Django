@@ -92,6 +92,16 @@ class EmailValidator(AbstractValidator):
             return value
         raise exceptions.ValidationException(message)
 
+class PassportValidator(AbstractValidator):
+    PASSPORT_PATTERN = '^[A-Z0-9]{8,10}$'
+    default_message = {'passport_number': messages.INVALID}
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        if bool(re.match(cls.PASSPORT_PATTERN, value)):
+            return value
+        raise exceptions.ValidationException(message)
+
 class DateStringValidator(AbstractValidator):
     DATE_PATTERN = '^[0-9]{2}/[0-9]{2}/[0-9]{4}$'
     default_message = {'date_string': messages.INVALID}

@@ -28,6 +28,17 @@ class UserFilter(django_filters.FilterSet):
         qs = queryset.filter(query)
         return qs
 
+    role_name_list = django_filters.CharFilter(method='role_name_in_list')
+
+    def role_name_in_list(self, queryset, name, value):
+        # value in String, not list, so need to convert String to list
+        value = split_input_list(value)
+        query = (
+            Q(role__name__in=value)
+        )
+        qs = queryset.filter(query)
+        return qs
+
     last_tested_max = django_filters.DateTimeFilter(
         field_name='member_x_custom_user__last_tested',
         lookup_expr='lte',
