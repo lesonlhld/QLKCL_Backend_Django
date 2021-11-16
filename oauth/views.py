@@ -48,19 +48,18 @@ class ResetPasswordAPI(AbstractView):
             validator = OauthValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
-
+            
             user_email = validator.get_field('email')
             user = CustomUser.objects.get(email=user_email)
 
             old_reset_password = ResetPassword.objects.filter(user=user)
-            print(old_reset_password)
             old_reset_password.delete()
 
             reset_password_for_user = ResetPassword.objects.create(
                 user=user,
                 otp=generateOTP(4),
             )
-
+            
             subject = 'Mã đặt lại mật khẩu'
             message = 'Nhập mã OTP: ' + reset_password_for_user.otp
 
