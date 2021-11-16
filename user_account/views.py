@@ -187,7 +187,7 @@ class MemberAPI(AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields([
                 'phone_number', 'email', 'birthday', 'gender',
-                'passport_number',
+                'passport_number', 'health_insurance_number', 'identity_number',
                 'label', 'quarantined_at', 'positive_tested_before',
                 'background_disease',
             ])
@@ -358,6 +358,7 @@ class MemberAPI(AbstractView):
             validator = UserValidator(**accepted_fields)
             validator.is_valid_fields([
                 'email', 'birthday', 'gender', 'passport_number',
+                'health_insurance_number', 'identity_number',
                 'label', 'quarantined_at', 'positive_tested_before',
                 'background_disease',
             ])
