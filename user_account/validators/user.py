@@ -52,6 +52,18 @@ class UserValidator(validators.AbstractRequestValidate):
                 value=self._passport_number,
             )
 
+    def is_validate_health_insurance_number(self):
+        if hasattr(self, '_health_insurance_number'):
+            self._health_insurance_number = validators.HealthInsuranceNumberValidator.valid(
+                value=self._health_insurance_number,
+            )
+
+    def is_validate_identity_number(self):
+        if hasattr(self, '_identity_number'):
+            self._identity_number = validators.IdentityNumberValidator.valid(
+                value=self._identity_number,
+            )
+
     def is_validate_label(self):
         if hasattr(self, '_label'):
             self._label = validators.EnumValidator.valid(
