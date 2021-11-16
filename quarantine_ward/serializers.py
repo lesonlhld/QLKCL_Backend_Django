@@ -77,6 +77,12 @@ class QuarantineWardWithBuildingSerializer(serializers.ModelSerializer):
         model = QuarantineWard
         fields = ['id', 'full_name', 'main_manager']
 
+class QuarantineWardForRegisterSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = QuarantineWard
+        fields = ['id', 'full_name']
+
 class FilterQuarantineWardSerializer(serializers.ModelSerializer):
 
     main_manager = BaseCustomUserSerializer(many=False)
