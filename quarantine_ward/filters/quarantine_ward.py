@@ -35,8 +35,7 @@ class QuarantineWardFilter(django_filters.FilterSet):
 
     def query_search(self, queryset, name, value):
         query = (
-            Q(full_name__icontains=value) |
-            Q(code__iexact=value)
+            Q(full_name__icontains=value)
         )
         qs = queryset.filter(query)
         return qs
