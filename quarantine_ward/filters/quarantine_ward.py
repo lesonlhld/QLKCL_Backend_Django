@@ -4,6 +4,31 @@ from ..models import QuarantineWard
 
 class QuarantineWardFilter(django_filters.FilterSet):
 
+    country = django_filters.CharFilter(
+        field_name='country__code',
+        lookup_expr='iexact',
+    )
+
+    city = django_filters.CharFilter(
+        field_name='city__id',
+        lookup_expr='iexact',
+    )
+
+    district = django_filters.CharFilter(
+        field_name='district__id',
+        lookup_expr='iexact',
+    )
+
+    ward = django_filters.CharFilter(
+        field_name='ward__id',
+        lookup_expr='iexact',
+    )
+
+    main_manager = django_filters.CharFilter(
+        field_name='main_manager__id',
+        lookup_expr='iexact',
+    )
+
     created_at_min = django_filters.DateTimeFilter(
         field_name='created_at',
         lookup_expr='gte',

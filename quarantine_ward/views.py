@@ -247,11 +247,18 @@ class QuarantineWardAPI (AbstractView):
             - page: int
             - page_size: int
             - search: String
+            - country (id): int
+            - city (id): int
+            - district (id): int
+            - ward (id): int
+            - main_manager (id): int
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
             'created_at_max', 'created_at_min',
+            'country', 'city', 'district', 'ward',
+            'main_manager',
         ]
 
         try:
