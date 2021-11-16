@@ -2,6 +2,8 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from utils.views import AbstractView, paginate_data
+from utils import exceptions
+from utils.enums import RoleName
 from .models import (
     QuarantineWard,
     QuarantineBuilding,
@@ -109,7 +111,7 @@ class QuarantineWardAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -211,7 +213,7 @@ class QuarantineWardAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -366,7 +368,7 @@ class QuarantineBuildingAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
                 
             request_extractor = self.request_handler.handle(request)
@@ -456,7 +458,7 @@ class QuarantineBuildingAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -499,6 +501,10 @@ class QuarantineBuildingAPI (AbstractView):
             'quarantine_ward',
         ]
 
+        required_fields = [
+            'quarantine_ward'
+        ]
+
         try:
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -509,7 +515,7 @@ class QuarantineBuildingAPI (AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineBuildingValidator(**accepted_fields)
-
+            validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
             query_set = QuarantineBuilding.objects.all()
@@ -596,7 +602,7 @@ class QuarantineFloorAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -686,7 +692,7 @@ class QuarantineFloorAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -726,6 +732,10 @@ class QuarantineFloorAPI (AbstractView):
             'quarantine_building',
         ]
 
+        required_fields = [
+            'quarantine_building',
+        ]
+
         try:
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -736,7 +746,7 @@ class QuarantineFloorAPI (AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineFloorValidator(**accepted_fields)
-
+            validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
             query_set = QuarantineFloor.objects.all()
@@ -824,7 +834,7 @@ class QuarantineRoomAPI(AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -871,7 +881,7 @@ class QuarantineRoomAPI(AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -915,7 +925,7 @@ class QuarantineRoomAPI(AbstractView):
 
         try:
             user = request.user
-            if user.role != 1:
+            if user.role.name != RoleName.ADMINISTRATOR:
                 raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
@@ -955,6 +965,10 @@ class QuarantineRoomAPI(AbstractView):
             'quarantine_floor',
         ]
 
+        required_fields = [
+            'quarantine_floor'
+        ]
+
         try:
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -965,7 +979,7 @@ class QuarantineRoomAPI(AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineRoomValidator(**accepted_fields)
-
+            validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
             query_set = QuarantineRoom.objects.all()
