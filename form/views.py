@@ -20,7 +20,7 @@ from .serializers import (
 from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
 from utils import exceptions, messages
-from utils.enums import SymptomType
+from utils.enums import SymptomType, TestResult, TestType
 from utils.views import AbstractView
 
 # Create your views here.
@@ -322,6 +322,34 @@ class TestAPI(AbstractView):
 
         return first_part + second_part + third_part
 
+    def update_user_after_save_test(self, test):
+        if test.user != None and hasattr(test.user, 'member_x_custom_user'):
+            this_member = test.user.member_x_custom_user
+
+            if test.result == TestResult.POSITIVE:
+                this_member.positive_test = True
+                this_member.save()
+
+            elif test.result == TestResult.NEGATIVE:
+                if this_member.positive_test == True:
+                    number_test_need = int(os.environ.get("NUMBER_TEST_FROM_POSITIVE_TO_NEGATIVE", "1"))
+                elif this_member.positive_test == None:
+                    number_test_need = int(os.environ.get("NUMBER_TEST_FROM_UNKNOWN_TO_NEGATIVE", "1"))
+
+                if this_member.positive_test != False:
+                    tests_to_check = Test.objects.filter(user = test.user, type=TestType.RT_PCR).order_by('-updated_at')[:number_test_need]
+
+                    is_negative = True
+                    for test in list(tests_to_check):
+                        if test.result == TestResult.POSITIVE:
+                            is_negative = False
+                            break
+                    if is_negative:
+                        this_member.positive_test = False
+                    else:
+                        this_member.positive_test = True
+                    this_member.save()
+
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)
     def create_test(self, request):
@@ -374,6 +402,9 @@ class TestAPI(AbstractView):
                 test.code = self.custom_test_code_generator(test.user.code)
             test.created_by = request.user
             test.save()
+
+            # Update user
+            self.update_user_after_save_test(test)
 
             serializer = TestSerializer(test, many=False)
 
@@ -471,6 +502,9 @@ class TestAPI(AbstractView):
 
             test.updated_by = request.user
             test.save()
+
+            # Update user
+            self.update_user_after_save_test(test)
 
             serializer = TestSerializer(test, many=False)
 
