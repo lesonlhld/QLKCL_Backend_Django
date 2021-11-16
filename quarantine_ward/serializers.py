@@ -1,5 +1,9 @@
 from rest_framework import serializers
 from user_account.models import CustomUser
+from address.serializers import (
+    BaseCountrySerializer, BaseCitySerializer,
+    BaseDistrictSerializer, BaseWardSerializer,
+)
 from .models import (
     QuarantineWard, QuarantineBuilding,
     QuarantineFloor, QuarantineRoom,
@@ -35,6 +39,36 @@ class BaseQuarantineWardSerializer(serializers.ModelSerializer):
         model = QuarantineWard
         fields = ['id', 'full_name']
 
+class QuarantineRoomSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = QuarantineRoom
+        fields = '__all__'
+
+class QuarantineFloorSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = QuarantineFloor
+        fields = '__all__'
+
+class QuarantineBuildingSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = QuarantineBuilding
+        fields = '__all__'
+
+class QuarantineWardSerializer(serializers.ModelSerializer):
+
+    main_manager = BaseCustomUserSerializer(many=False)
+    country = BaseCountrySerializer(many=False)
+    city = BaseCitySerializer(many=False)
+    district = BaseDistrictSerializer(many=False)
+    ward = BaseWardSerializer(many=False)
+
+    class Meta:
+        model = QuarantineWard
+        fields = '__all__'
+
 class QuarantineWardWithBuildingSerializer(serializers.ModelSerializer):
 
     main_manager = BaseCustomUserSerializer(many=False) 
@@ -42,6 +76,12 @@ class QuarantineWardWithBuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuarantineWard
         fields = ['id', 'full_name', 'main_manager']
+
+class QuarantineWardForRegisterSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = QuarantineWard
+        fields = ['id', 'full_name']
 
 class FilterQuarantineWardSerializer(serializers.ModelSerializer):
 

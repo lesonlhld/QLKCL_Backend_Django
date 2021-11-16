@@ -11,6 +11,7 @@ DUPLICATE = 'Object is already exist'
 EXIST = 'Exist'
 NOT_EXIST = 'Not exist'
 INVALID = 'Invalid'
+TIME_OUT = 'Time out'
 
 EMPTY = 'EMPTY'
 
@@ -50,6 +51,10 @@ MUST_CONTAIN_NUMBER = 'MUST_CONTAIN_NUMBER'
 MUST_CONTAIN_UPPERCASE_CHARACTERS = 'MUST_CONTAIN_UPPERCASE_CHARACTERS'
 MUST_CONTAIN_SPECIAL_CHARACTERS = 'MUST_CONTAIN_SPECIAL_CHARACTERS'
 INVALID_POSITIVE_INTEGER = 'Value must be positive integer'
+DUPLICATE_NEW_PASSWORD = 'New password is the same with old password'
+CONFIRM_PASSWORD_NOT_MATCH = 'Confirm password is not match'
+WRONG_PASSWORD = 'Wrong password'
+INVALID_OTP = 'Invalid OTP'
 
 INVALID_STATUS = 'Invalid status'
 INVALID_TYPE = 'Invalid type'

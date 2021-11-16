@@ -1,6 +1,9 @@
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import action
+from rest_framework import permissions
+from rest_framework.decorators import action, permission_classes
 from utils.views import AbstractView, paginate_data
+from utils import exceptions
+from utils.enums import RoleName
 from .models import (
     QuarantineWard,
     QuarantineBuilding,
@@ -8,10 +11,11 @@ from .models import (
     QuarantineRoom,
 )
 from .serializers import (
-    BaseQuarantineWardSerializer,
-    BaseQuarantineBuildingSerializer,
-    BaseQuarantineFloorSerializer,
-    BaseQuarantineRoomSerializer,
+    QuarantineWardSerializer,
+    QuarantineBuildingSerializer,
+    QuarantineFloorSerializer,
+    QuarantineRoomSerializer,
+    QuarantineWardForRegisterSerializer,
     FilterQuarantineWardSerializer,
     FilterQuarantineBuildingSerializer,
     FilterQuarantineFloorSerializer,
@@ -28,6 +32,13 @@ from .validators.quarantine_room import QuarantineRoomValidator
 
 class QuarantineWardAPI (AbstractView):
     
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'filter_quarantineward_for_register':
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()
+
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantineward(self, request):
@@ -60,7 +71,7 @@ class QuarantineWardAPI (AbstractView):
 
             quarantine_ward = validator.get_field('id')
 
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -99,6 +110,10 @@ class QuarantineWardAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -116,7 +131,7 @@ class QuarantineWardAPI (AbstractView):
             quarantine_ward = QuarantineWard(**dict_to_create)
             quarantine_ward.save()
 
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -155,6 +170,10 @@ class QuarantineWardAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -170,7 +189,7 @@ class QuarantineWardAPI (AbstractView):
             dict_to_update = validator.get_data(list_to_update)
             quarantine_ward.__dict__.update(**dict_to_update)
             quarantine_ward.save()
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -193,6 +212,10 @@ class QuarantineWardAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -208,7 +231,7 @@ class QuarantineWardAPI (AbstractView):
             quarantine_ward = validator.get_field('id')
             quarantine_ward.delete()
 
-            serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+            serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -224,11 +247,18 @@ class QuarantineWardAPI (AbstractView):
             - page: int
             - page_size: int
             - search: String
+            - country (id): int
+            - city (id): int
+            - district (id): int
+            - ward (id): int
+            - main_manager (id): int
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
             'created_at_max', 'created_at_min',
+            'country', 'city', 'district', 'ward',
+            'main_manager',
         ]
 
         try:
@@ -267,8 +297,27 @@ class QuarantineWardAPI (AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter_register', detail=False)
+    def filter_quarantineward_for_register(self, request):
+        """Get a list of active quarantine wards
+
+        Args:
+            None
+        """
+
+        try:
+            list_quarantine_ward = QuarantineWard.objects.filter(trash=False)
+            serializer = QuarantineWardForRegisterSerializer(list_quarantine_ward, many=True)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+    
 class QuarantineBuildingAPI (AbstractView):
     
+    permission_classes = [permissions.IsAuthenticated]
+
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantinebuilding(self, request):
@@ -301,7 +350,7 @@ class QuarantineBuildingAPI (AbstractView):
 
             quarantine_building = validator.get_field('id')
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -325,6 +374,10 @@ class QuarantineBuildingAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+                
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -342,7 +395,7 @@ class QuarantineBuildingAPI (AbstractView):
             quarantine_building = QuarantineBuilding(**dict_to_create)
             quarantine_building.save()
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -367,6 +420,10 @@ class QuarantineBuildingAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -384,7 +441,7 @@ class QuarantineBuildingAPI (AbstractView):
             quarantine_building.__dict__.update(**dict_to_update)
             quarantine_building.save()
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -407,6 +464,10 @@ class QuarantineBuildingAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -422,7 +483,7 @@ class QuarantineBuildingAPI (AbstractView):
             quarantine_building = validator.get_field('id')
             quarantine_building.delete()
 
-            serializer = BaseQuarantineBuildingSerializer(quarantine_building, many=False)
+            serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -438,11 +499,17 @@ class QuarantineBuildingAPI (AbstractView):
             - page: int
             - page_size: int
             - search: String
+            - quarantine_ward: int (id)
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
             'created_at_max', 'created_at_min',
+            'quarantine_ward',
+        ]
+
+        required_fields = [
+            'quarantine_ward'
         ]
 
         try:
@@ -455,7 +522,7 @@ class QuarantineBuildingAPI (AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineBuildingValidator(**accepted_fields)
-
+            validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
             query_set = QuarantineBuilding.objects.all()
@@ -483,6 +550,8 @@ class QuarantineBuildingAPI (AbstractView):
 
 class QuarantineFloorAPI (AbstractView):
     
+    permission_classes = [permissions.IsAuthenticated]
+
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantinefloor(self, request):
@@ -515,7 +584,7 @@ class QuarantineFloorAPI (AbstractView):
 
             quarantine_floor = validator.get_field('id')
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -539,6 +608,10 @@ class QuarantineFloorAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -556,7 +629,7 @@ class QuarantineFloorAPI (AbstractView):
             quarantine_floor = QuarantineFloor(**dict_to_create)
             quarantine_floor.save()
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -581,6 +654,10 @@ class QuarantineFloorAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -598,7 +675,7 @@ class QuarantineFloorAPI (AbstractView):
             quarantine_floor.__dict__.update(**dict_to_update)
             quarantine_floor.save()
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -621,6 +698,10 @@ class QuarantineFloorAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -636,7 +717,7 @@ class QuarantineFloorAPI (AbstractView):
             quarantine_floor = validator.get_field('id')
             quarantine_floor.delete()
 
-            serializer = BaseQuarantineFloorSerializer(quarantine_floor, many=False)
+            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -647,16 +728,19 @@ class QuarantineFloorAPI (AbstractView):
         """Get a list of Quarantine Floors
 
         Args:
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
             - page: int
             - page_size: int
             - search: String
+            - quarantine_building: int (id)
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
-            'created_at_max', 'created_at_min',
+            'quarantine_building',
+        ]
+
+        required_fields = [
+            'quarantine_building',
         ]
 
         try:
@@ -669,7 +753,7 @@ class QuarantineFloorAPI (AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineFloorValidator(**accepted_fields)
-
+            validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
             query_set = QuarantineFloor.objects.all()
@@ -696,6 +780,8 @@ class QuarantineFloorAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
 class QuarantineRoomAPI(AbstractView):
+    
+    permission_classes = [permissions.IsAuthenticated]
     
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
@@ -729,7 +815,7 @@ class QuarantineRoomAPI(AbstractView):
 
             quarantine_room = validator.get_field('id')
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -754,6 +840,10 @@ class QuarantineRoomAPI(AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -771,7 +861,7 @@ class QuarantineRoomAPI(AbstractView):
             quarantine_room = QuarantineRoom(**dict_to_create)
             quarantine_room.save()
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -797,6 +887,10 @@ class QuarantineRoomAPI(AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -814,7 +908,7 @@ class QuarantineRoomAPI(AbstractView):
             quarantine_room.__dict__.update(**dict_to_update)
             quarantine_room.save()
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -837,6 +931,10 @@ class QuarantineRoomAPI(AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -852,7 +950,7 @@ class QuarantineRoomAPI(AbstractView):
             quarantine_room = validator.get_field('id')
             quarantine_room.delete()
 
-            serializer = BaseQuarantineRoomSerializer(quarantine_room, many=False)
+            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -863,16 +961,19 @@ class QuarantineRoomAPI(AbstractView):
         """Get a list of Quarantine Rooms
 
         Args:
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
             - page: int
             - page_size: int
             - search: String
+            - quarantine_floor: int (id)
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
-            'created_at_max', 'created_at_min',
+            'quarantine_floor',
+        ]
+
+        required_fields = [
+            'quarantine_floor'
         ]
 
         try:
@@ -885,7 +986,7 @@ class QuarantineRoomAPI(AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineRoomValidator(**accepted_fields)
-
+            validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
             query_set = QuarantineRoom.objects.all()
