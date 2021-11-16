@@ -1,5 +1,7 @@
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import action
+from rest_framework import permissions
+from rest_framework.decorators import action, permission_classes
+from QLKCL_Backend_Django.utils import exceptions
 from utils.views import AbstractView, paginate_data
 from .models import (
     QuarantineWard,
@@ -12,6 +14,7 @@ from .serializers import (
     QuarantineBuildingSerializer,
     QuarantineFloorSerializer,
     QuarantineRoomSerializer,
+    QuarantineWardForRegisterSerializer,
     FilterQuarantineWardSerializer,
     FilterQuarantineBuildingSerializer,
     FilterQuarantineFloorSerializer,
@@ -28,6 +31,13 @@ from .validators.quarantine_room import QuarantineRoomValidator
 
 class QuarantineWardAPI (AbstractView):
     
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'filter_quarantineward_for_register':
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()
+
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantineward(self, request):
@@ -99,6 +109,10 @@ class QuarantineWardAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -155,6 +169,10 @@ class QuarantineWardAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -193,6 +211,10 @@ class QuarantineWardAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -267,8 +289,27 @@ class QuarantineWardAPI (AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter_register', detail=False)
+    def filter_quarantineward_for_register(self, request):
+        """Get a list of active quarantine wards
+
+        Args:
+            None
+        """
+
+        try:
+            list_quarantine_ward = QuarantineWard.objects.filter(trash=False)
+            serializer = QuarantineWardForRegisterSerializer(list_quarantine_ward, many=True)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+    
 class QuarantineBuildingAPI (AbstractView):
     
+    permission_classes = [permissions.IsAuthenticated]
+
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantinebuilding(self, request):
@@ -325,6 +366,10 @@ class QuarantineBuildingAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+                
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -367,6 +412,10 @@ class QuarantineBuildingAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -407,6 +456,10 @@ class QuarantineBuildingAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -485,6 +538,8 @@ class QuarantineBuildingAPI (AbstractView):
 
 class QuarantineFloorAPI (AbstractView):
     
+    permission_classes = [permissions.IsAuthenticated]
+
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantinefloor(self, request):
@@ -541,6 +596,10 @@ class QuarantineFloorAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -583,6 +642,10 @@ class QuarantineFloorAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -623,6 +686,10 @@ class QuarantineFloorAPI (AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -698,6 +765,8 @@ class QuarantineFloorAPI (AbstractView):
 
 class QuarantineRoomAPI(AbstractView):
     
+    permission_classes = [permissions.IsAuthenticated]
+    
     @csrf_exempt
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantineroom(self, request):
@@ -755,6 +824,10 @@ class QuarantineRoomAPI(AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -798,6 +871,10 @@ class QuarantineRoomAPI(AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -838,6 +915,10 @@ class QuarantineRoomAPI(AbstractView):
         ]
 
         try:
+            user = request.user
+            if user.role != 1:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
