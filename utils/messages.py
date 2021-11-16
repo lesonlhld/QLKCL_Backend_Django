@@ -52,6 +52,7 @@ INVALID_POSITIVE_INTEGER = 'Value must be positive integer'
 DUPLICATE_NEW_PASSWORD = 'New password is the same with old password'
 CONFIRM_PASSWORD_NOT_MATCH = 'Confirm password is not match'
 WRONG_PASSWORD = 'Wrong password'
+INVALID_OTP = 'Invalid OTP'
 
 INVALID_STATUS = 'Invalid status'
 INVALID_TYPE = 'Invalid type'

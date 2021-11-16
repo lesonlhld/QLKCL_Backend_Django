@@ -9,13 +9,13 @@ class ResetPasswordManager(models.Manager):
 
     def get_queryset(self):
         return super().get_queryset().filter(
-            created_at__gte=timezone.now()-timezone.timedelta(minutes=2)
+            created_at__gte=timezone.now()-timezone.timedelta(minutes=10)
         )
 
 class ResetPassword(models.Model):
 
     objects = ResetPasswordManager()
-    
+
     user = models.ForeignKey(
         to=CustomUser, 
         on_delete=models.CASCADE, 
