@@ -541,8 +541,12 @@ class UserValidator(validators.AbstractRequestValidate):
         self.check_country_ward_relationship()
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
-        if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
-            raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_room_id'):
+            if not self.is_quarantine_room_id_exist():
+                raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+            member_in_room = CustomUser.objects.filter(member_x_custom_user__quarantine_room__id = self._quarantine_room_id).count()
+            if member_in_room >= self._quarantine_room.capacity:
+                raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
 
     def extra_validate_to_update_user(self):
         if hasattr(self, '_code') and not self.is_code_exist():
@@ -568,8 +572,12 @@ class UserValidator(validators.AbstractRequestValidate):
         self.check_country_ward_relationship()
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
-        if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
-            raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_room_id'):
+            if not self.is_quarantine_room_id_exist():
+                raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+            member_in_room = CustomUser.objects.filter(member_x_custom_user__quarantine_room__id = self._quarantine_room_id).exclude(code=self._code).count()
+            if member_in_room >= self._quarantine_room.capacity:
+                raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
 
     def extra_validate_to_accept_member(self):
         if hasattr(self, '_member_codes'):
