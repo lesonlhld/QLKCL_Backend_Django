@@ -45,6 +45,12 @@ class UserValidator(validators.AbstractRequestValidate):
                 message={'gender': messages.INVALID},
             )
 
+    def is_validate_passport_number(self):
+        if hasattr(self, '_passport_number'):
+            self._passport_number = validators.PassportValidator.valid(
+                value=self._passport_number,
+            )
+
     def is_validate_label(self):
         if hasattr(self, '_label'):
             self._label = validators.EnumValidator.valid(
