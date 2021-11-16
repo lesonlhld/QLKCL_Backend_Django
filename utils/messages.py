@@ -42,6 +42,8 @@ CODE_EXIST = 'Code is already exist'
 INVALID_POSITIVE_FLOAT = 'Value must be positive float'
 INVALID_PHONE_NUMBER = 'Invalid phone number'
 
+QUARANTINE_ROOM_FULL = 'Full'
+
 # password
 TOO_SHORT = 'TOO_SHORT'
 ENTIRELY_NUMERIC = 'ENTIRELY_NUMERIC'
