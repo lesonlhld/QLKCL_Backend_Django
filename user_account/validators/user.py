@@ -3,6 +3,7 @@ import datetime
 from django.db.models import Q
 from ..models import CustomUser, Member
 from address.models import Country, City, District, Ward
+from role.models import Role
 from quarantine_ward.models import QuarantineWard, QuarantineRoom, QuarantineBuilding, QuarantineFloor
 from form.models import BackgroundDisease
 from utils import validators, messages, exceptions
@@ -83,6 +84,20 @@ class UserValidator(validators.AbstractRequestValidate):
                     enum_cls=HealthStatus,
                     message={'health_status': messages.INVALID},
                 )
+
+    def is_validate_role_name_list(self):
+        if hasattr(self, '_role_name_list'):
+            new_role_name_list = split_input_list(self._role_name_list)
+            self._role_name_object_list = []
+            for item in new_role_name_list:
+                try:
+                    object = validators.ModelInstanceExistenceValidator.valid(
+                        model_cls=Role,
+                        query_expr=Q(name=item),
+                    )
+                    self._role_name_object_list += [object]
+                except Exception as exception:
+                    raise exceptions.NotFoundException({f'role_name {item}': messages.NOT_EXIST})
 
     def is_validate_is_last_tested(self):
         if hasattr(self, '_is_last_tested'):
