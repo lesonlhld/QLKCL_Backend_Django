@@ -2,6 +2,7 @@ import re
 import datetime
 from datetime import time, timezone
 import pytz
+import math, random
 
 def split_input_list(str_list):
     """
@@ -80,3 +81,12 @@ def room_to_quarantine_ward(room):
         'quarantine_floor': floor,
         'quarantine_room': room,
     }
+
+def generateOTP(number_of_digits):
+    
+    digits = "0123456789"
+    otp = ""
+    for i in range(number_of_digits):
+        otp += digits[math.floor(random.random() * 10)]
+    
+    return otp
