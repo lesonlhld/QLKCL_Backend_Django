@@ -26,7 +26,7 @@ class OauthValidator(validators.AbstractRequestValidate):
                 )
                 return True
             except Exception as exception:
-                return False
+                raise exceptions.NotFoundException(message=messages.USER_NOT_FOUND)
         return False
     
     def is_validate_otp(self):

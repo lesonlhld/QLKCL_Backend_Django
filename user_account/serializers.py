@@ -10,6 +10,8 @@ from quarantine_ward.serializers import (
     BaseQuarantineBuildingSerializer, BaseQuarantineWardSerializer,
 )
 
+from role.serializers import RoleSerializer
+
 from utils.tools import timestamp_string_to_date_string
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -114,6 +116,14 @@ class FilterMemberSerializer(serializers.ModelSerializer):
             'quarantine_floor', 'quarantine_building', 'quarantine_ward',
             'health_status', 'positive_test', 'last_tested',
         ]
+
+class FilterNotMemberSerializer(serializers.ModelSerializer):
+
+    role = RoleSerializer(many=False)
+
+    class Meta:
+        model = CustomUser
+        fields = ['code', 'full_name', 'role', 'phone_number',]
 
 class MemberSerializer(serializers.ModelSerializer):
 

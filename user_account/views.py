@@ -6,7 +6,7 @@ from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
 from .models import CustomUser, Member
-from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer
+from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer, FilterNotMemberSerializer
 from .filters.user import UserFilter
 from form.models import Test
 from form.filters.test import TestFilter
@@ -187,6 +187,7 @@ class MemberAPI(AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields([
                 'phone_number', 'email', 'birthday', 'gender',
+                'passport_number',
                 'label', 'quarantined_at', 'positive_tested_before',
                 'background_disease',
             ])
@@ -356,7 +357,7 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_valid_fields([
-                'email', 'birthday', 'gender',
+                'email', 'birthday', 'gender', 'passport_number',
                 'label', 'quarantined_at', 'positive_tested_before',
                 'background_disease',
             ])
@@ -586,6 +587,54 @@ class MemberAPI(AbstractView):
             paginated_data = paginate_data(request, serializer.data)
 
             return self.response_handler.handle(data=paginated_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='not_member_filter', detail=False)
+    def not_member_filter(self, request):
+        """Get a list of not-member
+
+        Args:
+            + role_name_list: String <role_name>,<role_name> ['MEMBER', 'SUPER_MANAGER', 'STAFF']
+        """
+
+        
+        accept_fields = [
+            'role_name_list',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(['role_name_list',])
+
+            validator.is_valid_fields([
+                'role_name_list',
+            ])
+
+            dict_to_filter_user = validator.get_data(['role_name_list',])
+
+            dict_to_filter_user.setdefault('order_by', '-created_at')
+
+            query_set = CustomUser.objects.all()
+
+            filter = UserFilter(dict_to_filter_user, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = FilterNotMemberSerializer(query_set, many=True)
+
+            return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
