@@ -20,7 +20,7 @@ from .serializers import (
 from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
 from utils import exceptions, messages
-from utils.enums import SymptomType, TestResult, TestType
+from utils.enums import SymptomType, TestResult, TestType, HealthStatus
 from utils.views import AbstractView
 
 # Create your views here.
@@ -192,6 +192,7 @@ class MedicalDeclarationAPI(AbstractView):
 
             list_to_create_medical_declaration = [key for key in accepted_fields.keys()]
             list_to_create_medical_declaration = set(list_to_create_medical_declaration) - {'phone_number'}
+            list_to_create_medical_declaration = list(list_to_create_medical_declaration) + ['conclude']
 
             dict_to_create_medical_declaration = validator.get_data(list_to_create_medical_declaration)
 
@@ -204,6 +205,11 @@ class MedicalDeclarationAPI(AbstractView):
             medical_declaration.user = for_user
             medical_declaration.created_by = request.user
             medical_declaration.save()
+
+            if hasattr(for_user, 'member_x_custom_user'):
+                for_member = for_user.member_x_custom_user
+                for_member.health_status = medical_declaration.conclude
+                for_member.save()
 
             serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
 
@@ -328,6 +334,7 @@ class TestAPI(AbstractView):
 
             if test.result == TestResult.POSITIVE:
                 this_member.positive_test = True
+                this_member.last_tested = test.created_at
                 this_member.save()
 
             elif test.result == TestResult.NEGATIVE:
@@ -348,7 +355,9 @@ class TestAPI(AbstractView):
                         this_member.positive_test = False
                     else:
                         this_member.positive_test = True
-                    this_member.save()
+
+                this_member.last_tested = test.created_at
+                this_member.save()
 
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)

@@ -2,7 +2,7 @@ import os
 from random import randint
 from django.db import models
 from user_account.models import CustomUser
-from utils.enums import SymptomType, TestStatus, TestResult, TestType
+from utils.enums import SymptomType, TestStatus, TestResult, TestType, HealthDeclarationConclude
 
 # Create your models here.
 
@@ -42,6 +42,13 @@ class MedicalDeclaration(models.Model):
     extra_symptoms = models.TextField(null=True, blank=True)
 
     other_symptoms = models.TextField(null=True, blank=True)
+
+    conclude = models.CharField(
+        max_length=32,
+        choices=HealthDeclarationConclude.choices,
+        default=HealthDeclarationConclude.NORMAL,
+        null=False,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, auto_now=False)
 
