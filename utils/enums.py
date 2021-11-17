@@ -45,6 +45,11 @@ class HealthStatus(models.TextChoices):
     UNWELL = 'UNWELL'
     SERIOUS = 'SERIOUS'
 
+class HealthDeclarationConclude(models.TextChoices):
+    NORMAL = 'NORMAL'
+    UNWELL = 'UNWELL'
+    SERIOUS = 'SERIOUS'
+
 class Disease(models.TextChoices):
     # now not use
     NONE = 'NONE'
