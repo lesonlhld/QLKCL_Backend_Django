@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from user_account.models import CustomUser
+from django.db.models import Sum
+from user_account.models import CustomUser, Member
 from address.serializers import (
     BaseCountrySerializer, BaseCitySerializer,
     BaseDistrictSerializer, BaseWardSerializer,
@@ -41,6 +42,11 @@ class BaseQuarantineWardSerializer(serializers.ModelSerializer):
 
 class QuarantineRoomSerializer(serializers.ModelSerializer):
 
+    num_current_member = serializers.IntegerField(
+        source='member_x_quarantine_room.count',
+        read_only=True,
+    )
+
     class Meta:
         model = QuarantineRoom
         fields = '__all__'
@@ -51,11 +57,40 @@ class QuarantineFloorSerializer(serializers.ModelSerializer):
         model = QuarantineFloor
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        data['num_current_member'] = Member.objects.filter(
+            quarantine_room__quarantine_floor__id=data['id']
+        ).count()
+
+        total_capacity = QuarantineRoom.objects.filter(
+            quarantine_floor__id=data['id']
+        ).aggregate(Sum('capacity'))
+
+        data['total_capacity'] = next(iter(total_capacity.values()))
+        return data
+
+
 class QuarantineBuildingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineBuilding
         fields = '__all__'
+    
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        data['num_current_member'] = Member.objects.filter(
+            quarantine_room__quarantine_floor__quarantine_building__id=data['id']
+        ).count()
+
+        total_capacity = QuarantineRoom.objects.filter(
+            quarantine_floor__quarantine_building__id=data['id']
+        ).aggregate(Sum('capacity'))
+
+        data['total_capacity'] = next(iter(total_capacity.values()))
+        return data
 
 class QuarantineWardSerializer(serializers.ModelSerializer):
 
@@ -68,6 +103,20 @@ class QuarantineWardSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuarantineWard
         fields = '__all__'
+    
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        data['num_current_member'] = Member.objects.filter(
+            quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id=data['id']
+        ).count()
+
+        total_capacity = QuarantineRoom.objects.filter(
+            quarantine_floor__quarantine_building__quarantine_ward__id=data['id']
+        ).aggregate(Sum('capacity'))
+
+        data['total_capacity'] = next(iter(total_capacity.values()))
+        return data
 
 class QuarantineWardWithBuildingSerializer(serializers.ModelSerializer):
 
@@ -90,6 +139,20 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuarantineWard
         fields = ['id', 'main_manager', 'full_name','created_at', 'updated_at']
+    
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        data['num_current_member'] = Member.objects.filter(
+            quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id=data['id']
+        ).count()
+
+        total_capacity = QuarantineRoom.objects.filter(
+            quarantine_floor__quarantine_building__quarantine_ward__id=data['id']
+        ).aggregate(Sum('capacity'))
+
+        data['total_capacity'] = next(iter(total_capacity.values()))
+        return data
 
 class FilterQuarantineBuildingSerializer(serializers.ModelSerializer):
 
@@ -98,6 +161,20 @@ class FilterQuarantineBuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuarantineBuilding
         fields = ['id', 'name', 'quarantine_ward']
+    
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        data['num_current_member'] = Member.objects.filter(
+            quarantine_room__quarantine_floor__quarantine_building__id=data['id']
+        ).count()
+
+        total_capacity = QuarantineRoom.objects.filter(
+            quarantine_floor__quarantine_building__id=data['id']
+        ).aggregate(Sum('capacity'))
+
+        data['total_capacity'] = next(iter(total_capacity.values()))
+        return data
 
 class FilterQuarantineFloorSerializer(serializers.ModelSerializer):
 
@@ -106,11 +183,29 @@ class FilterQuarantineFloorSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuarantineFloor
         fields = ['id', 'name', 'quarantine_building']
+    
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        data['num_current_member'] = Member.objects.filter(
+            quarantine_room__quarantine_floor__id=data['id']
+        ).count()
+
+        total_capacity = QuarantineRoom.objects.filter(
+            quarantine_floor__id=data['id']
+        ).aggregate(Sum('capacity'))
+
+        data['total_capacity'] = next(iter(total_capacity.values()))
+        return data
 
 class FilterQuarantineRoomSerializer(serializers.ModelSerializer):
 
     quarantine_floor = BaseQuarantineFloorSerializer(many=False)
+    num_current_member = serializers.IntegerField(
+        source='member_x_quarantine_room.count',
+        read_only=True,
+    )
 
     class Meta:
         model = QuarantineRoom
-        fields = ['id', 'name', 'capacity', 'quarantine_floor']
+        fields = ['id', 'name', 'capacity', 'quarantine_floor', 'num_current_member']
