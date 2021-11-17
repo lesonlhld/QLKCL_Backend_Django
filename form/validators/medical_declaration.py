@@ -3,7 +3,7 @@ from ..models import MedicalDeclaration
 from user_account.models import CustomUser
 from form.models import Symptom
 from utils import validators, messages, exceptions
-from utils.enums import SymptomType
+from utils.enums import SymptomType, HealthDeclarationConclude
 from utils.tools import split_input_list, date_string_to_timestamp
 
 class MedicalDeclarationValidator(validators.AbstractRequestValidate):
@@ -59,7 +59,7 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
             )
 
     def is_validate_main_symptoms(self):
-        if hasattr(self, '_main_symptoms'):
+        if hasattr(self, '_main_symptoms') and self._main_symptoms != None:
             self._list_main_symptoms_objects = []
             self._list_main_symptoms_ids = split_input_list(self._main_symptoms)
             for item in self._list_main_symptoms_ids:
@@ -73,7 +73,7 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
                     raise exceptions.NotFoundException({'main_symptoms': messages.NOT_EXIST})
 
     def is_validate_extra_symptoms(self):
-        if hasattr(self, '_extra_symptoms'):
+        if hasattr(self, '_extra_symptoms') and self._extra_symptoms != None:
             self._list_extra_symptoms_objects = []
             self._list_extra_symptoms_ids = split_input_list(self._extra_symptoms)
             for item in self._list_extra_symptoms_ids:
@@ -122,9 +122,22 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def set_conclude_when_create_medical_declaration(self):
+        self._conclude = HealthDeclarationConclude.NORMAL
+
+        if hasattr(self, '_list_extra_symptoms_objects'):
+            if len(self._list_extra_symptoms_objects) > 0:
+                self._conclude = HealthDeclarationConclude.UNWELL
+
+        if hasattr(self, '_list_main_symptoms_objects'):
+            if len(self._list_main_symptoms_objects) > 0:
+                self._conclude = HealthDeclarationConclude.SERIOUS
+
     def extra_validate_to_create_medical_declaration(self):
         if hasattr(self, '_phone_number') and not self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.NOT_EXIST})
+        self.set_conclude_when_create_medical_declaration()
+        
         
     def extra_validate_to_get_medical_declaration(self):
         if hasattr(self, '_id') and not self.is_id_exist():
