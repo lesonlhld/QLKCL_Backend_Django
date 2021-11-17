@@ -39,10 +39,15 @@ class UserFilter(django_filters.FilterSet):
         qs = queryset.filter(query)
         return qs
 
-    last_tested_max = django_filters.DateTimeFilter(
-        field_name='member_x_custom_user__last_tested',
-        lookup_expr='lte',
-    )
+    last_tested_max = django_filters.DateTimeFilter(method='query_last_tested_max')
+
+    def query_last_tested_max(self, queryset, name, value):
+        query = (
+            Q(member_x_custom_user__last_tested__lte=value) |
+            Q(member_x_custom_user__last_tested=None)
+        )
+        qs = queryset.filter(query)
+        return qs
 
     quarantined_at_max = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_at', method='query_quarantined_at_max')
 
