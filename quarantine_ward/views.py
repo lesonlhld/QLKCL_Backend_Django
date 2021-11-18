@@ -279,6 +279,8 @@ class QuarantineWardAPI (AbstractView):
             if validator.has_field('is_full'):
                 if validator.get_field('is_full') == True:
                     context = 'set_full'
+                else:
+                    context = 'set_not_full'
 
             query_set = QuarantineWard.objects.all()
 
@@ -330,6 +332,8 @@ class QuarantineWardAPI (AbstractView):
             if validator.has_field('is_full'):
                 if validator.get_field('is_full') == True:
                     context = 'set_full'
+                else:
+                    context = 'set_not_full'
 
             list_quarantine_ward = QuarantineWard.objects.filter(trash=False)
             serializer = QuarantineWardForRegisterSerializer(list_quarantine_ward, many=True, context=context)
@@ -554,6 +558,8 @@ class QuarantineBuildingAPI (AbstractView):
             if validator.has_field('is_full'):
                 if validator.get_field('is_full') == True:
                     context = 'set_full'
+                else:
+                    context = 'set_not_full'
 
             query_set = QuarantineBuilding.objects.all()
             
@@ -791,6 +797,9 @@ class QuarantineFloorAPI (AbstractView):
             if validator.has_field('is_full'):
                 if validator.get_field('is_full') == True:
                     context = 'set_full'
+                else:
+                    context = 'set_not_full'
+
             query_set = QuarantineFloor.objects.all()
 
             list_to_filter = [key for key in accepted_fields.keys()]
@@ -1029,6 +1038,8 @@ class QuarantineRoomAPI(AbstractView):
             if validator.has_field('is_full'):
                 if validator.get_field('is_full') == True:
                     context = 'set_full'
+                else:
+                    context = 'set_not_full'
 
             query_set = QuarantineRoom.objects.all()
 
