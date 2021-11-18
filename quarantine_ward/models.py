@@ -14,7 +14,7 @@ class QuarantineWard(models.Model):
         blank=True,
     )
 
-    full_name = models.CharField(max_length=255, unique=True, null=False)
+    full_name = models.CharField(max_length=255, null=False)
 
     phone_number = models.CharField(max_length=16, null=True, blank=True)
 
