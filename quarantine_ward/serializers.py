@@ -148,7 +148,14 @@ class QuarantineWardForRegisterSerializer(serializers.ModelSerializer):
             total_capacity = 0
 
         if self.context == 'set_full':
-            if num_current_member == total_capacity:
+            if num_current_member >= total_capacity:
+                return data
+            else:
+                return None
+        elif self.context == 'set_not_full':
+            if num_current_member < total_capacity:
+                return data
+            else:
                 return None
 
         return data
@@ -177,7 +184,14 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
             data['total_capacity'] = 0
 
         if self.context == 'set_full':
-            if data['num_current_member'] == data['total_capacity']:
+            if data['num_current_member'] >= data['total_capacity']:
+                return data
+            else:
+                return None
+        elif self.context == 'set_not_full':
+            if data['num_current_member'] < data['total_capacity']:
+                return data
+            else:
                 return None
 
         return data
@@ -206,8 +220,16 @@ class FilterQuarantineBuildingSerializer(serializers.ModelSerializer):
             data['total_capacity'] = 0
 
         if self.context == 'set_full':
-            if data['num_current_member'] == data['total_capacity']:
+            if data['num_current_member'] >= data['total_capacity']:
+                return data
+            else:
                 return None
+        elif self.context == 'set_not_full':
+            if data['num_current_member'] < data['total_capacity']:
+                return data
+            else:
+                return None
+                
         return data
 
 class FilterQuarantineFloorSerializer(serializers.ModelSerializer):
@@ -234,9 +256,16 @@ class FilterQuarantineFloorSerializer(serializers.ModelSerializer):
             data['total_capacity'] = 0
 
         if self.context == 'set_full':
-            if data['num_current_member'] == data['total_capacity']:
+            if data['num_current_member'] >= data['total_capacity']:
+                return data
+            else:
                 return None
-
+        elif self.context == 'set_not_full':
+            if data['num_current_member'] < data['total_capacity']:
+                return data
+            else:
+                return None
+                
         return data
 
 class FilterQuarantineRoomSerializer(serializers.ModelSerializer):
@@ -255,7 +284,14 @@ class FilterQuarantineRoomSerializer(serializers.ModelSerializer):
         data =  super().to_representation(instance)
 
         if self.context == 'set_full':
-            if data['num_current_member'] == data['capacity']:
+            if data['num_current_member'] >= data['capacity']:
+                return data
+            else:
+                return None
+        elif self.context == 'set_not_full':
+            if data['num_current_member'] < data['capacity']:
+                return data
+            else:
                 return None
                 
         return data
