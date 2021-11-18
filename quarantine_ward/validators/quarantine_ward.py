@@ -44,6 +44,10 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
         except Exception as exception:
             return False
     
+    def is_validate_phone_number(self):
+        self._phone_number = validators.PhoneNumberValidator.valid(self._phone_number)
+        return self._phone_number
+    
     def is_validate_city(self):
         country = self.is_validate_country()
         self._city = validators.ModelInstanceExistenceValidator.valid(
