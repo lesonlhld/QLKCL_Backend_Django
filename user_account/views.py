@@ -674,6 +674,7 @@ class HomeAPI(AbstractView):
             dict_to_filter_suspected_users = {
                 'role_name': 'MEMBER',
                 'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
+                'status': CustomUserStatus.AVAILABLE,
             }
 
             filter = UserFilter(dict_to_filter_suspected_users, queryset=users_query_set)
@@ -688,6 +689,7 @@ class HomeAPI(AbstractView):
             dict_to_filter_need_test_users = {
                 'role_name': 'MEMBER',
                 'last_tested_max': last_tested_max,
+                'status': CustomUserStatus.AVAILABLE,
             }
 
             filter = UserFilter(dict_to_filter_need_test_users, queryset=users_query_set)
@@ -707,6 +709,7 @@ class HomeAPI(AbstractView):
                 'positive_test': positive_test,
                 'health_status_list': health_status_list,
                 'quarantined_at_max': quarantined_at_max,
+                'status': CustomUserStatus.AVAILABLE,
             }
 
             filter = UserFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
