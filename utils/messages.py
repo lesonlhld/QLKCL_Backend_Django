@@ -66,3 +66,6 @@ INVALID_IS_FULL_FIELD = 'is_full must be boolean type'
 NEGATIVE_PAGE = 'Page must be positive integer'
 NEGATIVE_PAGE_SIZE = 'Page size must be positive integer'
 OVER_PAGE_SIZE_MAX = 'Page size must not be greater than '
+
+ISADMIN = 'This user is admin'
+CANNOT_FINISH_QUARANTINE = 'This user cannot finish quarantine'

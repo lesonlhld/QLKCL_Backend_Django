@@ -3,14 +3,14 @@ from django.db import models
 
 @unique
 class QuarantineWardStatus(models.TextChoices):
-    LOCKED = 'LOCKED',
+    LOCKED = 'LOCKED'
     RUNNING = 'RUNNING'
     UNKNOWN = 'UNKNOWN'
 
 class CustomUserStatus(models.TextChoices):
     WAITING = 'WAITING'
     REFUSED = 'REFUSED'
-    LOCKED = 'LOCKED',
+    LOCKED = 'LOCKED'
     AVAILABLE = 'AVAILABLE'
 
 class QuarantineWardType(models.TextChoices):

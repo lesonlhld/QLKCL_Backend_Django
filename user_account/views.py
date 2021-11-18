@@ -12,7 +12,7 @@ from form.models import Test
 from form.filters.test import TestFilter
 from role.models import Role
 from utils import exceptions, messages
-from utils.enums import CustomUserStatus, HealthStatus, TestStatus
+from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus
 from utils.views import AbstractView, paginate_data
 from utils.tools import date_string_to_timestamp, timestamp_string_to_date_string
 
@@ -508,6 +508,55 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @action(methods=['POST'], url_path='finish_quarantine', detail=False)
+    def finish_quarantine_members(self, request):
+        """Finish quarantine some members
+
+        Args:
+            + member_codes: String <code>,<code>
+        """
+
+        accept_fields = [
+            'member_codes',
+        ]
+
+        require_fields = [
+            'member_codes',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+
+            validator.extra_validate_to_finish_quarantine_member()
+
+            # finish quarantine members
+
+            custom_users = validator.get_field('members')
+
+            for custom_user in custom_users:
+                custom_user.updated_by = request.user
+                if hasattr(custom_user, 'member_x_custom_user'):
+                    member = custom_user.member_x_custom_user
+                    member.quarantined_status = MemberQuarantinedStatus.COMPLETED
+                    member.quarantined_finished_at = timestamp_string_to_date_string(datetime.datetime.now())
+                    member.quarantine_room = None
+                    member.save()
+                custom_user.save()
+            
+            return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_member(self, request):
         """Get a list of members
@@ -569,7 +618,7 @@ class MemberAPI(AbstractView):
             {'is_last_tested', 'page', 'page_size'}
             list_to_filter_user = list(list_to_filter_user) + \
             [
-                'status',
+                'status', 'quarantined_status',
                 'last_tested_max', 'role_name', 'quarantined_at_max',
                 'positive_test', 'health_status_list',
             ]
@@ -663,6 +712,7 @@ class HomeAPI(AbstractView):
             dict_to_filter_waiting_users = {
                 'role_name': 'MEMBER',
                 'status': CustomUserStatus.WAITING,
+                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             filter = UserFilter(dict_to_filter_waiting_users, queryset=users_query_set)
@@ -675,6 +725,7 @@ class HomeAPI(AbstractView):
                 'role_name': 'MEMBER',
                 'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
                 'status': CustomUserStatus.AVAILABLE,
+                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             filter = UserFilter(dict_to_filter_suspected_users, queryset=users_query_set)
@@ -690,6 +741,7 @@ class HomeAPI(AbstractView):
                 'role_name': 'MEMBER',
                 'last_tested_max': last_tested_max,
                 'status': CustomUserStatus.AVAILABLE,
+                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             filter = UserFilter(dict_to_filter_need_test_users, queryset=users_query_set)
@@ -710,6 +762,7 @@ class HomeAPI(AbstractView):
                 'health_status_list': health_status_list,
                 'quarantined_at_max': quarantined_at_max,
                 'status': CustomUserStatus.AVAILABLE,
+                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             filter = UserFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
