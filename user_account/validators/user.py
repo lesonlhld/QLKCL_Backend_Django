@@ -615,6 +615,8 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def extra_validate_to_filter_member(self):
         self._role_name = 'MEMBER'
+        if not hasattr(self, '_status'):
+            self._status = CustomUserStatus.AVAILABLE
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_quarantine_building_id') and not self.is_quarantine_building_id_exist():
