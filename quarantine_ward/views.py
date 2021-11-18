@@ -185,12 +185,26 @@ class QuarantineWardAPI (AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
             validator = QuarantineWardValidator(**accepted_fields)
+            if 'country' in accepted_fields:
+                require_fields += ['city', 'district', 'ward']
+            elif 'city' in accepted_fields:
+                require_fields += ['district', 'ward']
+            elif 'district' in accepted_fields:
+                require_fields += ['ward']
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
             quarantine_ward = validator.get_field('id')
             list_to_update = accepted_fields.keys() - {'id'}
+            
             dict_to_update = validator.get_data(list_to_update)
             quarantine_ward.__dict__.update(**dict_to_update)
+            if validator.has_field('ward'):
+                quarantine_ward.country = validator.get_field('country')
+                quarantine_ward.city = validator.get_field('city')
+                quarantine_ward.district = validator.get_field('district')
+                quarantine_ward.ward = validator.get_field('ward')
+            if validator.has_field('main_manager'):
+                quarantine_ward.main_manager = validator.get_field('main_manager')
             quarantine_ward.save()
             serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
