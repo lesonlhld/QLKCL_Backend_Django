@@ -6,7 +6,7 @@ from utils.tools import date_string_to_timestamp
 class QuarantineBuildingValidator(validators.AbstractRequestValidate):
 
     def is_valid_fields(self, keys: list):
-        ignorable_fields = {'name', 'is_null',
+        ignorable_fields = {'name',
                             }
         set_of_keys = set(keys) - ignorable_fields
 
