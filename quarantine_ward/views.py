@@ -89,6 +89,7 @@ class QuarantineWardAPI (AbstractView):
             + city (str): city_id
             + district (str): district_id
             + ward (str): ward_id
+            - phone_number (str)
             - address (str)
             - latitude (str)
             - longitude (str)
