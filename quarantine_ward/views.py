@@ -89,6 +89,7 @@ class QuarantineWardAPI (AbstractView):
             + city (str): city_id
             + district (str): district_id
             + ward (str): ward_id
+            - phone_number (str)
             - address (str)
             - latitude (str)
             - longitude (str)
@@ -102,7 +103,7 @@ class QuarantineWardAPI (AbstractView):
             'email', 'full_name', 'country', 'city',
             'district', 'ward', 'address', 'latitude',
             'longitude', 'status', 'type', 'quarantine_time',
-            'main_manager',
+            'main_manager', 'phone_number',
         ]
 
         require_fields = [
@@ -146,6 +147,7 @@ class QuarantineWardAPI (AbstractView):
             + id (str)
             - email (str)
             - full_name (str)
+            - phone_number (str)
             - country (str): country_id
             - city (str): city_id
             - district (str): district_id
@@ -163,7 +165,7 @@ class QuarantineWardAPI (AbstractView):
             'id', 'email', 'full_name', 'country', 'city',
             'district', 'ward', 'address', 'latitude',
             'longitude', 'status', 'type', 'quarantine_time',
-            'main_manager',
+            'main_manager', 'phone_number',
         ]
 
         require_fields = [
