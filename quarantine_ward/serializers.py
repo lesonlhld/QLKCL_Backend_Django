@@ -132,6 +132,27 @@ class QuarantineWardForRegisterSerializer(serializers.ModelSerializer):
         model = QuarantineWard
         fields = ['id', 'full_name']
 
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        num_current_member = Member.objects.filter(
+            quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id=data['id']
+        ).count()
+
+        total_capacity = QuarantineRoom.objects.filter(
+            quarantine_floor__quarantine_building__quarantine_ward__id=data['id']
+        ).aggregate(Sum('capacity'))
+
+        total_capacity = next(iter(total_capacity.values()))
+        if total_capacity == None:
+            total_capacity = 0
+
+        if self.context == 'set_full':
+            if num_current_member == total_capacity:
+                return None
+
+        return data
+
 class FilterQuarantineWardSerializer(serializers.ModelSerializer):
 
     main_manager = BaseCustomUserSerializer(many=False)
@@ -152,6 +173,13 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
         ).aggregate(Sum('capacity'))
 
         data['total_capacity'] = next(iter(total_capacity.values()))
+        if data['total_capacity'] == None:
+            data['total_capacity'] = 0
+
+        if self.context == 'set_full':
+            if data['num_current_member'] == data['total_capacity']:
+                return None
+
         return data
 
 class FilterQuarantineBuildingSerializer(serializers.ModelSerializer):
@@ -174,6 +202,12 @@ class FilterQuarantineBuildingSerializer(serializers.ModelSerializer):
         ).aggregate(Sum('capacity'))
 
         data['total_capacity'] = next(iter(total_capacity.values()))
+        if data['total_capacity'] == None:
+            data['total_capacity'] = 0
+
+        if self.context == 'set_full':
+            if data['num_current_member'] == data['total_capacity']:
+                return None
         return data
 
 class FilterQuarantineFloorSerializer(serializers.ModelSerializer):
@@ -196,6 +230,13 @@ class FilterQuarantineFloorSerializer(serializers.ModelSerializer):
         ).aggregate(Sum('capacity'))
 
         data['total_capacity'] = next(iter(total_capacity.values()))
+        if data['total_capacity'] == None:
+            data['total_capacity'] = 0
+
+        if self.context == 'set_full':
+            if data['num_current_member'] == data['total_capacity']:
+                return None
+
         return data
 
 class FilterQuarantineRoomSerializer(serializers.ModelSerializer):
@@ -209,3 +250,12 @@ class FilterQuarantineRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuarantineRoom
         fields = ['id', 'name', 'capacity', 'quarantine_floor', 'num_current_member']
+    
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+
+        if self.context == 'set_full':
+            if data['num_current_member'] == data['capacity']:
+                return None
+                
+        return data

@@ -1,6 +1,7 @@
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
+from rest_framework.serializers import Serializer
 from utils.views import AbstractView, paginate_data
 from utils import exceptions
 from utils.enums import RoleName
@@ -252,13 +253,14 @@ class QuarantineWardAPI (AbstractView):
             - district (id): int
             - ward (id): int
             - main_manager (id): int
+            - is_full: bool
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
             'created_at_max', 'created_at_min',
             'country', 'city', 'district', 'ward',
-            'main_manager',
+            'main_manager', 'is_full',
         ]
 
         try:
@@ -271,8 +273,12 @@ class QuarantineWardAPI (AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineWardValidator(**accepted_fields)
-
             validator.filter_validate()
+
+            context = ''
+            if validator.has_field('is_full'):
+                if validator.get_field('is_full') == True:
+                    context = 'set_full'
 
             query_set = QuarantineWard.objects.all()
 
@@ -289,9 +295,9 @@ class QuarantineWardAPI (AbstractView):
 
             query_set = query_set.select_related()
 
-            serializer = FilterQuarantineWardSerializer(query_set, many=True)
-
-            paginated_data = paginate_data(request, serializer.data)
+            serializer = FilterQuarantineWardSerializer(query_set, many=True, context=context)
+            _data = [i for i in serializer.data if i]
+            paginated_data = paginate_data(request, _data)
 
             return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
@@ -303,14 +309,32 @@ class QuarantineWardAPI (AbstractView):
         """Get a list of active quarantine wards
 
         Args:
-            None
+            - is_full: boolean
         """
+        accept_fields = [
+            'is_full',
+        ]
 
         try:
-            list_quarantine_ward = QuarantineWard.objects.filter(trash=False)
-            serializer = QuarantineWardForRegisterSerializer(list_quarantine_ward, many=True)
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
 
-            return self.response_handler.handle(data=serializer.data)
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = QuarantineWardValidator(**accepted_fields)
+            validator.filter_validate()
+            context = ''
+            if validator.has_field('is_full'):
+                if validator.get_field('is_full') == True:
+                    context = 'set_full'
+
+            list_quarantine_ward = QuarantineWard.objects.filter(trash=False)
+            serializer = QuarantineWardForRegisterSerializer(list_quarantine_ward, many=True, context=context)
+            _data = [i for i in serializer.data if i]
+            return self.response_handler.handle(data=_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
@@ -500,12 +524,13 @@ class QuarantineBuildingAPI (AbstractView):
             - page_size: int
             - search: String
             - quarantine_ward: int (id)
+            - is_full: boolean
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
             'created_at_max', 'created_at_min',
-            'quarantine_ward',
+            'quarantine_ward', 'is_full',
         ]
 
         required_fields = [
@@ -525,8 +550,13 @@ class QuarantineBuildingAPI (AbstractView):
             validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
-            query_set = QuarantineBuilding.objects.all()
+            context = ''
+            if validator.has_field('is_full'):
+                if validator.get_field('is_full') == True:
+                    context = 'set_full'
 
+            query_set = QuarantineBuilding.objects.all()
+            
             list_to_filter = [key for key in accepted_fields.keys()]
             list_to_filter = set(list_to_filter) - {'page', 'page_size'}
 
@@ -535,14 +565,14 @@ class QuarantineBuildingAPI (AbstractView):
             dict_to_filter.setdefault('order_by', '-created_at')
             
             filter = QuarantineBuildingFilter(dict_to_filter, queryset=query_set)
-
+            
             query_set = filter.qs
 
             query_set = query_set.select_related()
 
-            serializer = FilterQuarantineBuildingSerializer(query_set, many=True)
-
-            paginated_data = paginate_data(request, serializer.data)
+            serializer = FilterQuarantineBuildingSerializer(query_set, many=True, context=context)
+            _data = [i for i in serializer.data if i]
+            paginated_data = paginate_data(request, _data)
 
             return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
@@ -732,11 +762,12 @@ class QuarantineFloorAPI (AbstractView):
             - page_size: int
             - search: String
             - quarantine_building: int (id)
+            - is_full: boolean
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
-            'quarantine_building',
+            'quarantine_building', 'is_full',
         ]
 
         required_fields = [
@@ -756,6 +787,10 @@ class QuarantineFloorAPI (AbstractView):
             validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
+            context = ''
+            if validator.has_field('is_full'):
+                if validator.get_field('is_full') == True:
+                    context = 'set_full'
             query_set = QuarantineFloor.objects.all()
 
             list_to_filter = [key for key in accepted_fields.keys()]
@@ -771,9 +806,9 @@ class QuarantineFloorAPI (AbstractView):
 
             query_set = query_set.select_related()
 
-            serializer = FilterQuarantineFloorSerializer(query_set, many=True)
-
-            paginated_data = paginate_data(request, serializer.data)
+            serializer = FilterQuarantineFloorSerializer(query_set, many=True, context=context)
+            _data = [i for i in serializer.data if i]
+            paginated_data = paginate_data(request, _data)
 
             return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
@@ -965,11 +1000,12 @@ class QuarantineRoomAPI(AbstractView):
             - page_size: int
             - search: String
             - quarantine_floor: int (id)
+            - is_full: boolean
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
-            'quarantine_floor',
+            'quarantine_floor', 'is_full',
         ]
 
         required_fields = [
@@ -989,6 +1025,11 @@ class QuarantineRoomAPI(AbstractView):
             validator.is_missing_fields(required_fields)
             validator.filter_validate()
 
+            context = ''
+            if validator.has_field('is_full'):
+                if validator.get_field('is_full') == True:
+                    context = 'set_full'
+
             query_set = QuarantineRoom.objects.all()
 
             list_to_filter = [key for key in accepted_fields.keys()]
@@ -1004,9 +1045,9 @@ class QuarantineRoomAPI(AbstractView):
 
             query_set = query_set.select_related()
 
-            serializer = FilterQuarantineRoomSerializer(query_set, many=True)
-
-            paginated_data = paginate_data(request, serializer.data)
+            serializer = FilterQuarantineRoomSerializer(query_set, many=True, context=context)
+            _data = [i for i in serializer.data if i]
+            paginated_data = paginate_data(request, _data)
 
             return self.response_handler.handle(data=paginated_data)
         except Exception as exception:

@@ -30,6 +30,14 @@ class QuarantineFloorValidator(validators.AbstractRequestValidate):
             message=messages.QUARANTINE_FLOOR_NOT_FOUND,
         )
     
+    def is_validate_is_full(self):
+        value = self._is_full
+        if value != None:
+            self._is_full = validators.BooleanValidator.valid(
+                value, 
+                messages.INVALID_IS_FULL_FIELD,
+            )
+    
     def filter_validate(self):
         if hasattr(self, '_created_at_max'):
             validators.DateStringValidator.valid(self._created_at_max, message={'created_at_max': messages.INVALID})
@@ -43,3 +51,5 @@ class QuarantineFloorValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_updated_at_min'):
             validators.DateStringValidator.valid(self._updated_at_min, message={'updated_at_min': messages.INVALID})
             self._updated_at_min = date_string_to_timestamp(self._updated_at_min, 0)
+        if hasattr(self, '_is_full'):
+            self.is_validate_is_full()
