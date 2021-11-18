@@ -103,7 +103,7 @@ class QuarantineWardAPI (AbstractView):
             'email', 'full_name', 'country', 'city',
             'district', 'ward', 'address', 'latitude',
             'longitude', 'status', 'type', 'quarantine_time',
-            'main_manager',
+            'main_manager', 'phone_number',
         ]
 
         require_fields = [
