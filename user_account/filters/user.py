@@ -12,6 +12,11 @@ class UserFilter(django_filters.FilterSet):
         lookup_expr='iexact',
     )
 
+    quarantined_status = django_filters.CharFilter(
+        field_name='member_x_custom_user__quarantined_status',
+        lookup_expr='iexact',
+    )
+
     positive_test = django_filters.CharFilter(
         field_name='member_x_custom_user__positive_test',
         lookup_expr='iexact',

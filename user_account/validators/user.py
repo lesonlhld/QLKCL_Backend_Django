@@ -7,8 +7,8 @@ from role.models import Role
 from quarantine_ward.models import QuarantineWard, QuarantineRoom, QuarantineBuilding, QuarantineFloor
 from form.models import BackgroundDisease
 from utils import validators, messages, exceptions
-from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus
-from utils.tools import split_input_list, date_string_to_timestamp, timestamp_string_to_date_string
+from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus, MemberQuarantinedStatus
+from utils.tools import split_input_list, date_string_to_timestamp, timestamp_string_to_date_string, compare_date_string
 
 class UserValidator(validators.AbstractRequestValidate):
 
@@ -613,8 +613,35 @@ class UserValidator(validators.AbstractRequestValidate):
                     raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
                 self._members += [user]
 
+    def check_member_can_finish_quarantine(self, custom_user):
+        if custom_user.member_x_custom_user.positive_test != False:
+            return False
+        if custom_user.member_x_custom_user.health_status != HealthStatus.NORMAL:
+            return False
+        quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
+        quarantined_at_max = datetime.datetime.now() - datetime.timedelta(days=quarantine_day)
+        quarantined_at_max = timestamp_string_to_date_string(str(quarantined_at_max))
+        if compare_date_string(custom_user.member_x_custom_user.quarantined_at, quarantined_at_max) == 1:
+            return False
+        return True
+
+    def extra_validate_to_finish_quarantine_member(self):
+        if hasattr(self, '_member_codes'):
+            self._member_codes = split_input_list(self._member_codes)
+            self._members = []
+            for code in self._member_codes:
+                user = self.get_user_by_code(code)
+                if not user:
+                    raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
+                if not hasattr(user, 'member_x_custom_user'):
+                    raise exceptions.ValidationException({'main': messages.ISADMIN})
+                if not self.check_member_can_finish_quarantine(user):
+                    raise exceptions.ValidationException({'main': messages.CANNOT_FINISH_QUARANTINE})
+                self._members += [user]
+
     def extra_validate_to_filter_member(self):
         self._role_name = 'MEMBER'
+        self._quarantined_status = MemberQuarantinedStatus.QUARANTINING
         if not hasattr(self, '_status'):
             self._status = CustomUserStatus.AVAILABLE
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
