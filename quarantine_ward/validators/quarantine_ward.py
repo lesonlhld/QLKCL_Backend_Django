@@ -1,3 +1,4 @@
+from re import I
 from ..models import QuarantineWard, Country, City, District, Ward, CustomUser
 from utils import validators, messages, enums, exceptions
 from django.db.models import Q
@@ -6,9 +7,9 @@ from utils.tools import date_string_to_timestamp
 class QuarantineWardValidator(validators.AbstractRequestValidate):
 
     def is_valid_fields(self, keys: list):
-        ignorable_fields = {'country', 'city', 'district', 'address',
-                            'page', 'page_size', 'search', 'full_name',
-                            'created_at_max', 'created_at_min'}
+        ignorable_fields = {'address', 'page', 'page_size', 'search', 'full_name',
+                            'created_at_max', 'created_at_min', 'country', 'city', 'district'}
+
         set_of_keys = set(keys) - ignorable_fields
 
         return super().is_valid_fields(set_of_keys)
@@ -73,6 +74,7 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
         return self._district
     
     def is_validate_ward(self):
+        
         district = self.is_validate_district()
         self._ward = validators.ModelInstanceExistenceValidator.valid(
             model_cls=Ward,
