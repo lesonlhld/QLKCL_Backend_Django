@@ -144,6 +144,11 @@ class MemberHomeSerializer(serializers.ModelSerializer):
     quarantine_building = serializers.SerializerMethodField('get_quarantine_building')
     quarantine_ward = serializers.SerializerMethodField('get_quarantine_ward')
     custom_user = serializers.SerializerMethodField('get_custom_user')
+    health_status = serializers.SerializerMethodField('get_health_status')
+    positive_test = serializers.SerializerMethodField('get_positive_test')
+    last_tested = serializers.SerializerMethodField('get_last_tested')
+    created_at = serializers.SerializerMethodField('get_created_at')
+    quarantined_at = serializers.SerializerMethodField('get_quarantined_at')
 
     def get_custom_user(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
@@ -172,6 +177,34 @@ class MemberHomeSerializer(serializers.ModelSerializer):
     def get_quarantine_ward(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_ward:
             return QuarantineWardSerializer(custom_user.member_x_custom_user.quarantine_ward, many=False).data
+        else:
+            return None
+    
+    def get_health_status(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.health_status
+        else:
+            return None
+
+    def get_positive_test(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.positive_test
+        else:
+            return None
+
+    def get_last_tested(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.last_tested
+        else:
+            return None
+
+    def get_created_at(self, custom_user):
+        created_at = str(custom_user.created_at)
+        return timestamp_string_to_date_string(created_at)
+
+    def get_quarantined_at(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.quarantined_at
         else:
             return None
 
