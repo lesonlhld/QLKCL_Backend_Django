@@ -128,6 +128,17 @@ class FilterNotMemberSerializer(serializers.ModelSerializer):
 
 class MemberSerializer(serializers.ModelSerializer):
 
+    quarantine_room = BaseQuarantineRoomSerializer(many=False)
+    quarantine_floor = BaseQuarantineFloorSerializer(many=False)
+    quarantine_building = BaseQuarantineBuildingSerializer(many=False)
+    quarantine_ward = BaseQuarantineWardSerializer(many=False)
+
+    class Meta:
+        model = Member
+        fields = '__all__'
+
+class MemberHomeSerializer(serializers.ModelSerializer):
+
     quarantine_room = serializers.SerializerMethodField('get_quarantine_room')
     quarantine_floor = serializers.SerializerMethodField('get_quarantine_floor')
     quarantine_building = serializers.SerializerMethodField('get_quarantine_building')

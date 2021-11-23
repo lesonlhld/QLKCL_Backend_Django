@@ -6,7 +6,7 @@ from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
 from .models import CustomUser, Member
-from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer, FilterNotMemberSerializer
+from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer, FilterNotMemberSerializer, MemberHomeSerializer
 from .filters.user import UserFilter
 from form.models import Test
 from form.filters.test import TestFilter
@@ -841,7 +841,7 @@ class HomeAPI(AbstractView):
         try:
 
             member = request.user
-            serializer = MemberSerializer(member, many=False)
+            serializer = MemberHomeSerializer(member, many=False)
 
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
