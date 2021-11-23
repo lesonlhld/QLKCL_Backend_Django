@@ -8,6 +8,7 @@ from quarantine_ward.serializers import (
     BaseQuarantineWardSerializer,
     BaseQuarantineRoomSerializer, BaseQuarantineFloorSerializer,
     BaseQuarantineBuildingSerializer, BaseQuarantineWardSerializer,
+    QuarantineWardSerializer,
 )
 
 from role.serializers import RoleSerializer
@@ -127,10 +128,41 @@ class FilterNotMemberSerializer(serializers.ModelSerializer):
 
 class MemberSerializer(serializers.ModelSerializer):
 
-    quarantine_room = BaseQuarantineRoomSerializer(many=False)
-    quarantine_floor = BaseQuarantineFloorSerializer(many=False)
-    quarantine_building = BaseQuarantineBuildingSerializer(many=False)
-    quarantine_ward = BaseQuarantineWardSerializer(many=False)
+    quarantine_room = serializers.SerializerMethodField('get_quarantine_room')
+    quarantine_floor = serializers.SerializerMethodField('get_quarantine_floor')
+    quarantine_building = serializers.SerializerMethodField('get_quarantine_building')
+    quarantine_ward = serializers.SerializerMethodField('get_quarantine_ward')
+    custom_user = serializers.SerializerMethodField('get_custom_user')
+
+    def get_custom_user(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
+            return BaseCustomUserSerializer(custom_user, many=False).data
+        else:
+            return None
+
+    def get_quarantine_room(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_room:
+            return BaseQuarantineRoomSerializer(custom_user.member_x_custom_user.quarantine_room, many=False).data
+        else:
+            return None
+    
+    def get_quarantine_floor(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_floor:
+            return BaseQuarantineFloorSerializer(custom_user.member_x_custom_user.quarantine_floor, many=False).data
+        else:
+            return None
+    
+    def get_quarantine_building(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_building:
+            return BaseQuarantineBuildingSerializer(custom_user.member_x_custom_user.quarantine_building, many=False).data
+        else:
+            return None
+
+    def get_quarantine_ward(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_ward:
+            return QuarantineWardSerializer(custom_user.member_x_custom_user.quarantine_ward, many=False).data
+        else:
+            return None
 
     class Meta:
         model = Member
