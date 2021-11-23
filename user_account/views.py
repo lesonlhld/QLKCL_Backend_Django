@@ -828,3 +828,21 @@ class HomeAPI(AbstractView):
             return self.response_handler.handle(data=response_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
+    
+    @csrf_exempt
+    @action(methods=['POST'], url_path='member', detail=False)
+    def member_home(self, request):
+        """Get information to display home screen for member
+
+        Args:
+            None
+        """
+
+        try:
+
+            member = request.user
+            serializer = MemberSerializer(member, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
