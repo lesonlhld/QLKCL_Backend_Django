@@ -277,3 +277,51 @@ class Member(models.Model):
             return self.quarantine_building.quarantine_ward
         else:
             return None
+
+class Manager(models.Model):
+
+    custom_user = models.OneToOneField(
+        to=CustomUser,
+        on_delete=models.CASCADE,
+        related_name='manager_x_custom_user',
+        primary_key=False,
+        null=False,
+    )
+
+    last_tested = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+
+    health_status = models.CharField(
+        max_length=32,
+        choices=HealthStatus.choices,
+        default=HealthStatus.NORMAL,
+        null=False,
+    )
+
+    health_note = models.TextField(null=True, blank=True)
+
+    positive_test_now = models.BooleanField(null=True, blank=True)
+
+class Staff(models.Model):
+
+    custom_user = models.OneToOneField(
+        to=CustomUser,
+        on_delete=models.CASCADE,
+        related_name='staff_x_custom_user',
+        primary_key=False,
+        null=False,
+    )
+
+    last_tested = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+
+    health_status = models.CharField(
+        max_length=32,
+        choices=HealthStatus.choices,
+        default=HealthStatus.NORMAL,
+        null=False,
+    )
+
+    health_note = models.TextField(null=True, blank=True)
+
+    positive_test_now = models.BooleanField(null=True, blank=True)
+
+    care_area = models.TextField(null=True, blank=True)
