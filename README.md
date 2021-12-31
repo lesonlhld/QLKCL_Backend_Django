@@ -7,17 +7,12 @@ QLKCL Backend
 
 
 ## Version info
-Postgresql 13.3
-Django 3.2.7
-Python 3.9.5
+* Postgresql 13.3
+* Django 3.2.7
+* Python 3.9.5
 
 ## Create database
 ```
-CREATE USER horus_dev SUPERUSER;
-
-ALTER USER horus_dev WITH PASSWORD 'password';
-
-CREATE DATABASE osn_dev WITH OWNER horus_dev;
 ```
 
 or create by hand
@@ -61,3 +56,9 @@ Login with credentials
 username:
 password:
 ```
+
+# Authors
+1. [Lê Trung Sơn](https://github.com/lesonlhld)
+2. [Châu Thanh Tân](https://github.com/cttan2000)
+3. [Nguyễn Bá Tiến](https://github.com/batiencd09)
+4. [Trương Ngọc Minh Châu](https://github.com/chauandvi4) (Contribute the system in the first stage)
