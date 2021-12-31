@@ -211,6 +211,16 @@ class MedicalDeclarationAPI(AbstractView):
                 for_member.health_status = medical_declaration.conclude
                 for_member.save()
 
+            if hasattr(for_user, 'manager_x_custom_user'):
+                for_manager = for_user.manager_x_custom_user
+                for_manager.health_status = medical_declaration.conclude
+                for_manager.save()
+            
+            if hasattr(for_user, 'staff_x_custom_user'):
+                for_staff = for_user.staff_x_custom_user
+                for_staff.health_status = medical_declaration.conclude
+                for_staff.save()
+
             serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
 
             return self.response_handler.handle(data=serializer.data)
@@ -328,36 +338,31 @@ class TestAPI(AbstractView):
 
         return first_part + second_part + third_part
 
-    def update_user_after_save_test(self, test):
-        if test.user != None and hasattr(test.user, 'member_x_custom_user'):
-            this_member = test.user.member_x_custom_user
+    def calculate_new_conclude_from_test(self, test, old_positive_test_now):
+        if test.result == TestResult.POSITIVE:
+            return True
+        elif test.result == TestResult.NEGATIVE:
+            if old_positive_test_now == True:
+                number_test_need = int(os.environ.get("NUMBER_TEST_FROM_POSITIVE_TO_NEGATIVE", "1"))
+            elif old_positive_test_now == None:
+                number_test_need = int(os.environ.get("NUMBER_TEST_FROM_UNKNOWN_TO_NEGATIVE", "1"))
 
-            if test.result == TestResult.POSITIVE:
-                this_member.positive_test = True
-                this_member.last_tested = test.created_at
-                this_member.save()
+            if old_positive_test_now != False:
+                tests_to_check = Test.objects.filter(user = test.user, type=TestType.RT_PCR).order_by('-created_at')[:number_test_need]
 
-            elif test.result == TestResult.NEGATIVE:
-                if this_member.positive_test == True:
-                    number_test_need = int(os.environ.get("NUMBER_TEST_FROM_POSITIVE_TO_NEGATIVE", "1"))
-                elif this_member.positive_test == None:
-                    number_test_need = int(os.environ.get("NUMBER_TEST_FROM_UNKNOWN_TO_NEGATIVE", "1"))
-
-                if this_member.positive_test != False:
-                    tests_to_check = Test.objects.filter(user = test.user, type=TestType.RT_PCR).order_by('-updated_at')[:number_test_need]
-
-                    is_negative = True
-                    for test in list(tests_to_check):
-                        if test.result == TestResult.POSITIVE:
-                            is_negative = False
-                            break
-                    if is_negative:
-                        this_member.positive_test = False
-                    else:
-                        this_member.positive_test = True
-
-                this_member.last_tested = test.created_at
-                this_member.save()
+                is_negative = True
+                for test in list(tests_to_check):
+                    if test.result == TestResult.POSITIVE:
+                        is_negative = False
+                        break
+                if is_negative:
+                    return False
+                else:
+                    return True
+            else:
+                return False
+        else:
+            return old_positive_test_now
 
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)
@@ -413,7 +418,25 @@ class TestAPI(AbstractView):
             test.save()
 
             # Update user
-            self.update_user_after_save_test(test)
+            if test.user != None:
+                if hasattr(test.user, 'member_x_custom_user'):
+                    this_member = test.user.member_x_custom_user
+                    new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test)
+                    this_member.positive_test = new_positive_test_now
+                    this_member.last_tested = test.created_at
+                    this_member.save()
+                if hasattr(test.user, 'manager_x_custom_user'):
+                    this_manager = test.user.manager_x_custom_user
+                    new_positive_test_now = self.calculate_new_conclude_from_test(test, this_manager.positive_test_now)
+                    this_manager.positive_test_now = new_positive_test_now
+                    this_manager.last_tested = test.created_at
+                    this_manager.save()
+                if hasattr(test.user, 'staff_x_custom_user'):
+                    this_staff = test.user.staff_x_custom_user
+                    new_positive_test_now = self.calculate_new_conclude_from_test(test, this_staff.positive_test_now)
+                    this_staff.positive_test_now = new_positive_test_now
+                    this_staff.last_tested = test.created_at
+                    this_staff.save()
 
             serializer = TestSerializer(test, many=False)
 
@@ -513,7 +536,27 @@ class TestAPI(AbstractView):
             test.save()
 
             # Update user
-            self.update_user_after_save_test(test)
+            last_test = Test.objects.filter(user = test.user).order_by('-created_at')[:1][0]
+            if test == last_test:
+                if test.user != None:
+                    if hasattr(test.user, 'member_x_custom_user'):
+                        this_member = test.user.member_x_custom_user
+                        new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test)
+                        this_member.positive_test = new_positive_test_now
+                        this_member.last_tested = test.created_at
+                        this_member.save()
+                    if hasattr(test.user, 'manager_x_custom_user'):
+                        this_manager = test.user.manager_x_custom_user
+                        new_positive_test_now = self.calculate_new_conclude_from_test(test, this_manager.positive_test_now)
+                        this_manager.positive_test_now = new_positive_test_now
+                        this_manager.last_tested = test.created_at
+                        this_manager.save()
+                    if hasattr(test.user, 'staff_x_custom_user'):
+                        this_staff = test.user.staff_x_custom_user
+                        new_positive_test_now = self.calculate_new_conclude_from_test(test, this_staff.positive_test_now)
+                        this_staff.positive_test_now = new_positive_test_now
+                        this_staff.last_tested = test.created_at
+                        this_staff.save()
 
             serializer = TestSerializer(test, many=False)
 

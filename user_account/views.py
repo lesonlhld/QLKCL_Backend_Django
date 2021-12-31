@@ -6,7 +6,13 @@ from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
 from .models import CustomUser, Member
-from .serializers import CustomUserSerializer, MemberSerializer, FilterMemberSerializer, FilterNotMemberSerializer, MemberHomeSerializer
+from .serializers import (
+    CustomUserSerializer, MemberSerializer,
+    FilterMemberSerializer, FilterNotMemberSerializer,
+    MemberHomeSerializer, ManagerSerializer,
+    StaffSerializer,
+)
+from .filters.member import MemberFilter
 from .filters.user import UserFilter
 from form.models import Test
 from form.filters.test import TestFilter
@@ -280,11 +286,23 @@ class MemberAPI(AbstractView):
 
             response_data['custom_user'] = custom_user_serializer.data
 
-            if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
+            if hasattr(custom_user, 'member_x_custom_user'):
                 member = custom_user.member_x_custom_user
                 member_serializer = MemberSerializer(member, many=False)
 
                 response_data['member'] = member_serializer.data
+
+            if hasattr(custom_user, 'manager_x_custom_user'):
+                manager = custom_user.manager_x_custom_user
+                manager_serializer = ManagerSerializer(manager, many=False)
+
+                response_data['manager'] = manager_serializer.data
+
+            if hasattr(custom_user, 'staff_x_custom_user'):
+                staff = custom_user.staff_x_custom_user
+                staff_serializer = StaffSerializer(staff, many=False)
+
+                response_data['staff'] = staff_serializer.data
             
             return self.response_handler.handle(data=response_data)
         
@@ -293,8 +311,8 @@ class MemberAPI(AbstractView):
 
     @csrf_exempt
     @action(methods=['POST'], url_path='update', detail=False)
-    def update_user(self, request):
-        """Update a user, if dont get code, will update user sending request
+    def update_member(self, request):
+        """Update a member, if dont get code, will update member sending request
 
         Args:
             - code: int
@@ -449,14 +467,14 @@ class MemberAPI(AbstractView):
             custom_users = validator.get_field('members')
 
             for custom_user in custom_users:
-                custom_user.status = CustomUserStatus.AVAILABLE
-                if hasattr(custom_user, 'member_x_custom_user'):
+                if custom_user.role.name == 'MEMBER' and hasattr(custom_user, 'member_x_custom_user'):
+                    custom_user.status = CustomUserStatus.AVAILABLE
                     member = custom_user.member_x_custom_user
                     member.quarantined_at = timestamp_string_to_date_string(datetime.datetime.now())
+                    custom_user.created_by = request.user
+                    custom_user.updated_by = request.user
                     member.save()
-                custom_user.created_by = request.user
-                custom_user.updated_by = request.user
-                custom_user.save()
+                    custom_user.save()
             
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
@@ -498,10 +516,10 @@ class MemberAPI(AbstractView):
             custom_users = validator.get_field('members')
 
             for custom_user in custom_users:
-                custom_user.status = CustomUserStatus.REFUSED
-                custom_user.created_by = request.user
-                custom_user.updated_by = request.user
-                custom_user.save()
+                if custom_user.role.name == 'MEMBER' and hasattr(custom_user, 'member_x_custom_user') and custom_user.status == CustomUserStatus.WAITING:
+                    custom_user.status = CustomUserStatus.REFUSED
+                    custom_user.updated_by = request.user
+                    custom_user.save()
 
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
@@ -543,14 +561,14 @@ class MemberAPI(AbstractView):
             custom_users = validator.get_field('members')
 
             for custom_user in custom_users:
-                custom_user.updated_by = request.user
                 if hasattr(custom_user, 'member_x_custom_user'):
+                    custom_user.updated_by = request.user
                     member = custom_user.member_x_custom_user
                     member.quarantined_status = MemberQuarantinedStatus.COMPLETED
                     member.quarantined_finished_at = timestamp_string_to_date_string(datetime.datetime.now())
                     member.quarantine_room = None
+                    custom_user.save()
                     member.save()
-                custom_user.save()
             
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
@@ -627,7 +645,7 @@ class MemberAPI(AbstractView):
 
             dict_to_filter_user.setdefault('order_by', '-created_at')
 
-            filter = UserFilter(dict_to_filter_user, queryset=query_set)
+            filter = MemberFilter(dict_to_filter_user, queryset=query_set)
 
             query_set = filter.qs
 
@@ -644,10 +662,10 @@ class MemberAPI(AbstractView):
     @csrf_exempt
     @action(methods=['POST'], url_path='not_member_filter', detail=False)
     def not_member_filter(self, request):
-        """Get a list of not-member
+        """Get a list user of some role
 
         Args:
-            + role_name_list: String <role_name>,<role_name> ['MEMBER', 'SUPER_MANAGER', 'STAFF']
+            + role_name_list: String <role_name>,<role_name> ['MEMBER', 'SUPER_MANAGER', 'MANAGER', 'ADMINISTRATOR', 'STAFF']
         """
 
         
@@ -715,7 +733,7 @@ class HomeAPI(AbstractView):
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
-            filter = UserFilter(dict_to_filter_waiting_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_waiting_users, queryset=users_query_set)
 
             number_of_waiting_users = filter.qs.count()
 
@@ -728,7 +746,7 @@ class HomeAPI(AbstractView):
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
-            filter = UserFilter(dict_to_filter_suspected_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_suspected_users, queryset=users_query_set)
 
             number_of_suspected_users = filter.qs.count()
 
@@ -744,7 +762,7 @@ class HomeAPI(AbstractView):
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
-            filter = UserFilter(dict_to_filter_need_test_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_need_test_users, queryset=users_query_set)
 
             number_of_need_test_users = filter.qs.count()
 
@@ -765,7 +783,7 @@ class HomeAPI(AbstractView):
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
-            filter = UserFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
 
             number_of_can_finish_users = filter.qs.count()
 
@@ -793,7 +811,7 @@ class HomeAPI(AbstractView):
                     'quarantined_at_min': day,
                 }
 
-                filter = UserFilter(dict_to_filter_in_members, queryset=users_query_set)
+                filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
 
                 dict_of_in_members[f'{day}'] = filter.qs.count()
 
@@ -811,7 +829,7 @@ class HomeAPI(AbstractView):
                     'quarantined_finished_at_min': day,
                 }
 
-                filter = UserFilter(dict_to_filter_in_members, queryset=users_query_set)
+                filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
 
                 dict_of_out_members[f'{day}'] = filter.qs.count()
 
