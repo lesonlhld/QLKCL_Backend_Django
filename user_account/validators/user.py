@@ -633,8 +633,8 @@ class UserValidator(validators.AbstractRequestValidate):
                 user = self.get_user_by_code(code)
                 if not user:
                     raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
-                if not hasattr(user, 'member_x_custom_user'):
-                    raise exceptions.ValidationException({'main': messages.ISADMIN})
+                if not hasattr(user, 'member_x_custom_user') or user.role.name != 'MEMBER':
+                    raise exceptions.ValidationException({'main': messages.ISNOTMEMBER})
                 if not self.check_member_can_finish_quarantine(user):
                     raise exceptions.ValidationException({'main': messages.CANNOT_FINISH_QUARANTINE})
                 self._members += [user]

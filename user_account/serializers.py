@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Member
+from .models import CustomUser, Member, Manager, Staff
 from address.serializers import (
     BaseCountrySerializer, BaseCitySerializer,
     BaseDistrictSerializer, BaseWardSerializer,
@@ -35,6 +35,10 @@ class BaseCustomUserSerializer(serializers.ModelSerializer):
     def get_health_status(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
             return custom_user.member_x_custom_user.health_status
+        elif hasattr(custom_user, 'manager_x_custom_user'):
+            return custom_user.manager_x_custom_user.health_status
+        elif hasattr(custom_user, 'staff_x_custom_user'):
+            return custom_user.staff_x_custom_user.health_status
         else:
             return None
 
@@ -210,4 +214,16 @@ class MemberHomeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Member
+        fields = '__all__'
+
+class ManagerSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Manager
+        fields = '__all__'
+
+class StaffSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Staff
         fields = '__all__'
