@@ -166,7 +166,7 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineWard
-        fields = ['id', 'main_manager', 'full_name','created_at', 'updated_at']
+        fields = ['id', 'main_manager', 'full_name', 'city', 'country', 'district', 'ward', 'address', 'created_at', 'updated_at']
     
     def to_representation(self, instance):
         data =  super().to_representation(instance)
