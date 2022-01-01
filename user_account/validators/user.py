@@ -181,6 +181,20 @@ class UserValidator(validators.AbstractRequestValidate):
                 except Exception as exception:
                     raise exceptions.NotFoundException({'background_disease': messages.NOT_EXIST})
 
+    def is_validate_care_area(self):
+        if hasattr(self, '_care_area'):
+            self._list_quarantine_floor_objects = []
+            self._list_quarantine_floor_ids = split_input_list(self._care_area)
+            for id in self._list_quarantine_floor_ids:
+                try:
+                    object = validators.ModelInstanceExistenceValidator.valid(
+                        model_cls=QuarantineFloor,
+                        query_expr=Q(id=id),
+                    )
+                    self._list_quarantine_floor_objects += [object]
+                except Exception as exception:
+                    raise exceptions.NotFoundException({'quarantine_floor': messages.NOT_EXIST})
+
     def is_validate_abroad(self):
         if hasattr(self, '_abroad'):
             self._abroad = validators.BooleanValidator.valid(
@@ -560,9 +574,62 @@ class UserValidator(validators.AbstractRequestValidate):
             if member_in_room >= self._quarantine_room.capacity:
                 raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
 
-    def extra_validate_to_update_user(self):
+    def extra_validate_to_create_manager(self):
+        if hasattr(self, '_phone_number') and self.is_phone_number_exist():
+            raise exceptions.ValidationException({'phone_number': messages.EXIST})
+        if hasattr(self, '_email') and self.is_email_exist():
+            raise exceptions.ValidationException({'email': messages.EXIST})
+        if hasattr(self, '_health_insurance_number') and self.is_health_insurance_number_exist():
+            raise exceptions.ValidationException({'health_insurance_number': messages.EXIST})
+        if hasattr(self, '_identity_number') and self.is_identity_number_exist():
+            raise exceptions.ValidationException({'identity_number': messages.EXIST})
+        if hasattr(self, '_passport_number') and self.is_passport_number_exist():
+            raise exceptions.ValidationException({'passport_number': messages.EXIST})
+        if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
+            raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
+        if hasattr(self, '_country_code') and not self.is_country_code_exist():
+            raise exceptions.NotFoundException({'country_code': messages.NOT_EXIST})
+        if hasattr(self, '_city_id') and not self.is_city_id_exist():
+            raise exceptions.NotFoundException({'city_id': messages.NOT_EXIST})
+        if hasattr(self, '_district_id') and not self.is_district_id_exist():
+            raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
+        if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
+            raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
+        self.check_country_ward_relationship()
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+
+    def extra_validate_to_create_staff(self):
+        if hasattr(self, '_phone_number') and self.is_phone_number_exist():
+            raise exceptions.ValidationException({'phone_number': messages.EXIST})
+        if hasattr(self, '_email') and self.is_email_exist():
+            raise exceptions.ValidationException({'email': messages.EXIST})
+        if hasattr(self, '_health_insurance_number') and self.is_health_insurance_number_exist():
+            raise exceptions.ValidationException({'health_insurance_number': messages.EXIST})
+        if hasattr(self, '_identity_number') and self.is_identity_number_exist():
+            raise exceptions.ValidationException({'identity_number': messages.EXIST})
+        if hasattr(self, '_passport_number') and self.is_passport_number_exist():
+            raise exceptions.ValidationException({'passport_number': messages.EXIST})
+        if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
+            raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
+        if hasattr(self, '_country_code') and not self.is_country_code_exist():
+            raise exceptions.NotFoundException({'country_code': messages.NOT_EXIST})
+        if hasattr(self, '_city_id') and not self.is_city_id_exist():
+            raise exceptions.NotFoundException({'city_id': messages.NOT_EXIST})
+        if hasattr(self, '_district_id') and not self.is_district_id_exist():
+            raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
+        if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
+            raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
+        self.check_country_ward_relationship()
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+
+    def extra_validate_to_update_member(self):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
+        if hasattr(self, '_custom_user'):
+            if self._custom_user.role.name != 'MEMBER':
+                raise exceptions.ValidationException({'main': messages.ISNOTMEMBER})
         if hasattr(self, '_email') and not self.is_new_email_valid():
             raise exceptions.NotFoundException({'email': messages.EXIST})
         if hasattr(self, '_health_insurance_number') and not self.is_new_health_insurance_number_valid():
@@ -590,6 +657,62 @@ class UserValidator(validators.AbstractRequestValidate):
             member_in_room = CustomUser.objects.filter(member_x_custom_user__quarantine_room__id = self._quarantine_room_id).exclude(code=self._code).count()
             if member_in_room >= self._quarantine_room.capacity:
                 raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
+
+    def extra_validate_to_update_manager(self):
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
+        if hasattr(self, '_custom_user'):
+            if self._custom_user.role.name not in ['SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.ValidationException({'main': messages.ISNOTMANAGER})
+        if hasattr(self, '_email') and not self.is_new_email_valid():
+            raise exceptions.NotFoundException({'email': messages.EXIST})
+        if hasattr(self, '_health_insurance_number') and not self.is_new_health_insurance_number_valid():
+            raise exceptions.NotFoundException({'health_insurance_number': messages.EXIST})
+        if hasattr(self, '_identity_number') and not self.is_new_identity_number_valid():
+            raise exceptions.NotFoundException({'identity_number': messages.EXIST})
+        if hasattr(self, '_passport_number') and not self.is_new_passport_number_valid():
+            raise exceptions.NotFoundException({'passport_number': messages.EXIST})
+        if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
+            raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
+        if hasattr(self, '_country_code') and not self.is_country_code_exist():
+            raise exceptions.NotFoundException({'country_code': messages.NOT_EXIST})
+        if hasattr(self, '_city_id') and not self.is_city_id_exist():
+            raise exceptions.NotFoundException({'city_id': messages.NOT_EXIST})
+        if hasattr(self, '_district_id') and not self.is_district_id_exist():
+            raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
+        if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
+            raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
+        self.check_country_ward_relationship()
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+
+    def extra_validate_to_update_staff(self):
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
+        if hasattr(self, '_custom_user'):
+            if self._custom_user.role.name != 'STAFF':
+                raise exceptions.ValidationException({'main': messages.ISNOTSTAFF})
+        if hasattr(self, '_email') and not self.is_new_email_valid():
+            raise exceptions.NotFoundException({'email': messages.EXIST})
+        if hasattr(self, '_health_insurance_number') and not self.is_new_health_insurance_number_valid():
+            raise exceptions.NotFoundException({'health_insurance_number': messages.EXIST})
+        if hasattr(self, '_identity_number') and not self.is_new_identity_number_valid():
+            raise exceptions.NotFoundException({'identity_number': messages.EXIST})
+        if hasattr(self, '_passport_number') and not self.is_new_passport_number_valid():
+            raise exceptions.NotFoundException({'passport_number': messages.EXIST})
+        if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():
+            raise exceptions.NotFoundException({'nationality_code': messages.NOT_EXIST})
+        if hasattr(self, '_country_code') and not self.is_country_code_exist():
+            raise exceptions.NotFoundException({'country_code': messages.NOT_EXIST})
+        if hasattr(self, '_city_id') and not self.is_city_id_exist():
+            raise exceptions.NotFoundException({'city_id': messages.NOT_EXIST})
+        if hasattr(self, '_district_id') and not self.is_district_id_exist():
+            raise exceptions.NotFoundException({'district_id': messages.NOT_EXIST})
+        if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
+            raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
+        self.check_country_ward_relationship()
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
 
     def extra_validate_to_accept_member(self):
         if hasattr(self, '_member_codes'):
