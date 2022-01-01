@@ -163,6 +163,10 @@ class QuarantineWardForRegisterSerializer(serializers.ModelSerializer):
 class FilterQuarantineWardSerializer(serializers.ModelSerializer):
 
     main_manager = BaseCustomUserSerializer(many=False)
+    country = BaseCountrySerializer(many=False)
+    city = BaseCitySerializer(many=False)
+    district = BaseDistrictSerializer(many=False)
+    ward = BaseWardSerializer(many=False)
 
     class Meta:
         model = QuarantineWard
