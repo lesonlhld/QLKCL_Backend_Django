@@ -1,5 +1,7 @@
 import re
 import datetime
+import os
+from random import randint
 from datetime import time, timezone
 import pytz
 import math, random
@@ -90,3 +92,15 @@ def generateOTP(number_of_digits):
         otp += digits[math.floor(random.random() * 10)]
     
     return otp
+
+def custom_user_code_generator(quarantine_ward_id):
+    first_part_length = int(os.environ.get("USER_CODE_QUARANTINE_WARD_ID_LENGTH", "3"))
+    first_part = ('0000000000' + str(quarantine_ward_id))[-first_part_length:]
+    
+    second_part_length = int(os.environ.get("USER_CODE_TIMESTAMP_LENGTH", "6"))
+    second_part = ('0000000000' + str(int(datetime.datetime.now().timestamp())))[-second_part_length:]
+
+    third_part_length = int(os.environ.get("USER_CODE_RANDOM_LENGTH", "6"))
+    third_part = ''.join(str(randint(0, 9)) for i in range(third_part_length))
+
+    return first_part + second_part + third_part
