@@ -1,11 +1,10 @@
 import os
 import datetime
-from random import randint
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
-from .models import CustomUser, Member
+from .models import CustomUser, Member, Manager, Staff
 from .serializers import (
     CustomUserSerializer, MemberSerializer,
     FilterMemberSerializer, FilterNotMemberSerializer,
@@ -20,7 +19,7 @@ from role.models import Role
 from utils import exceptions, messages
 from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus
 from utils.views import AbstractView, paginate_data
-from utils.tools import date_string_to_timestamp, timestamp_string_to_date_string
+from utils.tools import date_string_to_timestamp, timestamp_string_to_date_string, custom_user_code_generator
 
 # Create your views here.
 
@@ -32,18 +31,6 @@ class MemberAPI(AbstractView):
         if self.action == 'register_member':
             self.permission_classes = [permissions.AllowAny]
         return super().get_permissions()
-
-    def custom_user_code_generator(self, quarantine_ward_id):
-        first_part_length = int(os.environ.get("USER_CODE_QUARANTINE_WARD_ID_LENGTH", "3"))
-        first_part = ('0000000000' + str(quarantine_ward_id))[-first_part_length:]
-        
-        second_part_length = int(os.environ.get("USER_CODE_TIMESTAMP_LENGTH", "6"))
-        second_part = ('0000000000' + str(int(datetime.datetime.now().timestamp())))[-second_part_length:]
-
-        third_part_length = int(os.environ.get("USER_CODE_RANDOM_LENGTH", "6"))
-        third_part = ''.join(str(randint(0, 9)) for i in range(third_part_length))
-
-        return first_part + second_part + third_part
 
     @csrf_exempt
     @action(methods=['POST'], url_path='register', detail=False)
@@ -92,9 +79,9 @@ class MemberAPI(AbstractView):
             custom_user = CustomUser(**dict_to_create_custom_user)
             password = accepted_fields['password']
             custom_user.set_password(password)
-            custom_user.code = self.custom_user_code_generator(custom_user.quarantine_ward.id)
+            custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
             while (validator.is_code_exist(custom_user.code)):
-                custom_user.code = self.custom_user_code_generator(custom_user.quarantine_ward.id)
+                custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
             
             custom_user.role = Role.objects.get(name='MEMBER')
             custom_user.status = CustomUserStatus.WAITING
@@ -211,9 +198,9 @@ class MemberAPI(AbstractView):
 
             custom_user = CustomUser(**dict_to_create_custom_user)
             custom_user.set_password('123456')
-            custom_user.code = self.custom_user_code_generator(custom_user.quarantine_ward.id)
+            custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
             while (validator.is_code_exist(custom_user.code)):
-                custom_user.code = self.custom_user_code_generator(custom_user.quarantine_ward.id)
+                custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
             custom_user.created_by = request.user
             custom_user.updated_by = request.user
             custom_user.role = Role.objects.get(name='MEMBER')
@@ -319,7 +306,7 @@ class MemberAPI(AbstractView):
             - full_name: String
             - email: String
             - birthday: String 'dd/mm/yyyy'
-            - gender: String [‘MALE’, ‘FEMALE’]
+            - gender: String ['MALE', 'FEMALE']
             - nationality_code: String
             - country_code: int
             - city_id: int
@@ -331,7 +318,7 @@ class MemberAPI(AbstractView):
             - passport_number: String
             - quarantine_ward_id: int
             - quarantine_room_id: int
-            - label: String [‘F0’, ‘F1’, ‘F2’, ‘F3’]
+            - label: String ['F0', 'F1', 'F2', 'F3']
             - quarantined_at: String 'dd/mm/yyyy'
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
@@ -373,6 +360,9 @@ class MemberAPI(AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
+            if 'code' not in accepted_fields.keys():
+                accepted_fields['code'] = request.user.code
+
             validator = UserValidator(**accepted_fields)
             validator.is_valid_fields([
                 'email', 'birthday', 'gender', 'passport_number',
@@ -380,13 +370,14 @@ class MemberAPI(AbstractView):
                 'label', 'quarantined_at', 'positive_tested_before',
                 'background_disease',
             ])
-            validator.extra_validate_to_update_user()
+            validator.extra_validate_to_update_member()
 
             # update CustomUser
 
             custom_user = validator.get_field('custom_user')
-            if not custom_user:
-                custom_user = request.user
+
+            if request.user.role.name == 'MEMBER' and request.user != custom_user:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             list_to_update_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
             list_to_update_custom_user = set(list_to_update_custom_user) - \
@@ -704,6 +695,428 @@ class MemberAPI(AbstractView):
             serializer = FilterNotMemberSerializer(query_set, many=True)
 
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class ManagerAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_manager(self, request):
+        """Create a manager
+
+        Args:
+            + full_name: String
+            + phone_number: String
+            - email: String
+            + birthday: String 'dd/mm/yyyy'
+            + gender: String ['MALE', 'FEMALE']
+            + nationality_code: String
+            + country_code: int
+            + city_id: int
+            + district_id: int
+            + ward_id: int
+            + detail_address: String
+            - health_insurance_number: String
+            - identity_number: String
+            - passport_number: String
+            + quarantine_ward_id: int
+        """
+
+        accept_fields = [
+            'full_name', 'phone_number', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id',
+        ]
+
+        require_fields = [
+            'full_name', 'phone_number',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'quarantine_ward_id',
+        ]
+
+        custom_user_fields = [
+            'full_name', 'phone_number', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id',
+        ]
+
+        manager_fields = []
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields([
+                'phone_number', 'email', 'birthday', 'gender',
+                'passport_number', 'health_insurance_number', 'identity_number',
+            ])
+            validator.extra_validate_to_create_manager()
+
+            # create CustomUser
+
+            list_to_create_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
+            list_to_create_custom_user = set(list_to_create_custom_user) - \
+            {'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
+            list_to_create_custom_user = list(list_to_create_custom_user) + \
+            ['nationality', 'country', 'city', 'district', 'ward', 'quarantine_ward']
+
+            dict_to_create_custom_user = validator.get_data(list_to_create_custom_user)
+
+            custom_user = CustomUser(**dict_to_create_custom_user)
+            custom_user.set_password('123456')
+            custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
+            while (validator.is_code_exist(custom_user.code)):
+                custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
+            custom_user.created_by = request.user
+            custom_user.updated_by = request.user
+            custom_user.role = Role.objects.get(name='MANAGER')
+
+            # create Manager
+
+            manager = Manager()
+            manager.custom_user = custom_user
+
+            custom_user.save()
+            manager.save()
+
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            manager_serializer = ManagerSerializer(manager, many=False)
+            
+            response_data = dict()
+            response_data['custom_user'] = custom_user_serializer.data
+            response_data['manager'] = manager_serializer.data
+            
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='update', detail=False)
+    def update_manager(self, request):
+        """Update a manager, if dont get code, will update manager sending request
+
+        Args:
+            - code: int
+            - full_name: String
+            - email: String
+            - birthday: String 'dd/mm/yyyy'
+            - gender: String ['MALE', 'FEMALE']
+            - nationality_code: String
+            - country_code: int
+            - city_id: int
+            - district_id: int
+            - ward_id: int
+            - detail_address: String
+            - health_insurance_number: String
+            - identity_number: String
+            - passport_number: String
+            - quarantine_ward_id: int
+        """
+
+        accept_fields = [
+            'code', 'full_name', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id',
+        ]
+
+        custom_user_fields = [
+            'code', 'full_name', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id',
+        ]
+
+        manager_fields = []
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            if 'code' not in accepted_fields.keys():
+                accepted_fields['code'] = request.user.code
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_valid_fields([
+                'email', 'birthday', 'gender', 'passport_number',
+                'health_insurance_number', 'identity_number',
+            ])
+            validator.extra_validate_to_update_manager()
+
+            # update CustomUser
+
+            custom_user = validator.get_field('custom_user')
+
+            if request.user.role.name in ['STAFF', 'MEMBER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            list_to_update_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
+            list_to_update_custom_user = set(list_to_update_custom_user) - \
+            {'code', 'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
+            list_to_update_custom_user = list(list_to_update_custom_user) + \
+            ['nationality', 'country', 'city', 'district', 'ward', 'quarantine_ward']
+            dict_to_update_custom_user = validator.get_data(list_to_update_custom_user)
+
+            for attr, value in dict_to_update_custom_user.items(): 
+                setattr(custom_user, attr, value)
+
+            custom_user.updated_by = request.user
+
+            response_data = dict()
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            response_data['custom_user'] = custom_user_serializer.data
+
+            custom_user.save()
+
+            if hasattr(custom_user, 'manager_x_custom_user') and custom_user.manager_x_custom_user:
+                manager = custom_user.manager_x_custom_user
+                manager_serializer = ManagerSerializer(manager, many=False)
+                response_data['manager'] = manager_serializer.data
+
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class StaffAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_staff(self, request):
+        """Create a staff
+
+        Args:
+            + full_name: String
+            + phone_number: String
+            - email: String
+            + birthday: String 'dd/mm/yyyy'
+            + gender: String ['MALE', 'FEMALE']
+            + nationality_code: String
+            + country_code: int
+            + city_id: int
+            + district_id: int
+            + ward_id: int
+            + detail_address: String
+            - health_insurance_number: String
+            - identity_number: String
+            - passport_number: String
+            + quarantine_ward_id: int
+            - care_area: String <id>,<id>,<id> trong đó <id> là id của tầng (QuarantineFloor)
+        """
+
+        accept_fields = [
+            'full_name', 'phone_number', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id', 'care_area',
+        ]
+
+        require_fields = [
+            'full_name', 'phone_number',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'quarantine_ward_id',
+        ]
+
+        custom_user_fields = [
+            'full_name', 'phone_number', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields([
+                'phone_number', 'email', 'birthday', 'gender',
+                'passport_number', 'health_insurance_number', 'identity_number',
+                'care_area',
+            ])
+            validator.extra_validate_to_create_staff()
+
+            # create CustomUser
+
+            list_to_create_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
+            list_to_create_custom_user = set(list_to_create_custom_user) - \
+            {'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
+            list_to_create_custom_user = list(list_to_create_custom_user) + \
+            ['nationality', 'country', 'city', 'district', 'ward', 'quarantine_ward']
+
+            dict_to_create_custom_user = validator.get_data(list_to_create_custom_user)
+
+            custom_user = CustomUser(**dict_to_create_custom_user)
+            custom_user.set_password('123456')
+            custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
+            while (validator.is_code_exist(custom_user.code)):
+                custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
+            custom_user.created_by = request.user
+            custom_user.updated_by = request.user
+            custom_user.role = Role.objects.get(name='STAFF')
+
+            # create Staff
+
+            dict_to_create_staff = validator.get_data(['care_area'])
+            staff = Staff(**dict_to_create_staff)
+            staff.custom_user = custom_user
+
+            custom_user.save()
+            staff.save()
+
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            staff_serializer = StaffSerializer(staff, many=False)
+            
+            response_data = dict()
+            response_data['custom_user'] = custom_user_serializer.data
+            response_data['staff'] = staff_serializer.data
+            
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='update', detail=False)
+    def update_staff(self, request):
+        """Update a staff, if dont get code, will update staff sending request
+
+        Args:
+            - code: int
+            - full_name: String
+            - email: String
+            - birthday: String 'dd/mm/yyyy'
+            - gender: String ['MALE', 'FEMALE']
+            - nationality_code: String
+            - country_code: int
+            - city_id: int
+            - district_id: int
+            - ward_id: int
+            - detail_address: String
+            - health_insurance_number: String
+            - identity_number: String
+            - passport_number: String
+            - quarantine_ward_id: int
+            - care_area: String <id>,<id>,<id> trong đó <id> là id của tầng (QuarantineFloor)
+        """
+
+        accept_fields = [
+            'code', 'full_name', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id', 'care_area',
+        ]
+
+        custom_user_fields = [
+            'code', 'full_name', 'email',
+            'birthday', 'gender', 'nationality_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'health_insurance_number',
+            'identity_number', 'passport_number',
+            'quarantine_ward_id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            if 'code' not in accepted_fields.keys():
+                accepted_fields['code'] = request.user.code
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_valid_fields([
+                'email', 'birthday', 'gender', 'passport_number',
+                'health_insurance_number', 'identity_number',
+                'care_area',
+            ])
+            validator.extra_validate_to_update_staff()
+
+            # update CustomUser
+
+            custom_user = validator.get_field('custom_user')
+
+            if request.user.role.name == 'MEMBER':
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            list_to_update_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
+            list_to_update_custom_user = set(list_to_update_custom_user) - \
+            {'code', 'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
+            list_to_update_custom_user = list(list_to_update_custom_user) + \
+            ['nationality', 'country', 'city', 'district', 'ward', 'quarantine_ward']
+            dict_to_update_custom_user = validator.get_data(list_to_update_custom_user)
+
+            for attr, value in dict_to_update_custom_user.items(): 
+                setattr(custom_user, attr, value)
+
+            custom_user.updated_by = request.user
+
+            response_data = dict()
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            response_data['custom_user'] = custom_user_serializer.data
+
+            if hasattr(custom_user, 'staff_x_custom_user') and custom_user.staff_x_custom_user:
+                staff = custom_user.staff_x_custom_user
+                dict_to_update_staff = validator.get_data(['care_area'])
+
+                for attr, value in dict_to_update_staff.items(): 
+                    setattr(staff, attr, value)
+
+                staff_serializer = StaffSerializer(staff, many=False)
+                response_data['staff'] = staff_serializer.data
+
+                staff.save()
+
+            custom_user.save()  
+
+            return self.response_handler.handle(data=response_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 

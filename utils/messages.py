@@ -68,4 +68,6 @@ NEGATIVE_PAGE_SIZE = 'Page size must be positive integer'
 OVER_PAGE_SIZE_MAX = 'Page size must not be greater than '
 
 ISNOTMEMBER = 'This user is not member'
+ISNOTMANAGER = 'This user is not manager'
+ISNOTSTAFF = 'This user is not staff'
 CANNOT_FINISH_QUARANTINE = 'This user cannot finish quarantine'
