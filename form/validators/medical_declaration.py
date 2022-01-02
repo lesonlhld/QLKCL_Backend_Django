@@ -98,6 +98,28 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def is_code_exist(self, code=None):
+        if code:
+            try:
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=MedicalDeclaration,
+                    query_expr=Q(code=code),
+                )
+                return True
+            except Exception as exception:
+                return False
+        else:
+            if hasattr(self, '_code'):
+                try:
+                    self._medical_declaration = validators.ModelInstanceExistenceValidator.valid(
+                        model_cls=MedicalDeclaration,
+                        query_expr=Q(code=self._code),
+                    )
+                    return True
+                except Exception as exception:
+                    return False
+            return False
+
     def is_user_code_exist(self):
         if hasattr(self, '_user_code'):
             try:

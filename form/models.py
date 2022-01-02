@@ -27,6 +27,12 @@ class Symptom(models.Model):
 
 class MedicalDeclaration(models.Model):
 
+    code = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+    )
+
     heartbeat = models.IntegerField(null=True, blank=True)
 
     temperature = models.FloatField(null=True, blank=True)
