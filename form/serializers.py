@@ -28,7 +28,7 @@ class FilterMedicalDeclarationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MedicalDeclaration
-        fields = ['id', 'user', 'conclude', 'created_at']
+        fields = ['id', 'code', 'user', 'conclude', 'created_at']
 
 class TestSerializer(serializers.ModelSerializer):
 

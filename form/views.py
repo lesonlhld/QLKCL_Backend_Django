@@ -149,6 +149,18 @@ class MedicalDeclarationAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    def custom_medical_declaration_code_generator(self, user_code):
+        first_part_length = int(os.environ.get("MEDICAL_DECLARATION_CODE_USER_CODE_LENGTH", "3"))
+        first_part = ('0000000000' + str(user_code))[-first_part_length:]
+        
+        second_part_length = int(os.environ.get("MEDICAL_DECLARATION_CODE_TIMESTAMP_LENGTH", "6"))
+        second_part = ('0000000000' + str(int(datetime.datetime.now().timestamp())))[-second_part_length:]
+
+        third_part_length = int(os.environ.get("MEDICAL_DECLARATION_CODE_RANDOM_LENGTH", "6"))
+        third_part = ''.join(str(randint(0, 9)) for i in range(third_part_length))
+
+        return first_part + second_part + third_part
+
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)
     def create_medical_declaration(self, request):
@@ -203,6 +215,11 @@ class MedicalDeclarationAPI(AbstractView):
                 for_user = validator.get_field('user')
 
             medical_declaration.user = for_user
+
+            medical_declaration.code = self.custom_medical_declaration_code_generator(medical_declaration.user.code)
+            while (validator.is_code_exist(medical_declaration.code)):
+                medical_declaration.code = self.custom_medical_declaration_code_generator(medical_declaration.user.code)
+
             medical_declaration.created_by = request.user
             medical_declaration.save()
 
