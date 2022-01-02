@@ -25,12 +25,16 @@ class Symptom(models.Model):
 
     trash = models.BooleanField(default=False, null=False)
 
+def medical_declaration_code_generator():
+    return ''.join(str(randint(0, 9)) for i in range(int(os.environ.get("MEDICAL_DECLARATION_CODE_LENGTH", '15'))))
+
 class MedicalDeclaration(models.Model):
 
     code = models.CharField(
         max_length=32,
-        null=True,
-        blank=True,
+        null=False,
+        unique=True,
+        default=medical_declaration_code_generator,
     )
 
     heartbeat = models.IntegerField(null=True, blank=True)
