@@ -1,6 +1,7 @@
 import os
 import datetime
 from random import randint
+from django.db.models import Q
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from utils.views import paginate_data
@@ -441,18 +442,24 @@ class TestAPI(AbstractView):
                     new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test)
                     this_member.positive_test = new_positive_test_now
                     this_member.last_tested = test.created_at
+                    if test.result != TestResult.NONE:
+                        this_member.last_tested_had_result = test.created_at
                     this_member.save()
                 if hasattr(test.user, 'manager_x_custom_user'):
                     this_manager = test.user.manager_x_custom_user
                     new_positive_test_now = self.calculate_new_conclude_from_test(test, this_manager.positive_test_now)
                     this_manager.positive_test_now = new_positive_test_now
                     this_manager.last_tested = test.created_at
+                    if test.result != TestResult.NONE:
+                        this_manager.last_tested_had_result = test.created_at
                     this_manager.save()
                 if hasattr(test.user, 'staff_x_custom_user'):
                     this_staff = test.user.staff_x_custom_user
                     new_positive_test_now = self.calculate_new_conclude_from_test(test, this_staff.positive_test_now)
                     this_staff.positive_test_now = new_positive_test_now
                     this_staff.last_tested = test.created_at
+                    if test.result != TestResult.NONE:
+                        this_staff.last_tested_had_result = test.created_at
                     this_staff.save()
 
             serializer = TestSerializer(test, many=False)
@@ -553,26 +560,26 @@ class TestAPI(AbstractView):
             test.save()
 
             # Update user
-            last_test = Test.objects.filter(user = test.user).order_by('-created_at')[:1][0]
-            if test == last_test:
-                if test.user != None:
+            if test.result != TestResult.NONE:
+                last_test_has_result = Test.objects.filter(user = test.user).filter(~Q(result=TestResult.NONE)).order_by('-created_at')[0]
+                if last_test_has_result == test and test.user:
                     if hasattr(test.user, 'member_x_custom_user'):
                         this_member = test.user.member_x_custom_user
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test)
                         this_member.positive_test = new_positive_test_now
-                        this_member.last_tested = test.created_at
+                        this_member.last_tested_had_result = test.created_at
                         this_member.save()
                     if hasattr(test.user, 'manager_x_custom_user'):
                         this_manager = test.user.manager_x_custom_user
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_manager.positive_test_now)
                         this_manager.positive_test_now = new_positive_test_now
-                        this_manager.last_tested = test.created_at
+                        this_manager.last_tested_had_result = test.created_at
                         this_manager.save()
                     if hasattr(test.user, 'staff_x_custom_user'):
                         this_staff = test.user.staff_x_custom_user
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_staff.positive_test_now)
                         this_staff.positive_test_now = new_positive_test_now
-                        this_staff.last_tested = test.created_at
+                        this_staff.last_tested_had_result = test.created_at
                         this_staff.save()
 
             serializer = TestSerializer(test, many=False)
