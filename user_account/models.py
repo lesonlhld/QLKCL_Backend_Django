@@ -224,6 +224,8 @@ class Member(models.Model):
 
     last_tested = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
+    last_tested_had_result = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+
     health_status = models.CharField(
         max_length=32,
         choices=HealthStatus.choices,
@@ -290,6 +292,8 @@ class Manager(models.Model):
 
     last_tested = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
+    last_tested_had_result = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+
     health_status = models.CharField(
         max_length=32,
         choices=HealthStatus.choices,
@@ -312,6 +316,8 @@ class Staff(models.Model):
     )
 
     last_tested = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+
+    last_tested_had_result = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
     health_status = models.CharField(
         max_length=32,
