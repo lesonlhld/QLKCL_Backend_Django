@@ -56,6 +56,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     health_status = serializers.SerializerMethodField('get_health_status')
     positive_test = serializers.SerializerMethodField('get_positive_test')
     last_tested = serializers.SerializerMethodField('get_last_tested')
+    last_tested_had_result = serializers.SerializerMethodField('get_last_tested_had_result')
 
     created_at = serializers.SerializerMethodField('get_created_at')
     quarantined_at = serializers.SerializerMethodField('get_quarantined_at')
@@ -102,6 +103,12 @@ class FilterMemberSerializer(serializers.ModelSerializer):
         else:
             return None
 
+    def get_last_tested_had_result(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.last_tested_had_result
+        else:
+            return None
+
     def get_created_at(self, custom_user):
         created_at = str(custom_user.created_at)
         return timestamp_string_to_date_string(created_at)
@@ -120,6 +127,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
             'phone_number', 'created_at', 'quarantined_at',
             'quarantine_floor', 'quarantine_building', 'quarantine_ward',
             'health_status', 'positive_test', 'last_tested',
+            'last_tested_had_result',
         ]
 
 class FilterNotMemberSerializer(serializers.ModelSerializer):
