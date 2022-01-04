@@ -34,6 +34,7 @@ class TestSerializer(serializers.ModelSerializer):
 
     user = BaseCustomUserSerializer(many=False)
     created_by = BaseCustomUserSerializer(many=False)
+    updated_by = BaseCustomUserSerializer(many=False)
 
     class Meta:
         model = Test
