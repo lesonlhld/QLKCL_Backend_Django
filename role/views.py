@@ -9,7 +9,7 @@ from .serializers import RoleSerializer
 from utils import exceptions, messages, validators
 from utils.views import AbstractView
 
-import datetime
+from datetime import datetime
 import pytz
 from form.models import Test
 from form.serializers import TestSerializer
@@ -105,15 +105,17 @@ class DebugAPI(AbstractView):
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             vntz = pytz.timezone('Asia/Saigon')
-            time_now = datetime.datetime.now(vntz)
+            time_now = datetime.now(vntz)
             # print(time_now)
             new_time = time_now.astimezone(pytz.timezone('US/Eastern'))
-            print(new_time)
+            # print(new_time)
 
-            this_test = Test.objects.get(code='150445102314394')
-            this_test.created_at = new_time
-            this_test.save()
-            serializer = TestSerializer(this_test)
-            return self.response_handler.handle(data=serializer.data)
+            time_1 = datetime.strptime('5/1/2005  1:33', '%m/%d/%Y %I:%M')
+            time_1 = time_1.astimezone(vntz)
+            print(time_1)
+
+
+
+            return self.response_handler.handle(data="Success")
         except Exception as exception:
             return self.exception_handler.handle(exception)
