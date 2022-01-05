@@ -211,13 +211,9 @@ class Member(models.Model):
 
     abroad = models.BooleanField(default=False, null=False)
 
-    quarantined_at = models.CharField(max_length=10, null=True, blank=True)
+    quarantined_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
-    quarantined_finished_at = models.CharField(max_length=10, null=True, blank=True)
-
-    new_quarantined_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
-
-    new_quarantined_finished_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+    quarantined_finished_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
     quarantined_status = models.CharField(
         max_length=32,
