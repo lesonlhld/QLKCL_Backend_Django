@@ -9,6 +9,11 @@ from .serializers import RoleSerializer
 from utils import exceptions, messages, validators
 from utils.views import AbstractView
 
+import datetime
+import pytz
+from form.models import Test
+from form.serializers import TestSerializer
+
 # Create your views here.
 
 class RoleAPI(AbstractView):
@@ -81,6 +86,34 @@ class RoleAPI(AbstractView):
         try:
             serializer = RoleSerializer(Role.objects.all(), many=True)
 
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class DebugAPI(AbstractView):
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='debug', detail=False)
+    def debug(self, request):
+        """For debug
+
+        Args:
+            
+        """
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            vntz = pytz.timezone('Asia/Saigon')
+            time_now = datetime.datetime.now(vntz)
+            # print(time_now)
+            new_time = time_now.astimezone(pytz.timezone('US/Eastern'))
+            print(new_time)
+
+            this_test = Test.objects.get(code='150445102314394')
+            this_test.created_at = new_time
+            this_test.save()
+            serializer = TestSerializer(this_test)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
