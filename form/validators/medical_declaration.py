@@ -86,6 +86,20 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
                 except Exception as exception:
                     raise exceptions.NotFoundException({'extra_symptoms': messages.NOT_EXIST})
 
+    def is_validate_created_at_max(self):
+        if hasattr(self, '_created_at_max'):
+            self._created_at_max = validators.DateTimeFieldValidator.valid(
+                value=self._created_at_max,
+                message={'created_at_max': messages.INVALID_DATETIME},
+            )
+
+    def is_validate_created_at_min(self):
+        if hasattr(self, '_created_at_min'):
+            self._created_at_min = validators.DateTimeFieldValidator.valid(
+                value=self._created_at_min,
+                message={'created_at_min': messages.INVALID_DATETIME},
+            )
+
     def is_id_exist(self):
         if hasattr(self, '_id'):
             try:
@@ -168,9 +182,3 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
     def extra_validate_to_filter_medical_declaration(self):
         if hasattr(self, '_user_code') and not self.is_user_code_exist():
             raise exceptions.ValidationException({'main': messages.USER_NOT_FOUND})
-        if hasattr(self, '_created_at_max'):
-            validators.DateStringValidator.valid(self._created_at_max, message={'created_at_max': messages.INVALID})
-            self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
-        if hasattr(self, '_created_at_min'):
-            validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
-            self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)

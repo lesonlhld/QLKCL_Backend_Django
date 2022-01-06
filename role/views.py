@@ -1,6 +1,7 @@
 from django.db import models
 from django.shortcuts import render
 from django.db.models import Q
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action
@@ -9,7 +10,7 @@ from .serializers import RoleSerializer
 from utils import exceptions, messages, validators
 from utils.views import AbstractView
 
-from datetime import datetime
+import datetime
 import pytz
 from form.models import Test
 from form.serializers import TestSerializer
@@ -105,14 +106,22 @@ class DebugAPI(AbstractView):
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             vntz = pytz.timezone('Asia/Saigon')
-            time_now = datetime.now(vntz)
+            time_now = datetime.datetime.now(vntz)
             # print(time_now)
-            new_time = time_now.astimezone(pytz.timezone('US/Eastern'))
+            # new_time = time_now.astimezone(pytz.timezone('US/Eastern'))
             # print(new_time)
-
-            time_1 = datetime.strptime('5/1/2005  1:33', '%m/%d/%Y %I:%M')
+            # new_time = datetime.fromisoformat('2000-08-01T00:00:00.000')
+            time_1 = datetime.datetime.strptime('2000-08-01T00:00:00.123456Z', '%Y-%m-%dT%H:%M:%S.%f%z')
+            # time_2 = datetime.strptime('2000-08-01T00:01:00.123456Z', '%Y-%m-%dT%H:%M:%S.%f%z')
             time_1 = time_1.astimezone(vntz)
-            print(time_1)
+            # new_time = new_time.astimezone(vntz)
+            time_2 = datetime.datetime(time_1.year, time_1.month, time_1.day)
+            time_2 = time_2.astimezone(pytz.timezone('Asia/Saigon'))
+            time_3 = time_2 + datetime.timedelta(1)
+            # print(time_1)
+            # print(time_2)
+            # print(time_3)
+            # print(timezone.now())
 
 
 

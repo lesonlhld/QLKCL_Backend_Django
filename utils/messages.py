@@ -41,6 +41,7 @@ CODE_EXIST = 'Code is already exist'
 
 INVALID_POSITIVE_FLOAT = 'Value must be positive float'
 INVALID_PHONE_NUMBER = 'Invalid phone number'
+INVALID_DATETIME = r"""Invalid datetime field, must be vd:'2000-01-26T01:23:45.123456Z'"""
 
 QUARANTINE_ROOM_FULL = 'Full'
 

@@ -147,22 +147,24 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
                 value, 
                 messages.INVALID_IS_FULL_FIELD,
             )
+
+    def is_validate_created_at_max(self):
+        if hasattr(self, '_created_at_max'):
+            self._created_at_max = validators.DateTimeFieldValidator.valid(
+                value=self._created_at_max,
+                message={'created_at_max': messages.INVALID_DATETIME},
+            )
+
+    def is_validate_created_at_min(self):
+        if hasattr(self, '_created_at_min'):
+            self._created_at_min = validators.DateTimeFieldValidator.valid(
+                value=self._created_at_min,
+                message={'created_at_min': messages.INVALID_DATETIME},
+            )
     
     def filter_validate(self):
         if hasattr(self, '_main_manager') and not self.is_validate_main_manager:
             raise exceptions.ValidationException({'main': messages.USER_NOT_FOUND})
-        if hasattr(self, '_created_at_max'):
-            validators.DateStringValidator.valid(self._created_at_max, message={'created_at_max': messages.INVALID})
-            self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
-        if hasattr(self, '_created_at_min'):
-            validators.DateStringValidator.valid(self._created_at_min, message={'created_at_min': messages.INVALID})
-            self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)
-        if hasattr(self, '_updated_at_max'):
-            validators.DateStringValidator.valid(self._updated_at_max, message={'updated_at_max': messages.INVALID})
-            self._updated_at_max = date_string_to_timestamp(self._updated_at_max, 1)
-        if hasattr(self, '_updated_at_min'):
-            validators.DateStringValidator.valid(self._updated_at_min, message={'updated_at_min': messages.INVALID})
-            self._updated_at_min = date_string_to_timestamp(self._updated_at_min, 0)
         if hasattr(self, '_is_full'):
             self.is_validate_is_full()
 

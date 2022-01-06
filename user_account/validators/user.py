@@ -1,6 +1,7 @@
 import os
 import datetime
 from django.db.models import Q
+from django.utils import timezone
 from ..models import CustomUser, Member
 from address.models import Country, City, District, Ward
 from role.models import Role
@@ -119,38 +120,38 @@ class UserValidator(validators.AbstractRequestValidate):
             )
 
     def is_validate_quarantined_at(self):
-        if hasattr(self, '_quarantined_at'):
-            self._quarantined_at = validators.DateStringValidator.valid(
-                self._quarantined_at,
-                message={'quarantined_at': messages.INVALID}
+        if hasattr(self, '_quarantined_at') and self._quarantined_at:
+            self._quarantined_at = validators.DateTimeFieldValidator.valid(
+                value=self._quarantined_at,
+                message={'quarantined_at': messages.INVALID_DATETIME},
             )
 
     def is_validate_quarantined_at_max(self):
         if hasattr(self, '_quarantined_at_max'):
-            self._quarantined_at_max = validators.DateStringValidator.valid(
-                self._quarantined_at_max,
-                message={'quarantined_at_max': messages.INVALID}
+            self._quarantined_at_max = validators.DateTimeFieldValidator.valid(
+                value=self._quarantined_at_max,
+                message={'quarantined_at_max': messages.INVALID_DATETIME},
             )
 
     def is_validate_quarantined_at_min(self):
         if hasattr(self, '_quarantined_at_min'):
-            self._quarantined_at_min = validators.DateStringValidator.valid(
-                self._quarantined_at_min,
-                message={'quarantined_at_min': messages.INVALID}
+            self._quarantined_at_min = validators.DateTimeFieldValidator.valid(
+                value=self._quarantined_at_min,
+                message={'quarantined_at_min': messages.INVALID_DATETIME},
             )
 
     def is_validate_created_at_max(self):
         if hasattr(self, '_created_at_max'):
-            self._created_at_max = validators.DateStringValidator.valid(
-                self._created_at_max,
-                message={'created_at_max': messages.INVALID}
+            self._created_at_max = validators.DateTimeFieldValidator.valid(
+                value=self._created_at_max,
+                message={'created_at_max': messages.INVALID_DATETIME},
             )
 
     def is_validate_created_at_min(self):
         if hasattr(self, '_created_at_min'):
-            self._created_at_min = validators.DateStringValidator.valid(
-                self._created_at_min,
-                message={'created_at_min': messages.INVALID}
+            self._created_at_min = validators.DateTimeFieldValidator.valid(
+                value=self._created_at_min,
+                message={'created_at_min': messages.INVALID_DATETIME},
             )
 
     def is_validate_positive_tested_before(self):
@@ -742,9 +743,8 @@ class UserValidator(validators.AbstractRequestValidate):
         if custom_user.member_x_custom_user.health_status != HealthStatus.NORMAL:
             return False
         quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
-        quarantined_at_max = datetime.datetime.now() - datetime.timedelta(days=quarantine_day)
-        quarantined_at_max = timestamp_string_to_date_string(str(quarantined_at_max))
-        if compare_date_string(custom_user.member_x_custom_user.quarantined_at, quarantined_at_max) == 1:
+        quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
+        if custom_user.member_x_custom_user.quarantined_at > quarantined_at_max:
             return False
         return True
 
@@ -787,14 +787,13 @@ class UserValidator(validators.AbstractRequestValidate):
                 self._positive_test = 'false'
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
-            self._last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
+            self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
         if hasattr(self, '_can_finish_quarantine'):
             if self._can_finish_quarantine:
                 self._positive_test = 'false'
                 self._health_status_list = HealthStatus.NORMAL
                 quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
-                self._quarantined_at_max = datetime.datetime.now() - datetime.timedelta(days=quarantine_day)
-                self._quarantined_at_max = timestamp_string_to_date_string(str(self._quarantined_at_max))
+                self._quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
         if hasattr(self, '_abroad'):
             if (self._abroad):
                 self._abroad = 'true'
