@@ -1,5 +1,6 @@
 import os
-import datetime
+import datetime, pytz
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
@@ -115,7 +116,7 @@ class MemberAPI(AbstractView):
             + phone_number: String
             - email: String
             + birthday: String 'dd/mm/yyyy'
-            + gender: String [‘MALE’, ‘FEMALE’]
+            + gender: String ['MALE', 'FEMALE']
             + nationality_code: String
             + country_code: int
             + city_id: int
@@ -127,8 +128,8 @@ class MemberAPI(AbstractView):
             - passport_number: String
             + quarantine_ward_id: int
             - quarantine_room_id: int
-            - label: String [‘F0’, ‘F1’, ‘F2’, ‘F3’]
-            - quarantined_at: String 'dd/mm/yyyy'
+            - label: String ['F0', 'F1', 'F2', 'F3']
+            - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
@@ -217,7 +218,8 @@ class MemberAPI(AbstractView):
 
             member = Member(**dict_to_create_member)
             member.custom_user = custom_user
-            member.quarantined_at = timestamp_string_to_date_string(datetime.datetime.now())
+            if 'quarantined_at' not in accepted_fields.keys():
+                member.quarantined_at = timezone.now()
 
             custom_user.save()
             member.save()
@@ -319,7 +321,7 @@ class MemberAPI(AbstractView):
             - quarantine_ward_id: int
             - quarantine_room_id: int
             - label: String ['F0', 'F1', 'F2', 'F3']
-            - quarantined_at: String 'dd/mm/yyyy'
+            - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
@@ -461,7 +463,7 @@ class MemberAPI(AbstractView):
                 if custom_user.role.name == 'MEMBER' and hasattr(custom_user, 'member_x_custom_user'):
                     custom_user.status = CustomUserStatus.AVAILABLE
                     member = custom_user.member_x_custom_user
-                    member.quarantined_at = timestamp_string_to_date_string(datetime.datetime.now())
+                    member.quarantined_at = timezone.now()
                     custom_user.created_by = request.user
                     custom_user.updated_by = request.user
                     member.save()
@@ -556,7 +558,7 @@ class MemberAPI(AbstractView):
                     custom_user.updated_by = request.user
                     member = custom_user.member_x_custom_user
                     member.quarantined_status = MemberQuarantinedStatus.COMPLETED
-                    member.quarantined_finished_at = timestamp_string_to_date_string(datetime.datetime.now())
+                    member.quarantined_finished_at = timezone.now()
                     member.quarantine_room = None
                     custom_user.save()
                     member.save()
@@ -576,10 +578,10 @@ class MemberAPI(AbstractView):
             - positive_test: boolean
             - is_last_tested: boolean - True để lọc những người cách ly đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
             - can_finish_quarantine: boolean - True để lọc những người cách ly có thể hoàn thành cách ly, False hoặc không truyền đồng nghĩa không lọc
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
-            - quarantined_at_max: String 'dd/mm/yyyy'
-            - quarantined_at_min: String 'dd/mm/yyyy'
+            - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantined_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantined_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantine_ward_id: String
             - quarantine_building_id: String
             - quarantine_floor_id: String
@@ -1184,8 +1186,7 @@ class HomeAPI(AbstractView):
             positive_test = 'false'
             health_status_list = HealthStatus.NORMAL
             quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
-            quarantined_at_max = datetime.datetime.now() - datetime.timedelta(days=quarantine_day)
-            quarantined_at_max = timestamp_string_to_date_string(str(quarantined_at_max))
+            quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
 
             dict_to_filter_can_finish_users = {
                 'role_name': 'MEMBER',
@@ -1215,13 +1216,17 @@ class HomeAPI(AbstractView):
             dict_of_in_members = dict()
 
             for day_sub in range(3):
-                day = datetime.datetime.now() - datetime.timedelta(days=day_sub)
-                day = timestamp_string_to_date_string(str(day))
+                day = timezone.now() - datetime.timedelta(days=day_sub)
+                day = day.astimezone(pytz.timezone('Asia/Saigon'))
+                start_of_day = datetime.datetime(day.year, day.month, day.day)
+                start_of_day = start_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+                end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
+                end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
 
                 dict_to_filter_in_members = {
                     'role_name': 'MEMBER',
-                    'quarantined_at_max': day,
-                    'quarantined_at_min': day,
+                    'quarantined_at_max': end_of_day,
+                    'quarantined_at_min': start_of_day,
                 }
 
                 filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
@@ -1233,13 +1238,17 @@ class HomeAPI(AbstractView):
             dict_of_out_members = dict()
 
             for day_sub in range(3):
-                day = datetime.datetime.now() - datetime.timedelta(days=day_sub)
-                day = timestamp_string_to_date_string(str(day))
+                day = timezone.now() - datetime.timedelta(days=day_sub)
+                day = day.astimezone(pytz.timezone('Asia/Saigon'))
+                start_of_day = datetime.datetime(day.year, day.month, day.day)
+                start_of_day = start_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+                end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
+                end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
 
                 dict_to_filter_in_members = {
                     'role_name': 'MEMBER',
-                    'quarantined_finished_at_max': day,
-                    'quarantined_finished_at_min': day,
+                    'quarantined_finished_at_max': end_of_day,
+                    'quarantined_finished_at_min': start_of_day,
                 }
 
                 filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)

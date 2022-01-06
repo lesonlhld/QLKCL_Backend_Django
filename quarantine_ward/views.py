@@ -259,8 +259,8 @@ class QuarantineWardAPI (AbstractView):
         """Get a list of Quarantine Wards
 
         Args:
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
+            - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - page: int
             - page_size: int
             - search: String
@@ -289,6 +289,9 @@ class QuarantineWardAPI (AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = QuarantineWardValidator(**accepted_fields)
+            validator.is_valid_fields([
+                'created_at_max', 'created_at_min',
+            ])
             validator.filter_validate()
 
             context = ''

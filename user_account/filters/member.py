@@ -43,65 +43,25 @@ class MemberFilter(django_filters.FilterSet):
         qs = queryset.filter(query)
         return qs
 
-    quarantined_at_max = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_at', method='query_quarantined_at_max')
+    quarantined_at_max = django_filters.DateTimeFilter(
+        field_name='member_x_custom_user__quarantined_at',
+        lookup_expr='lte',
+    )
 
-    def query_quarantined_at_max(self, queryset, name, value):
-        new_query_set = queryset.exclude()
+    quarantined_at_min = django_filters.DateTimeFilter(
+        field_name='member_x_custom_user__quarantined_at',
+        lookup_expr='gte',
+    )
 
-        for custom_user in queryset:
-            if hasattr(custom_user, 'member_x_custom_user'):
-                date = custom_user.member_x_custom_user.quarantined_at
-                if date:
-                    if compare_date_string(date, value) != 1:
-                        continue
-            new_query_set = new_query_set.exclude(id=custom_user.id)
+    quarantined_finished_at_max = django_filters.DateTimeFilter(
+        field_name='member_x_custom_user__quarantined_finished_at',
+        lookup_expr='lte',
+    )
 
-        return new_query_set
-
-    quarantined_at_min = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_at', method='query_quarantined_at_min')
-
-    def query_quarantined_at_min(self, queryset, name, value):
-        new_query_set = queryset.exclude()
-
-        for custom_user in queryset:
-            if hasattr(custom_user, 'member_x_custom_user'):
-                date = custom_user.member_x_custom_user.quarantined_at
-                if date:
-                    if compare_date_string(date, value) != -1:
-                        continue
-            new_query_set = new_query_set.exclude(id=custom_user.id)
-
-        return new_query_set
-
-    quarantined_finished_at_max = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_finished_at', method='query_quarantined_finished_at_max')
-
-    def query_quarantined_finished_at_max(self, queryset, name, value):
-        new_query_set = queryset.exclude()
-
-        for custom_user in queryset:
-            if hasattr(custom_user, 'member_x_custom_user'):
-                date = custom_user.member_x_custom_user.quarantined_finished_at
-                if date:
-                    if compare_date_string(date, value) != 1:
-                        continue
-            new_query_set = new_query_set.exclude(id=custom_user.id)
-
-        return new_query_set
-
-    quarantined_finished_at_min = django_filters.CharFilter(field_name='member_x_custom_user__quarantined_finished_at', method='query_quarantined_finished_at_min')
-
-    def query_quarantined_finished_at_min(self, queryset, name, value):
-        new_query_set = queryset.exclude()
-
-        for custom_user in queryset:
-            if hasattr(custom_user, 'member_x_custom_user'):
-                date = custom_user.member_x_custom_user.quarantined_finished_at
-                if date:
-                    if compare_date_string(date, value) != -1:
-                        continue
-            new_query_set = new_query_set.exclude(id=custom_user.id)
-
-        return new_query_set
+    quarantined_finished_at_min = django_filters.DateTimeFilter(
+        field_name='member_x_custom_user__quarantined_finished_at',
+        lookup_expr='gte',
+    )
 
     quarantine_ward_id = django_filters.CharFilter(
         field_name='member_x_custom_user__quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id',
