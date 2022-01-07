@@ -81,11 +81,11 @@ class UserValidator(validators.AbstractRequestValidate):
                 message={'status': messages.INVALID},
             )
 
-    def is_validate_positive_test(self):
-        if hasattr(self, '_positive_test'):
-            self._positive_test = validators.BooleanValidator.valid(
-                value=self._positive_test,
-                message={'positive_test': messages.INVALID},
+    def is_validate_positive_test_now(self):
+        if hasattr(self, '_positive_test_now'):
+            self._positive_test_now = validators.BooleanValidator.valid(
+                value=self._positive_test_now,
+                message={'positive_test_now': messages.INVALID},
             )
 
     def is_validate_health_status_list(self):
@@ -738,7 +738,7 @@ class UserValidator(validators.AbstractRequestValidate):
                 self._members += [user]
 
     def check_member_can_finish_quarantine(self, custom_user):
-        if custom_user.member_x_custom_user.positive_test != False:
+        if custom_user.member_x_custom_user.positive_test_now != False:
             return False
         if custom_user.member_x_custom_user.health_status != HealthStatus.NORMAL:
             return False
@@ -780,17 +780,17 @@ class UserValidator(validators.AbstractRequestValidate):
             self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
         if hasattr(self, '_created_at_min'):
             self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)
-        if hasattr(self, '_positive_test'):
-            if (self._positive_test):
-                self._positive_test = 'true'
+        if hasattr(self, '_positive_test_now'):
+            if (self._positive_test_now):
+                self._positive_test_now = 'true'
             else:
-                self._positive_test = 'false'
+                self._positive_test_now = 'false'
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
         if hasattr(self, '_can_finish_quarantine'):
             if self._can_finish_quarantine:
-                self._positive_test = 'false'
+                self._positive_test_now = 'false'
                 self._health_status_list = HealthStatus.NORMAL
                 quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
                 self._quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)

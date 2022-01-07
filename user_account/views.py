@@ -575,7 +575,7 @@ class MemberAPI(AbstractView):
         Args:
             - status: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE']
             - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS']
-            - positive_test: boolean
+            - positive_test_now: boolean
             - is_last_tested: boolean - True để lọc những người cách ly đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
             - can_finish_quarantine: boolean - True để lọc những người cách ly có thể hoàn thành cách ly, False hoặc không truyền đồng nghĩa không lọc
             - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
@@ -594,7 +594,7 @@ class MemberAPI(AbstractView):
         """
 
         accept_fields = [
-            'status', 'health_status_list', 'positive_test',
+            'status', 'health_status_list', 'positive_test_now',
             'is_last_tested', 'can_finish_quarantine',
             'created_at_max', 'created_at_min',
             'quarantined_at_max', 'quarantined_at_min',
@@ -616,7 +616,7 @@ class MemberAPI(AbstractView):
             validator = UserValidator(**accepted_fields)
 
             validator.is_valid_fields([
-                'status', 'positive_test', 'health_status_list', 'is_last_tested',
+                'status', 'positive_test_now', 'health_status_list', 'is_last_tested',
                 'can_finish_quarantine', 'created_at_max', 'created_at_min',
                 'quarantined_at_max', 'quarantined_at_min', 'label', 'abroad',
             ])
@@ -631,7 +631,7 @@ class MemberAPI(AbstractView):
             [
                 'status', 'quarantined_status',
                 'last_tested_max', 'role_name', 'quarantined_at_max',
-                'positive_test', 'health_status_list',
+                'positive_test_now', 'health_status_list',
             ]
 
             dict_to_filter_user = validator.get_data(list_to_filter_user)
@@ -1183,14 +1183,14 @@ class HomeAPI(AbstractView):
 
             # Calculate number of can finish users
 
-            positive_test = 'false'
+            positive_test_now = 'false'
             health_status_list = HealthStatus.NORMAL
             quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
             quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
 
             dict_to_filter_can_finish_users = {
                 'role_name': 'MEMBER',
-                'positive_test': positive_test,
+                'positive_test_now': positive_test_now,
                 'health_status_list': health_status_list,
                 'quarantined_at_max': quarantined_at_max,
                 'status': CustomUserStatus.AVAILABLE,
