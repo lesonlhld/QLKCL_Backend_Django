@@ -235,7 +235,7 @@ class Member(models.Model):
 
     health_note = models.TextField(null=True, blank=True)
 
-    positive_test = models.BooleanField(null=True, blank=True)
+    positive_test_now = models.BooleanField(null=True, blank=True)
 
     care_staff = models.ForeignKey(
         to=CustomUser,

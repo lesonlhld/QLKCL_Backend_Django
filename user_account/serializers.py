@@ -54,7 +54,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     quarantine_ward = serializers.SerializerMethodField('get_quarantine_ward')
 
     health_status = serializers.SerializerMethodField('get_health_status')
-    positive_test = serializers.SerializerMethodField('get_positive_test')
+    positive_test_now = serializers.SerializerMethodField('get_positive_test_now')
     last_tested = serializers.SerializerMethodField('get_last_tested')
     last_tested_had_result = serializers.SerializerMethodField('get_last_tested_had_result')
 
@@ -91,9 +91,9 @@ class FilterMemberSerializer(serializers.ModelSerializer):
         else:
             return None
 
-    def get_positive_test(self, custom_user):
+    def get_positive_test_now(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.positive_test
+            return custom_user.member_x_custom_user.positive_test_now
         else:
             return None
 
@@ -126,7 +126,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
             'full_name', 'gender', 'birthday', 'quarantine_room',
             'phone_number', 'created_at', 'quarantined_at',
             'quarantine_floor', 'quarantine_building', 'quarantine_ward',
-            'health_status', 'positive_test', 'last_tested',
+            'health_status', 'positive_test_now', 'last_tested',
             'last_tested_had_result',
         ]
 
@@ -157,7 +157,7 @@ class MemberHomeSerializer(serializers.ModelSerializer):
     quarantine_ward = serializers.SerializerMethodField('get_quarantine_ward')
     custom_user = serializers.SerializerMethodField('get_custom_user')
     health_status = serializers.SerializerMethodField('get_health_status')
-    positive_test = serializers.SerializerMethodField('get_positive_test')
+    positive_test_now = serializers.SerializerMethodField('get_positive_test_now')
     last_tested = serializers.SerializerMethodField('get_last_tested')
     last_tested_had_result = serializers.SerializerMethodField('get_last_tested_had_result')
     created_at = serializers.SerializerMethodField('get_created_at')
@@ -199,9 +199,9 @@ class MemberHomeSerializer(serializers.ModelSerializer):
         else:
             return None
 
-    def get_positive_test(self, custom_user):
+    def get_positive_test_now(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.positive_test
+            return custom_user.member_x_custom_user.positive_test_now
         else:
             return None
 

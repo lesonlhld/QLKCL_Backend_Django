@@ -442,8 +442,8 @@ class TestAPI(AbstractView):
             if test.user != None:
                 if hasattr(test.user, 'member_x_custom_user'):
                     this_member = test.user.member_x_custom_user
-                    new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test)
-                    this_member.positive_test = new_positive_test_now
+                    new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)
+                    this_member.positive_test_now = new_positive_test_now
                     this_member.last_tested = test.created_at
                     if test.result != TestResult.NONE:
                         this_member.last_tested_had_result = test.created_at
@@ -568,8 +568,8 @@ class TestAPI(AbstractView):
                 if last_test_has_result == test and test.user:
                     if hasattr(test.user, 'member_x_custom_user'):
                         this_member = test.user.member_x_custom_user
-                        new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test)
-                        this_member.positive_test = new_positive_test_now
+                        new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)
+                        this_member.positive_test_now = new_positive_test_now
                         this_member.last_tested_had_result = test.created_at
                         this_member.save()
                     if hasattr(test.user, 'manager_x_custom_user'):
