@@ -136,6 +136,19 @@ class DateStringValidator(AbstractValidator):
         except Exception as exception:
             raise exceptions.ValidationException(message)
 
+class DateTimeFieldValidator(AbstractValidator):
+    """
+    Accept now: '2000-01-26T01:23:45.123456Z'
+    """
+    default_message = {'datetimefield': messages.INVALID_DATETIME}
+
+    @classmethod
+    def valid(cls, value, message=default_message):
+        try:
+            return datetime.datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f%z')
+        except Exception as exception:
+            raise exceptions.ValidationException(message)
+
 class EnumValidator(AbstractValidator):
     default_message = {'enum': messages.INVALID}
 

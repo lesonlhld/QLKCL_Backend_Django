@@ -292,8 +292,8 @@ class MedicalDeclarationAPI(AbstractView):
 
         Args:
             - user_code: String
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
+            - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - page: int
             - page_size: int
             - search: String
@@ -315,6 +315,9 @@ class MedicalDeclarationAPI(AbstractView):
 
             validator = MedicalDeclarationValidator(**accepted_fields)
 
+            validator.is_valid_fields([
+                'created_at_max', 'created_at_min',
+            ])
             validator.extra_validate_to_filter_medical_declaration()
 
             query_set = MedicalDeclaration.objects.all()
@@ -596,10 +599,10 @@ class TestAPI(AbstractView):
         Args:
             - user_code: String
             - status: String ['WAITING', 'DONE']
-            - created_at_max: String 'dd/mm/yyyy'
-            - created_at_min: String 'dd/mm/yyyy'
-            - updated_at_max: String 'dd/mm/yyyy'
-            - updated_at_min: String 'dd/mm/yyyy'
+            - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
+            - updated_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - updated_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - page: int
             - page_size: int
             - search: String
@@ -623,7 +626,11 @@ class TestAPI(AbstractView):
 
             validator = TestValidator(**accepted_fields)
 
-            validator.is_valid_fields(['status'])
+            validator.is_valid_fields([
+                'status',
+                'created_at_max', 'created_at_min',
+                'updated_at_max', 'updated_at_min',
+            ])
             validator.extra_validate_to_filter_test()
 
             query_set = Test.objects.all()
