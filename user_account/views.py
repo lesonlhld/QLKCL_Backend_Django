@@ -353,76 +353,76 @@ class MemberAPI(AbstractView):
             'background_disease', 'other_background_disease',
         ]
 
-        try:
-            request_extractor = self.request_handler.handle(request)
-            receive_fields = request_extractor.data
-            accepted_fields = dict()
+        # try:
+        request_extractor = self.request_handler.handle(request)
+        receive_fields = request_extractor.data
+        accepted_fields = dict()
 
-            for key in receive_fields.keys():
-                if key in accept_fields:
-                    accepted_fields[key] = receive_fields[key]
+        for key in receive_fields.keys():
+            if key in accept_fields:
+                accepted_fields[key] = receive_fields[key]
 
-            if 'code' not in accepted_fields.keys():
-                accepted_fields['code'] = request.user.code
+        if 'code' not in accepted_fields.keys():
+            accepted_fields['code'] = request.user.code
 
-            validator = UserValidator(**accepted_fields)
-            validator.is_valid_fields([
-                'email', 'birthday', 'gender', 'passport_number',
-                'health_insurance_number', 'identity_number',
-                'label', 'quarantined_at', 'positive_tested_before',
-                'background_disease',
-            ])
-            validator.extra_validate_to_update_member()
+        validator = UserValidator(**accepted_fields)
+        validator.is_valid_fields([
+            'email', 'birthday', 'gender', 'passport_number',
+            'health_insurance_number', 'identity_number',
+            'label', 'quarantined_at', 'positive_tested_before',
+            'background_disease',
+        ])
+        validator.extra_validate_to_update_member()
 
-            # update CustomUser
+        # update CustomUser
 
-            custom_user = validator.get_field('custom_user')
+        custom_user = validator.get_field('custom_user')
 
-            if request.user.role.name == 'MEMBER' and request.user != custom_user:
-                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+        if request.user.role.name == 'MEMBER' and request.user != custom_user:
+            raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
-            list_to_update_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
-            list_to_update_custom_user = set(list_to_update_custom_user) - \
-            {'code', 'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
-            list_to_update_custom_user = list(list_to_update_custom_user) + \
-            ['nationality', 'country', 'city', 'district', 'ward', 'quarantine_ward']
-            dict_to_update_custom_user = validator.get_data(list_to_update_custom_user)
+        list_to_update_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
+        list_to_update_custom_user = set(list_to_update_custom_user) - \
+        {'code', 'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
+        list_to_update_custom_user = list(list_to_update_custom_user) + \
+        ['nationality', 'country', 'city', 'district', 'ward', 'quarantine_ward']
+        dict_to_update_custom_user = validator.get_data(list_to_update_custom_user)
 
-            for attr, value in dict_to_update_custom_user.items(): 
-                setattr(custom_user, attr, value)
+        for attr, value in dict_to_update_custom_user.items(): 
+            setattr(custom_user, attr, value)
 
-            custom_user.updated_by = request.user
+        custom_user.updated_by = request.user
 
-            response_data = dict()
-            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
-            response_data['custom_user'] = custom_user_serializer.data
+        response_data = dict()
+        custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+        response_data['custom_user'] = custom_user_serializer.data
 
-            # update Member
+        # update Member
 
-            if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
-                member = custom_user.member_x_custom_user
+        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
+            member = custom_user.member_x_custom_user
 
-                list_to_update_member = [key for key in accepted_fields.keys() if key in member_fields]
-                list_to_update_member = set(list_to_update_member) - \
-                {'quarantine_room_id'}
-                list_to_update_member = list(list_to_update_member) + \
-                ['quarantine_room']
+            list_to_update_member = [key for key in accepted_fields.keys() if key in member_fields]
+            list_to_update_member = set(list_to_update_member) - \
+            {'quarantine_room_id'}
+            list_to_update_member = list(list_to_update_member) + \
+            ['quarantine_room']
 
-                dict_to_update_member = validator.get_data(list_to_update_member)
+            dict_to_update_member = validator.get_data(list_to_update_member)
 
-                for attr, value in dict_to_update_member.items(): 
-                    setattr(member, attr, value)
+            for attr, value in dict_to_update_member.items(): 
+                setattr(member, attr, value)
 
-                member.save()
+            member.save()
 
-                member_serializer = MemberSerializer(member, many=False)
-                response_data['member'] = member_serializer.data
+            member_serializer = MemberSerializer(member, many=False)
+            response_data['member'] = member_serializer.data
 
-            custom_user.save()
+        custom_user.save()
 
-            return self.response_handler.handle(data=response_data)
-        except Exception as exception:
-            return self.exception_handler.handle(exception)
+        return self.response_handler.handle(data=response_data)
+        # except Exception as exception:
+        #     return self.exception_handler.handle(exception)
 
     @csrf_exempt
     @action(methods=['POST'], url_path='accept', detail=False)
