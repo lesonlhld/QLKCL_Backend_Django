@@ -17,8 +17,8 @@ class MemberFilter(django_filters.FilterSet):
         lookup_expr='iexact',
     )
 
-    positive_test = django_filters.CharFilter(
-        field_name='member_x_custom_user__positive_test',
+    positive_test_now = django_filters.CharFilter(
+        field_name='member_x_custom_user__positive_test_now',
         lookup_expr='iexact',
     )
 
