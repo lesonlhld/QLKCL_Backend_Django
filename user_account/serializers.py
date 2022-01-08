@@ -144,6 +144,7 @@ class MemberSerializer(serializers.ModelSerializer):
     quarantine_floor = BaseQuarantineFloorSerializer(many=False)
     quarantine_building = BaseQuarantineBuildingSerializer(many=False)
     quarantine_ward = BaseQuarantineWardSerializer(many=False)
+    care_staff = BaseCustomUserSerializer(many=False)
 
     class Meta:
         model = Member
@@ -242,3 +243,25 @@ class StaffSerializer(serializers.ModelSerializer):
     class Meta:
         model = Staff
         fields = '__all__'
+
+class FilterStaffSerializer(serializers.ModelSerializer):
+
+    
+    quarantine_ward = BaseQuarantineWardSerializer(many=False)
+
+    care_area = serializers.SerializerMethodField('get_care_area')
+
+    def get_care_area(self, custom_user):
+        if hasattr(custom_user, 'staff_x_custom_user'):
+            return custom_user.staff_x_custom_user.care_area
+        else:
+            return None
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            'code', 'status',
+            'full_name', 'gender', 'birthday',
+            'phone_number', 'created_at',
+            'quarantine_ward', 'care_area',
+        ]
