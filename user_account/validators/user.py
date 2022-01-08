@@ -194,7 +194,7 @@ class UserValidator(validators.AbstractRequestValidate):
                     )
                     self._list_quarantine_floor_objects += [object]
                 except Exception as exception:
-                    raise exceptions.NotFoundException({'quarantine_floor': messages.NOT_EXIST})
+                    raise exceptions.NotFoundException({'care_area': messages.NOT_EXIST})
 
     def is_validate_abroad(self):
         if hasattr(self, '_abroad'):
@@ -483,8 +483,17 @@ class UserValidator(validators.AbstractRequestValidate):
                 return False
         return True
 
-    def is_quarantine_floor_id_exist(self):
-        if hasattr(self, '_quarantine_floor_id'):
+    def is_quarantine_floor_id_exist(self, id=None):
+        if id:
+            try:
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineFloor,
+                    query_expr=Q(id=id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        elif hasattr(self, '_quarantine_floor_id'):
             try:
                 self._quarantine_floor = validators.ModelInstanceExistenceValidator.valid(
                     model_cls=QuarantineFloor,
@@ -538,6 +547,18 @@ class UserValidator(validators.AbstractRequestValidate):
         # if hasattr(self, '_quarantine_ward'):
         #     print('ward ' + str(self._quarantine_ward_id))
 
+    def is_care_staff_code_exist(self):
+        if hasattr(self, '_care_staff_code'):
+            try:
+                self._care_staff = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(code=self._care_staff_code),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return True
+
     def extra_validate_to_register_member(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.EXIST})
@@ -574,6 +595,8 @@ class UserValidator(validators.AbstractRequestValidate):
             member_in_room = CustomUser.objects.filter(member_x_custom_user__quarantine_room__id = self._quarantine_room_id).count()
             if member_in_room >= self._quarantine_room.capacity:
                 raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
+        if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
+            raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
 
     def extra_validate_to_create_manager(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():
@@ -658,6 +681,8 @@ class UserValidator(validators.AbstractRequestValidate):
             member_in_room = CustomUser.objects.filter(member_x_custom_user__quarantine_room__id = self._quarantine_room_id).exclude(code=self._code).count()
             if member_in_room >= self._quarantine_room.capacity:
                 raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
+        if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
+            raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
 
     def extra_validate_to_update_manager(self):
         if hasattr(self, '_code') and not self.is_code_exist():
@@ -776,10 +801,6 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
             raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
         self.check_quarantine_ward_room_relationship()
-        if hasattr(self, '_created_at_max'):
-            self._created_at_max = date_string_to_timestamp(self._created_at_max, 1)
-        if hasattr(self, '_created_at_min'):
-            self._created_at_min = date_string_to_timestamp(self._created_at_min, 0)
         if hasattr(self, '_positive_test_now'):
             if (self._positive_test_now):
                 self._positive_test_now = 'true'
@@ -799,3 +820,18 @@ class UserValidator(validators.AbstractRequestValidate):
                 self._abroad = 'true'
             else:
                 self._abroad = 'false'
+
+    def extra_validate_to_filter_staff(self):
+        self._role_name = 'STAFF'
+        if not hasattr(self, '_status'):
+            self._status = CustomUserStatus.AVAILABLE
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_positive_test_now'):
+            if (self._positive_test_now):
+                self._positive_test_now = 'true'
+            else:
+                self._positive_test_now = 'false'
+        if hasattr(self, '_is_last_tested') and self._is_last_tested:
+            test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
+            self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
