@@ -2,6 +2,7 @@ import os
 import datetime, pytz
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Count
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
@@ -10,17 +11,18 @@ from .serializers import (
     CustomUserSerializer, MemberSerializer,
     FilterMemberSerializer, FilterNotMemberSerializer,
     MemberHomeSerializer, ManagerSerializer,
-    StaffSerializer,
+    StaffSerializer, FilterStaffSerializer,
 )
 from .filters.member import MemberFilter
 from .filters.user import UserFilter
+from .filters.staff import StaffFilter
 from form.models import Test
 from form.filters.test import TestFilter
 from role.models import Role
 from utils import exceptions, messages
 from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus
 from utils.views import AbstractView, paginate_data
-from utils.tools import date_string_to_timestamp, timestamp_string_to_date_string, custom_user_code_generator
+from utils.tools import custom_user_code_generator
 
 # Create your views here.
 
@@ -118,7 +120,7 @@ class MemberAPI(AbstractView):
             + birthday: String 'dd/mm/yyyy'
             + gender: String ['MALE', 'FEMALE']
             + nationality_code: String
-            + country_code: int
+            + country_code: String
             + city_id: int
             + district_id: int
             + ward_id: int
@@ -133,6 +135,7 @@ class MemberAPI(AbstractView):
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
+            - care_staff_code: String
         """
 
         accept_fields = [
@@ -144,6 +147,7 @@ class MemberAPI(AbstractView):
             'quarantine_ward_id', 'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
+            'care_staff_code',
         ]
 
         require_fields = [
@@ -166,6 +170,7 @@ class MemberAPI(AbstractView):
             'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
+            'care_staff_code',
         ]
 
         try:
@@ -193,7 +198,10 @@ class MemberAPI(AbstractView):
             list_to_create_custom_user = set(list_to_create_custom_user) - \
             {'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
             list_to_create_custom_user = list(list_to_create_custom_user) + \
-            ['nationality', 'country', 'city', 'district', 'ward', 'quarantine_ward']
+            [
+                'nationality', 'country', 'city', 'district', 'ward',
+                'quarantine_ward',
+            ]
 
             dict_to_create_custom_user = validator.get_data(list_to_create_custom_user)
 
@@ -210,9 +218,9 @@ class MemberAPI(AbstractView):
 
             list_to_create_member = [key for key in accepted_fields.keys() if key in member_fields]
             list_to_create_member = set(list_to_create_member) - \
-            {'quarantine_room_id'}
+            {'quarantine_room_id', 'care_staff_code'}
             list_to_create_member = list(list_to_create_member) + \
-            ['quarantine_room']
+            ['quarantine_room', 'care_staff',]
 
             dict_to_create_member = validator.get_data(list_to_create_member)
 
@@ -325,6 +333,7 @@ class MemberAPI(AbstractView):
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
+            - care_staff_code: String
         """
 
         accept_fields = [
@@ -336,6 +345,7 @@ class MemberAPI(AbstractView):
             'quarantine_ward_id', 'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
+            'care_staff_code',
         ]
 
         custom_user_fields = [
@@ -351,6 +361,7 @@ class MemberAPI(AbstractView):
             'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
+            'care_staff_code',
         ]
 
         try:
@@ -404,9 +415,9 @@ class MemberAPI(AbstractView):
 
                 list_to_update_member = [key for key in accepted_fields.keys() if key in member_fields]
                 list_to_update_member = set(list_to_update_member) - \
-                {'quarantine_room_id'}
+                {'quarantine_room_id', 'care_staff_code',}
                 list_to_update_member = list(list_to_update_member) + \
-                ['quarantine_room']
+                ['quarantine_room', 'care_staff',]
 
                 dict_to_update_member = validator.get_data(list_to_update_member)
 
@@ -1119,6 +1130,83 @@ class StaffAPI(AbstractView):
             custom_user.save()  
 
             return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_staff(self, request):
+        """Get a list of staffs
+
+        Args:
+            - status: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE']
+            - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS']
+            - positive_test_now: boolean
+            - is_last_tested: boolean - True để lọc những người cán bộ đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
+            - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantine_ward_id: int
+            - care_area: String <id>,<id> (id của tầng)
+            - page: int
+            - page_size: int
+            - search: String
+            - order_by: String ['full_name', 'created_at'], mặc định sắp thứ tự theo số lượng người cách ly đang chăm sóc tăng dần
+        """
+
+        accept_fields = [
+            'status', 'health_status_list', 'positive_test_now',
+            'is_last_tested',
+            'created_at_max', 'created_at_min',
+            'quarantine_ward_id',
+            'care_area',
+            'page', 'page_size', 'search', 'order_by',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+
+            validator.is_valid_fields([
+                'status', 'health_status_list', 'positive_test_now',
+                'is_last_tested', 'care_area',
+                'created_at_max', 'created_at_min',
+            ])
+            validator.extra_validate_to_filter_staff()
+
+            query_set = CustomUser.objects.all()
+
+            list_to_filter_staff = [key for key in accepted_fields.keys()]
+            list_to_filter_staff = set(list_to_filter_staff) - \
+            {'is_last_tested', 'page', 'page_size'}
+            list_to_filter_staff = list(list_to_filter_staff) + \
+            [
+                'status',
+                'last_tested_max', 'role_name',
+            ]
+
+            dict_to_filter_staff = validator.get_data(list_to_filter_staff)
+
+            filter = StaffFilter(dict_to_filter_staff, queryset=query_set)
+
+            query_set = filter.qs
+
+            if 'order_by' not in dict_to_filter_staff.keys():
+                query_set = query_set.annotate(num_care_member=Count('member_x_care_staff')).order_by('num_care_member')
+
+            query_set = query_set.select_related()
+
+            serializer = FilterStaffSerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
+
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
