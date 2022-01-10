@@ -1225,6 +1225,9 @@ class HomeAPI(AbstractView):
 
         try:
 
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
+                raise exceptions.AuthenticationException()
+
             users_query_set = CustomUser.objects.all()
             tests_query_set = Test.objects.all()
 
@@ -1367,6 +1370,8 @@ class HomeAPI(AbstractView):
         """
 
         try:
+            if request.user.role.name not in ['MEMBER']:
+                raise exceptions.AuthenticationException()
 
             member = request.user
             serializer = MemberHomeSerializer(member, many=False)
