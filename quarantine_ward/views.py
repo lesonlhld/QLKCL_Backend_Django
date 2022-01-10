@@ -5,6 +5,7 @@ from rest_framework.serializers import Serializer
 from utils.views import AbstractView, paginate_data
 from utils import exceptions
 from utils.enums import RoleName
+from utils.tools import split_input_list
 from .models import (
     QuarantineWard,
     QuarantineBuilding,
@@ -647,19 +648,20 @@ class QuarantineFloorAPI (AbstractView):
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)
     def create_quarantinefloor(self, request):
-        """Create a Quarantine Floor
+        """Create 1 or multiple Quarantine Floors
 
         Args:
-            + name (str)
             + quarantine_building (str): id
+            + name (str)
+            + room_quantity (int)
         """
 
         accept_fields = [
-            'name', 'quarantine_building',
+            'name', 'quarantine_building', 'room_quantity',
         ]
 
         require_fields = [
-            'name', 'quarantine_building',
+            'name', 'quarantine_building', 'room_quantity',
         ]
 
         try:
@@ -674,17 +676,58 @@ class QuarantineFloorAPI (AbstractView):
             for key in receive_fields:
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
-
-            validator = QuarantineFloorValidator(**accepted_fields)
-            
-            validator.is_missing_fields(require_fields)
-            validator.is_valid_fields(accepted_fields)
-            list_to_create = accepted_fields.keys()
-            dict_to_create = validator.get_data(list_to_create)
-            quarantine_floor = QuarantineFloor(**dict_to_create)
-            quarantine_floor.save()
-
-            serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
+            if 'name' not in accepted_fields:
+                raise exceptions.InvalidArgumentException(message='Empty name')
+            if 'room_quantity' not in accepted_fields:
+                raise exceptions.InvalidArgumentException(message='Empty room_quantity')
+            name_data = accepted_fields['name']
+            room_quantity_data = accepted_fields['room_quantity']
+            if ',' in name_data:
+                name_data_list = split_input_list(name_data)
+                room_quantity_data_list = split_input_list(room_quantity_data)
+                if (len(name_data_list) != len(room_quantity_data_list)):
+                    raise exceptions.InvalidArgumentException(message='Number of name and room_quantity data is not equal')
+                info_list = list(zip(name_data_list, room_quantity_data_list))
+                quarantine_floor_list = []
+                for (name_item, room_quantity_item) in info_list:
+                    accepted_fields['name'] = name_item
+                    accepted_fields['room_quantity'] = room_quantity_item
+                    validator = QuarantineFloorValidator(**accepted_fields)
+                    validator.is_missing_fields(require_fields)
+                    validator.is_valid_fields(accepted_fields)
+                    list_to_create = accepted_fields.keys() - {'room_quantity'}
+                    dict_to_create = validator.get_data(list_to_create)
+                    quarantine_floor = QuarantineFloor(**dict_to_create)
+                    quarantine_floor.save()
+                    room_quantity = validator.get_field('room_quantity')
+                    quarantine_floor_list += [quarantine_floor]
+                    quarantine_room_list = [
+                        QuarantineRoom(
+                            name=str(room_name),
+                            quarantine_floor=quarantine_floor,
+                            capacity=4,
+                        ) for room_name in range(int(quarantine_floor.name) * 100 + 1, int(quarantine_floor.name) * 100 + int(room_quantity) + 1)
+                    ]
+                    QuarantineRoom.objects.bulk_create(quarantine_room_list)
+                serializer = QuarantineFloorSerializer(quarantine_floor_list, many=True)
+            else:
+                validator = QuarantineFloorValidator(**accepted_fields)
+                validator.is_missing_fields(require_fields)
+                validator.is_valid_fields(accepted_fields)
+                list_to_create = accepted_fields.keys() - {'room_quantity'}
+                dict_to_create = validator.get_data(list_to_create)
+                quarantine_floor = QuarantineFloor(**dict_to_create)
+                quarantine_floor.save()
+                room_quantity = validator.get_field('room_quantity')
+                quarantine_room_list = [
+                    QuarantineRoom(
+                        name=str(room_name),
+                        quarantine_floor=quarantine_floor,
+                        capacity=4,
+                    ) for room_name in range(int(quarantine_floor.name) * 100 + 1, int(quarantine_floor.name) * 100 + int(room_quantity) + 1)
+                ]
+                QuarantineRoom.objects.bulk_create(quarantine_room_list)
+                serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -886,7 +929,7 @@ class QuarantineRoomAPI(AbstractView):
     @csrf_exempt
     @action(methods=['POST'], url_path='create', detail=False)
     def create_quarantineroom(self, request):
-        """Create a Quarantine Room
+        """Create 1 or multiple Quarantine Rooms
 
         Args:
             + name (str)
@@ -914,17 +957,44 @@ class QuarantineRoomAPI(AbstractView):
             for key in receive_fields:
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
-
-            validator = QuarantineRoomValidator(**accepted_fields)
+            if 'name' not in accepted_fields:
+                raise exceptions.InvalidArgumentException(message='Empty name')
+            name_data = accepted_fields['name']
+            capacity_data = None 
+            if 'capacity' in accepted_fields:
+                capacity_data = accepted_fields['capacity']
             
-            validator.is_missing_fields(require_fields)
-            validator.is_valid_fields(accepted_fields)
-            list_to_create = accepted_fields.keys()
-            dict_to_create = validator.get_data(list_to_create)
-            quarantine_room = QuarantineRoom(**dict_to_create)
-            quarantine_room.save()
-
-            serializer = QuarantineRoomSerializer(quarantine_room, many=False)
+            if ',' in name_data:
+                name_data_list = split_input_list(name_data)
+                if capacity_data == None:
+                    capacity_data_list = [4] * len(name_data_list)
+                else:
+                    capacity_data_list = split_input_list(capacity_data)
+                if (len(name_data_list) != len(capacity_data_list)):
+                    raise exceptions.InvalidArgumentException(message='Number of name and capacity data is not equal')
+                info_list = list(zip(name_data_list, capacity_data_list))
+                quarantine_room_list = []
+                for (name_item, capacity_item) in info_list:
+                    accepted_fields['name'] = name_item
+                    accepted_fields['capacity'] = capacity_item
+                    validator = QuarantineRoomValidator(**accepted_fields)
+                    validator.is_missing_fields(require_fields)
+                    validator.is_valid_fields(accepted_fields)
+                    list_to_create = accepted_fields.keys()
+                    dict_to_create = validator.get_data(list_to_create)
+                    quarantine_room = QuarantineRoom(**dict_to_create)
+                    quarantine_room.save()
+                    quarantine_room_list += [quarantine_room]
+                serializer = QuarantineRoomSerializer(quarantine_room_list, many=True)
+            else:
+                validator = QuarantineRoomValidator(**accepted_fields)
+                validator.is_missing_fields(require_fields)
+                validator.is_valid_fields(accepted_fields)
+                list_to_create = accepted_fields.keys()
+                dict_to_create = validator.get_data(list_to_create)
+                quarantine_room = QuarantineRoom(**dict_to_create)
+                quarantine_room.save()
+                serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
