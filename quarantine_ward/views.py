@@ -97,7 +97,7 @@ class QuarantineWardAPI (AbstractView):
             - status (str)
             - type (str)
             - quarantine_time (int)
-            + main_manager (str): id
+            + main_manager (str): code
         """
 
         accept_fields = [
@@ -159,7 +159,7 @@ class QuarantineWardAPI (AbstractView):
             - status (str)
             - type (str)
             - quarantine_time (int)
-            - main_manager (str): id
+            - main_manager (str): code
         """
 
         accept_fields = [
@@ -265,11 +265,11 @@ class QuarantineWardAPI (AbstractView):
             - page: int
             - page_size: int
             - search: String
-            - country (id): int
+            - country (code): int
             - city (id): int
             - district (id): int
             - ward (id): int
-            - main_manager (id): int
+            - main_manager (code): int
             - is_full: bool
         """
 
