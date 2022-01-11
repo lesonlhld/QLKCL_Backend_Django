@@ -1,14 +1,12 @@
 from ..models import QuarantineFloor, QuarantineRoom
-from utils import validators, messages
+from utils import validators, messages, exceptions
 from django.db.models import Q
 from utils.tools import date_string_to_timestamp
 
 class QuarantineRoomValidator(validators.AbstractRequestValidate):
 
     def is_valid_fields(self, keys: list):
-        ignorable_fields = {'name',
-                            }
-        set_of_keys = set(keys) - ignorable_fields
+        set_of_keys = set(keys) 
 
         return super().is_valid_fields(set_of_keys)
 
@@ -44,6 +42,20 @@ class QuarantineRoomValidator(validators.AbstractRequestValidate):
                 value, 
                 messages.INVALID_IS_FULL_FIELD,
             )
+    
+    def is_validate_name(self):
+        if self.is_name_exist():
+            raise exceptions.InvalidArgumentException(message={'name': messages.EXIST})
+
+    def is_name_exist(self):
+        try:
+            name = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=QuarantineRoom,
+                query_expr=Q(name=self._name),
+            )
+            return True
+        except Exception as exception:
+            return False
     
     def filter_validate(self):
         if hasattr(self, '_created_at_max'):

@@ -62,6 +62,7 @@ INVALID_TYPE = 'Invalid type'
 INVALID_QUARANTINE_TIME = 'Quarantine time must be positive float'
 INVALID_CAPACITY_NUMBER = 'Capacity number must be positive integer'
 INVALID_IS_FULL_FIELD = 'is_full must be boolean type'
+INVALID_ROOM_QUANTITY = 'Room quantity must be positive integer'
 
 # paging
 NEGATIVE_PAGE = 'Page must be positive integer'

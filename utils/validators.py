@@ -199,13 +199,13 @@ class PositiveIntegerValidator(AbstractValidator):
     @classmethod
     def valid(cls, value, message = messages.INVALID_POSITIVE_INTEGER, message1 = messages.CANNOT_CONVERT_STRING_TO_INT):
         try:
-            value = float(value)
+            value = int(value)
         except Exception:
             raise exceptions.ValidationException(message1)
 
         if not value >= 0 or abs(float(value) - int(value)) > 0:
             raise exceptions.ValidationException(message)
-
+        
         return value
 
 class PositiveFloatValidator(AbstractValidator):
