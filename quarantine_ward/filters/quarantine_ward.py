@@ -25,7 +25,7 @@ class QuarantineWardFilter(django_filters.FilterSet):
     )
 
     main_manager = django_filters.CharFilter(
-        field_name='main_manager__id',
+        field_name='main_manager__code',
         lookup_expr='iexact',
     )
 

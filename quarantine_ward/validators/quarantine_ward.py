@@ -74,7 +74,6 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
         return self._district
     
     def is_validate_ward(self):
-        
         district = self.is_validate_district()
         self._ward = validators.ModelInstanceExistenceValidator.valid(
             model_cls=Ward,
@@ -126,7 +125,7 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
         self._main_manager = validators.ModelInstanceExistenceValidator.valid(
             model_cls=CustomUser,
             query_expr=Q(
-                id=self._main_manager,
+                code=self._main_manager,
             ),
             message=messages.USER_NOT_FOUND,
         )
