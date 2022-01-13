@@ -51,7 +51,10 @@ class QuarantineRoomValidator(validators.AbstractRequestValidate):
         try:
             name = validators.ModelInstanceExistenceValidator.valid(
                 model_cls=QuarantineRoom,
-                query_expr=Q(name=self._name),
+                query_expr=Q(
+                    name=self._name,
+                    quarantine_floor=self._quarantine_floor,
+                ),
             )
             return True
         except Exception as exception:
