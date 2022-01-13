@@ -1,14 +1,12 @@
 from ..models import QuarantineWard, QuarantineBuilding
-from utils import validators, messages
+from utils import validators, messages, exceptions
 from django.db.models import Q
 from utils.tools import date_string_to_timestamp
 
 class QuarantineBuildingValidator(validators.AbstractRequestValidate):
 
     def is_valid_fields(self, keys: list):
-        ignorable_fields = {'name',
-                            }
-        set_of_keys = set(keys) - ignorable_fields
+        set_of_keys = set(keys) 
 
         return super().is_valid_fields(set_of_keys)
 
@@ -29,6 +27,23 @@ class QuarantineBuildingValidator(validators.AbstractRequestValidate):
             ),
             message=messages.QUARANTINE_BUILDING_NOT_FOUND,
         )
+    
+    def is_validate_name(self):
+        if self.is_name_exist():
+            raise exceptions.InvalidArgumentException(message={'name': messages.EXIST})
+
+    def is_name_exist(self):
+        try:
+            name = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=QuarantineBuilding,
+                query_expr=Q(
+                    name=self._name,
+                    quarantine_ward=self._quarantine_ward,
+                ),
+            )
+            return True
+        except Exception as exception:
+            return False
     
     def is_validate_is_full(self):
         value = self._is_full
