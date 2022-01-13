@@ -4,6 +4,7 @@ import json
 from abc import ABC, abstractclassmethod
 import datetime
 from django.db import models
+
 from . import messages, exceptions
 from django.db import models
 
@@ -168,9 +169,9 @@ class ModelInstanceExistenceValidator(AbstractValidator):
     def valid(cls, model_cls, query_expr: models.Q, message=default_message):
         try:
             if isinstance(model_cls, models.query.QuerySet):  # check if a queryset is passed
-                return model_cls.get(query_expr)
+                return model_cls.filter(query_expr)
             else:
-                return model_cls.objects.get(query_expr)
+                return model_cls.objects.filter(query_expr)
 
         except Exception as exception:
             raise exceptions.NotFoundException(message)

@@ -44,14 +44,19 @@ class QuarantineFloorValidator(validators.AbstractRequestValidate):
             )
     
     def is_validate_name(self):
-        self.is_name_exist()
+        if self.is_name_exist():
+            raise exceptions.InvalidArgumentException(message={'name': messages.EXIST})
 
     def is_name_exist(self):
         try:
+            print(self._name)
+            print(self._quarantine_building)
             name = validators.ModelInstanceExistenceValidator.valid(
                 model_cls=QuarantineFloor,
-                query_expr=Q(name=self._name),
-                message={'name': messages.EXIST},
+                query_expr=Q(
+                    name=self._name,
+                    quarantine_building=self._quarantine_building,
+                ),
             )
             return True
         except Exception as exception:
