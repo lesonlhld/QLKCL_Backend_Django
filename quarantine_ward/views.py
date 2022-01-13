@@ -672,7 +672,6 @@ class QuarantineFloorAPI (AbstractView):
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
-
             for key in receive_fields:
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
@@ -701,14 +700,15 @@ class QuarantineFloorAPI (AbstractView):
                     quarantine_floor.save()
                     room_quantity = validator.get_field('room_quantity')
                     quarantine_floor_list += [quarantine_floor]
-                    quarantine_room_list = [
-                        QuarantineRoom(
-                            name=str(room_name),
-                            quarantine_floor=quarantine_floor,
-                            capacity=4,
-                        ) for room_name in range(int(quarantine_floor.name) * 100 + 1, int(quarantine_floor.name) * 100 + int(room_quantity) + 1)
-                    ]
-                    QuarantineRoom.objects.bulk_create(quarantine_room_list)
+                    if (int(room_quantity) > 0):
+                        quarantine_room_list = [
+                            QuarantineRoom(
+                                name="Phòng " + str(room_number),
+                                quarantine_floor=quarantine_floor,
+                                capacity=4,
+                            ) for room_number in range(1, int(room_quantity) + 1)
+                        ]
+                        QuarantineRoom.objects.bulk_create(quarantine_room_list)
                 serializer = QuarantineFloorSerializer(quarantine_floor_list, many=True)
             else:
                 validator = QuarantineFloorValidator(**accepted_fields)
@@ -719,14 +719,15 @@ class QuarantineFloorAPI (AbstractView):
                 quarantine_floor = QuarantineFloor(**dict_to_create)
                 quarantine_floor.save()
                 room_quantity = validator.get_field('room_quantity')
-                quarantine_room_list = [
-                    QuarantineRoom(
-                        name=str(room_name),
-                        quarantine_floor=quarantine_floor,
-                        capacity=4,
-                    ) for room_name in range(int(quarantine_floor.name) * 100 + 1, int(quarantine_floor.name) * 100 + int(room_quantity) + 1)
-                ]
-                QuarantineRoom.objects.bulk_create(quarantine_room_list)
+                if (int(room_quantity) > 0):
+                    quarantine_room_list = [
+                        QuarantineRoom(
+                            name="Phòng " + str(room_number),
+                            quarantine_floor=quarantine_floor,
+                            capacity=4,
+                        ) for room_number in range(1, int(room_quantity) + 1)
+                    ]
+                    QuarantineRoom.objects.bulk_create(quarantine_room_list)
                 serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
