@@ -4,7 +4,6 @@ import json
 from abc import ABC, abstractclassmethod
 import datetime
 from django.db import models
-
 from . import messages, exceptions
 from django.db import models
 

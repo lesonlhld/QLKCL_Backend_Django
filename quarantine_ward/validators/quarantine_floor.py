@@ -49,8 +49,6 @@ class QuarantineFloorValidator(validators.AbstractRequestValidate):
 
     def is_name_exist(self):
         try:
-            print(self._name)
-            print(self._quarantine_building)
             name = validators.ModelInstanceExistenceValidator.valid(
                 model_cls=QuarantineFloor,
                 query_expr=Q(

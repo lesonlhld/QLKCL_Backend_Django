@@ -672,7 +672,6 @@ class QuarantineFloorAPI (AbstractView):
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
-            print(lst)
             for key in receive_fields:
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
