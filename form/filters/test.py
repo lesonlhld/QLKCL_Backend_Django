@@ -14,6 +14,16 @@ class TestFilter(django_filters.FilterSet):
         lookup_expr='iexact',
     )
 
+    result = django_filters.CharFilter(
+        field_name='result',
+        lookup_expr='iexact',
+    )
+
+    type = django_filters.CharFilter(
+        field_name='type',
+        lookup_expr='iexact',
+    )
+
     created_at_min = django_filters.DateTimeFilter(
         field_name='created_at',
         lookup_expr='gte',
