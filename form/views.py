@@ -599,6 +599,8 @@ class TestAPI(AbstractView):
         Args:
             - user_code: String
             - status: String ['WAITING', 'DONE']
+            - result: String ['NONE', 'NEGATIVE', 'POSITIVE']
+            - type: String ['QUICK', 'RT-PCR']
             - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
             - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - updated_at_max: String vd:'2000-01-26T01:23:45.123456Z'
@@ -610,6 +612,7 @@ class TestAPI(AbstractView):
 
         accept_fields = [
             'user_code', 'status',
+            'result', 'type',
             'created_at_max', 'created_at_min',
             'updated_at_max', 'updated_at_min',
             'page', 'page_size', 'search',
@@ -627,7 +630,7 @@ class TestAPI(AbstractView):
             validator = TestValidator(**accepted_fields)
 
             validator.is_valid_fields([
-                'status',
+                'status', 'result', 'type',
                 'created_at_max', 'created_at_min',
                 'updated_at_max', 'updated_at_min',
             ])
