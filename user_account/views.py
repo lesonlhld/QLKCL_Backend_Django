@@ -130,7 +130,7 @@ class MemberAPI(AbstractView):
             - passport_number: String
             + quarantine_ward_id: int
             - quarantine_room_id: int
-            - label: String ['F0', 'F1', 'F2', 'F3']
+            - label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
@@ -328,7 +328,7 @@ class MemberAPI(AbstractView):
             - passport_number: String
             - quarantine_ward_id: int
             - quarantine_room_id: int
-            - label: String ['F0', 'F1', 'F2', 'F3']
+            - label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
@@ -597,8 +597,7 @@ class MemberAPI(AbstractView):
             - quarantine_building_id: String
             - quarantine_floor_id: String
             - quarantine_room_id: String
-            - abroad: boolean - True để lọc những người cách ly nhập cảnh, False để lọc những người không nhập cảnh, không truyền để không lọc
-            - label: String ['F0', 'F1', 'F2', 'F3']
+            - label_list: String <label>,<label> ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - page: int
             - page_size: int
             - search: String
@@ -611,7 +610,7 @@ class MemberAPI(AbstractView):
             'quarantined_at_max', 'quarantined_at_min',
             'quarantine_ward_id', 'quarantine_building_id',
             'quarantine_floor_id', 'quarantine_room_id',
-            'label', 'abroad',
+            'label_list',
             'page', 'page_size', 'search',
         ]
 
@@ -629,7 +628,7 @@ class MemberAPI(AbstractView):
             validator.is_valid_fields([
                 'status', 'positive_test_now', 'health_status_list', 'is_last_tested',
                 'can_finish_quarantine', 'created_at_max', 'created_at_min',
-                'quarantined_at_max', 'quarantined_at_min', 'label', 'abroad',
+                'quarantined_at_max', 'quarantined_at_min', 'label_list',
             ])
             validator.extra_validate_to_filter_member()
 
