@@ -597,7 +597,7 @@ class MemberAPI(AbstractView):
             - quarantine_building_id: String
             - quarantine_floor_id: String
             - quarantine_room_id: String
-            - label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            - label_list: String <label>,<label> ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - page: int
             - page_size: int
             - search: String
@@ -610,7 +610,7 @@ class MemberAPI(AbstractView):
             'quarantined_at_max', 'quarantined_at_min',
             'quarantine_ward_id', 'quarantine_building_id',
             'quarantine_floor_id', 'quarantine_room_id',
-            'label',
+            'label_list',
             'page', 'page_size', 'search',
         ]
 
@@ -628,7 +628,7 @@ class MemberAPI(AbstractView):
             validator.is_valid_fields([
                 'status', 'positive_test_now', 'health_status_list', 'is_last_tested',
                 'can_finish_quarantine', 'created_at_max', 'created_at_min',
-                'quarantined_at_max', 'quarantined_at_min', 'label',
+                'quarantined_at_max', 'quarantined_at_min', 'label_list',
             ])
             validator.extra_validate_to_filter_member()
 

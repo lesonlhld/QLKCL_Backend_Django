@@ -33,6 +33,17 @@ class MemberFilter(django_filters.FilterSet):
         qs = queryset.filter(query)
         return qs
 
+    label_list = django_filters.CharFilter(method='label_in_list')
+
+    def label_in_list(self, queryset, name, value):
+        # value in String, not list, so need to convert String to list
+        value = split_input_list(value)
+        query = (
+            Q(member_x_custom_user__label__in=value)
+        )
+        qs = queryset.filter(query)
+        return qs
+
     last_tested_max = django_filters.DateTimeFilter(method='query_last_tested_max')
 
     def query_last_tested_max(self, queryset, name, value):

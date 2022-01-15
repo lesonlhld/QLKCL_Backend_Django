@@ -112,6 +112,16 @@ class UserValidator(validators.AbstractRequestValidate):
                 except Exception as exception:
                     raise exceptions.NotFoundException({f'role_name {item}': messages.NOT_EXIST})
 
+    def is_validate_label_list(self):
+        if hasattr(self, '_label_list'):
+            new_label_list = split_input_list(self._label_list)
+            for item in new_label_list:
+                validators.EnumValidator.valid(
+                    value=item,
+                    enum_cls=MemberLabel,
+                    message={'label_list': messages.INVALID},
+                )
+
     def is_validate_is_last_tested(self):
         if hasattr(self, '_is_last_tested'):
             self._is_last_tested = validators.BooleanValidator.valid(
