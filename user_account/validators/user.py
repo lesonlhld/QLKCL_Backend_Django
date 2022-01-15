@@ -815,11 +815,6 @@ class UserValidator(validators.AbstractRequestValidate):
                 self._health_status_list = HealthStatus.NORMAL
                 quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
                 self._quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
-        if hasattr(self, '_abroad'):
-            if (self._abroad):
-                self._abroad = 'true'
-            else:
-                self._abroad = 'false'
 
     def extra_validate_to_filter_staff(self):
         self._role_name = 'STAFF'
