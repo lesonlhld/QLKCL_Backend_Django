@@ -209,8 +209,6 @@ class Member(models.Model):
 
     positive_tested_before = models.BooleanField(default=False, null=False)
 
-    abroad = models.BooleanField(default=False, null=False)
-
     quarantined_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
     quarantined_finished_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
