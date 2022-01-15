@@ -33,6 +33,8 @@ class MemberLabel(models.TextChoices):
     F1 = 'F1'
     F2 = 'F2'
     F3 = 'F3'
+    FROM_EPIDEMIC_AREA = 'FROM_EPIDEMIC_AREA'
+    ABROAD = 'ABROAD'
 
 class MemberQuarantinedStatus(models.TextChoices):
     COMPLETED = 'COMPLETED'
