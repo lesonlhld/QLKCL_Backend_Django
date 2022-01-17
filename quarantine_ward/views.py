@@ -97,6 +97,7 @@ class QuarantineWardAPI (AbstractView):
             - status (str)
             - type (str)
             - quarantine_time (int)
+            - image (str): <filename>,<filename>
             + main_manager (str): code
         """
 
@@ -104,7 +105,7 @@ class QuarantineWardAPI (AbstractView):
             'email', 'full_name', 'country', 'city',
             'district', 'ward', 'address', 'latitude',
             'longitude', 'status', 'type', 'quarantine_time',
-            'main_manager', 'phone_number',
+            'main_manager', 'phone_number', 'image',
         ]
 
         require_fields = [
@@ -149,6 +150,7 @@ class QuarantineWardAPI (AbstractView):
             - email (str)
             - full_name (str)
             - phone_number (str)
+            - image (str): <filename>,<filename>
             - country (str): country_id
             - city (str): city_id
             - district (str): district_id
@@ -163,7 +165,7 @@ class QuarantineWardAPI (AbstractView):
         """
 
         accept_fields = [
-            'id', 'email', 'full_name', 'country', 'city',
+            'id', 'email', 'full_name', 'image', 'country', 'city',
             'district', 'ward', 'address', 'latitude',
             'longitude', 'status', 'type', 'quarantine_time',
             'main_manager', 'phone_number',
