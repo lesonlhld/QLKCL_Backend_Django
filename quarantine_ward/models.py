@@ -18,6 +18,8 @@ class QuarantineWard(models.Model):
 
     phone_number = models.CharField(max_length=16, null=True, blank=True)
 
+    image = models.TextField(null=True, blank=True)
+
     country = models.ForeignKey(
         to=Country,
         on_delete=models.SET_NULL,
@@ -136,3 +138,6 @@ class QuarantineRoom(models.Model):
         related_name='quarantine_room_x_quarantine_floor',
         null=False,
     )
+
+    def __str__(self) -> str:
+        return self.name

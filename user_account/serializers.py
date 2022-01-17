@@ -11,7 +11,7 @@ from quarantine_ward.serializers import (
     QuarantineWardSerializer,
 )
 
-from role.serializers import RoleSerializer
+from role.serializers import RoleSerializer, BaseRoleSerializer
 
 from utils.tools import timestamp_string_to_date_string
 
@@ -23,6 +23,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     district = BaseDistrictSerializer(many=False)
     ward = BaseWardSerializer(many=False)
     quarantine_ward = BaseQuarantineWardSerializer(many=False)
+    role = BaseRoleSerializer(many=False)
 
     class Meta:
         model = CustomUser

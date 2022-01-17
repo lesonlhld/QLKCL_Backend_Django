@@ -840,3 +840,9 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
+
+    def extra_validate_to_get_suitable_room(self):
+        if hasattr(self, '_member_code'):
+            self._code = self._member_code
+            if not self.is_code_exist():
+                raise exceptions.NotFoundException({'member_code': messages.NOT_EXIST})
