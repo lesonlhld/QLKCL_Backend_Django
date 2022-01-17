@@ -2,7 +2,7 @@ from re import I
 from ..models import QuarantineWard, Country, City, District, Ward, CustomUser
 from utils import validators, messages, enums, exceptions
 from django.db.models import Q
-from utils.tools import date_string_to_timestamp
+from utils.tools import date_string_to_timestamp, split_input_list
 
 class QuarantineWardValidator(validators.AbstractRequestValidate):
 
@@ -29,6 +29,10 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
             message=messages.COUNTRY_NOT_FOUND,
         )
         return self._country
+
+    def is_validate_image(self):
+        if hasattr(self, '_image') and self._image:
+            self._list_images = split_input_list(self._image)
     
     def is_validate_full_name(self):
         if self.is_full_name_exist():

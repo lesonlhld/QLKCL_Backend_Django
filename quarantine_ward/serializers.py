@@ -38,7 +38,7 @@ class BaseQuarantineWardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineWard
-        fields = ['id', 'full_name']
+        fields = ['id', 'full_name', 'image']
 
 class QuarantineRoomSerializer(serializers.ModelSerializer):
 
@@ -170,7 +170,7 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = QuarantineWard
-        fields = ['id', 'main_manager', 'full_name', 'city', 'country', 'district', 'ward', 'address', 'created_at', 'updated_at']
+        fields = ['id', 'main_manager', 'full_name', 'image', 'city', 'country', 'district', 'ward', 'address', 'created_at', 'updated_at']
     
     def to_representation(self, instance):
         data =  super().to_representation(instance)
