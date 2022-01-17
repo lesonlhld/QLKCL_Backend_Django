@@ -49,7 +49,17 @@ class MemberAPI(AbstractView):
         return True
 
     def count_members_same_label(self, room, label):
+        if not label:
+            return 0
         return room.member_x_quarantine_room.all().filter(label=label).count()
+
+    def count_members_same_gender(self, room, gender):
+        if not gender:
+            return 0
+        return room.member_x_quarantine_room.all().filter(custom_user__gender=gender).count()
+
+    def count_available_slot(self, room):
+        return room.capacity - room.member_x_quarantine_room.all().count()
 
     def get_suitable_room_for_member(self, user):
         return_dict = dict()
@@ -63,11 +73,6 @@ class MemberAPI(AbstractView):
             return_dict['room'] = user.member_x_custom_user.quarantine_room
             return_dict['warning'] = 'This room is current room of this member'
             return return_dict
-        
-        tieu_chi = ['max_day_quarantined', 'label', 'gender']
-        # max_day_quarantined: All members in this room must have quarantined at most 1 day ago.
-        # label: This room must have at most number of members that is same label as this member.
-
 
         rooms = list(QuarantineRoom.objects.filter(quarantine_floor__quarantine_building__quarantine_ward = user.quarantine_ward))
 
@@ -79,9 +84,14 @@ class MemberAPI(AbstractView):
             return_dict['warning'] = 'All rooms are full'
             return return_dict
 
+        tieu_chi = ['max_day_quarantined', 'label', 'gender', 'less_slot']
+        # max_day_quarantined: All members in this room must have quarantined at most 1 day ago.
+        # label: This room must have at most number of members that is same label as this member.
+        # gender: This room must have at most number of members that is same gender as this member.
+        # less_slot: This room must have at less number of available slot.
+
         # tieu_chi max_day_quarantined
         max_day_had_quarantined_in_room = int(os.environ.get('MAX_DAY_HAD_QUARANTINED_IN_ROOM', 1))
-        print(rooms)
         remain_rooms = [room for room in rooms if self.is_pass_max_day_quarantined(room, max_day_had_quarantined_in_room)]
         if len(remain_rooms) > 0:
             rooms = remain_rooms
@@ -89,20 +99,27 @@ class MemberAPI(AbstractView):
             return_dict['room'] = None
             return_dict['warning'] = 'Not have a room satisfy max_day_quarantined'
             return return_dict
-        print(rooms)
 
         # tieu_chi label
-        print(rooms)
-        max_same_label_in_room = 0
-        remain_rooms = [room for room in rooms if self.count_members_same_label(room, user.label)]
-        if len(remain_rooms) > 0:
-            rooms = remain_rooms
-        else:
-            return_dict['room'] = None
-            return_dict['warning'] = 'Not have a room satisfy max_day_quarantined'
-            return return_dict
-        print(rooms)
+        count_each_room = [self.count_members_same_label(room, user.member_x_custom_user.label) for room in rooms]
+        max_same_label_in_room = max(count_each_room)
+        remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_label_in_room]
+        rooms = remain_rooms
         
+        # tieu_chi gender
+        count_each_room = [self.count_members_same_gender(room, user.gender) for room in rooms]
+        max_same_gender_in_room = max(count_each_room)
+        remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_gender_in_room]
+        rooms = remain_rooms
+
+        # tieu_chi less_slot
+        count_each_room = [self.count_available_slot(room) for room in rooms]
+        min_available_slot = min(count_each_room)
+        remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == min_available_slot]
+        rooms = remain_rooms
+
+        return_dict['room'] = rooms[0]
+        return_dict['warning'] = None
         return return_dict
 
     @csrf_exempt
