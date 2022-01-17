@@ -19,6 +19,8 @@ from .filters.staff import StaffFilter
 from form.models import Test
 from form.filters.test import TestFilter
 from role.models import Role
+from quarantine_ward.models import QuarantineRoom
+from quarantine_ward.serializers import QuarantineRoomSerializer
 from utils import exceptions, messages
 from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus
 from utils.views import AbstractView, paginate_data
@@ -34,6 +36,74 @@ class MemberAPI(AbstractView):
         if self.action == 'register_member':
             self.permission_classes = [permissions.AllowAny]
         return super().get_permissions()
+
+    def is_room_full(self, room):
+        return room.member_x_quarantine_room.all().count() >= room.capacity
+
+    def is_pass_max_day_quarantined(self, room, max_day_had_quarantined_in_room):
+        # All members in this room must have quarantined at most 1 day ago.
+        time_now = timezone.now()
+        for member in list(room.member_x_quarantine_room.all()):
+            if member.quarantined_at and member.quarantined_at < time_now - datetime.timedelta(days=max_day_had_quarantined_in_room):
+                return False
+        return True
+
+    def count_members_same_label(self, room, label):
+        return room.member_x_quarantine_room.all().filter(label=label).count()
+
+    def get_suitable_room_for_member(self, user):
+        return_dict = dict()
+        return_dict['room'] = None
+        return_dict['warning'] = None
+
+        if not hasattr(user, 'member_x_custom_user') or user.role.name != 'MEMBER':
+            return_dict['warning'] = messages.ISNOTMEMBER
+            return return_dict
+        if user.member_x_custom_user.quarantine_room:
+            return_dict['room'] = user.member_x_custom_user.quarantine_room
+            return_dict['warning'] = 'This room is current room of this member'
+            return return_dict
+        
+        tieu_chi = ['max_day_quarantined', 'label', 'gender']
+        # max_day_quarantined: All members in this room must have quarantined at most 1 day ago.
+        # label: This room must have at most number of members that is same label as this member.
+
+
+        rooms = list(QuarantineRoom.objects.filter(quarantine_floor__quarantine_building__quarantine_ward = user.quarantine_ward))
+
+        remain_rooms = [room for room in rooms if not self.is_room_full(room)]
+        if len(remain_rooms) > 0:
+            rooms = remain_rooms
+        else:
+            return_dict['room'] = None
+            return_dict['warning'] = 'All rooms are full'
+            return return_dict
+
+        # tieu_chi max_day_quarantined
+        max_day_had_quarantined_in_room = int(os.environ.get('MAX_DAY_HAD_QUARANTINED_IN_ROOM', 1))
+        print(rooms)
+        remain_rooms = [room for room in rooms if self.is_pass_max_day_quarantined(room, max_day_had_quarantined_in_room)]
+        if len(remain_rooms) > 0:
+            rooms = remain_rooms
+        else:
+            return_dict['room'] = None
+            return_dict['warning'] = 'Not have a room satisfy max_day_quarantined'
+            return return_dict
+        print(rooms)
+
+        # tieu_chi label
+        print(rooms)
+        max_same_label_in_room = 0
+        remain_rooms = [room for room in rooms if self.count_members_same_label(room, user.label)]
+        if len(remain_rooms) > 0:
+            rooms = remain_rooms
+        else:
+            return_dict['room'] = None
+            return_dict['warning'] = 'Not have a room satisfy max_day_quarantined'
+            return return_dict
+        print(rooms)
+        
+        return return_dict
 
     @csrf_exempt
     @action(methods=['POST'], url_path='register', detail=False)
@@ -707,6 +777,52 @@ class MemberAPI(AbstractView):
             serializer = FilterNotMemberSerializer(query_set, many=True)
 
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get_suitable_room', detail=False)
+    def get_suitable_room(self, request):
+        """Get a suitable room for a member
+
+        Args:
+            + member_code: String
+        """
+
+        
+        accept_fields = [
+            'member_code',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(['member_code',])
+
+            validator.extra_validate_to_get_suitable_room()
+
+            user = validator.get_field('custom_user')
+
+            return_value = self.get_suitable_room_for_member(user=user)
+            room = return_value['room']
+            warning = return_value['warning']
+
+            return_dict = dict()
+            return_dict['quarantine_room'] = None
+            return_dict['warning'] = warning
+
+            if room:
+                serializer = QuarantineRoomSerializer(room, many=False)
+                return_dict['quarantine_room'] = serializer.data
+
+            return self.response_handler.handle(data=return_dict)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 

@@ -136,3 +136,6 @@ class QuarantineRoom(models.Model):
         related_name='quarantine_room_x_quarantine_floor',
         null=False,
     )
+
+    def __str__(self) -> str:
+        return self.name
