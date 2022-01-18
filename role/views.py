@@ -14,6 +14,8 @@ import datetime
 import pytz
 from form.models import Test
 from form.serializers import TestSerializer
+from user_account.models import CustomUser, Member
+from utils.enums import CustomUserStatus
 
 # Create your views here.
 
@@ -103,28 +105,30 @@ class DebugAPI(AbstractView):
         """
 
         try:
-            request_extractor = self.request_handler.handle(request)
-            receive_fields = request_extractor.data
-            vntz = pytz.timezone('Asia/Saigon')
-            time_now = datetime.datetime.now(vntz)
-            # print(time_now)
-            # new_time = time_now.astimezone(pytz.timezone('US/Eastern'))
-            # print(new_time)
-            # new_time = datetime.fromisoformat('2000-08-01T00:00:00.000')
-            time_1 = datetime.datetime.strptime('2000-08-01T00:00:00.123456Z', '%Y-%m-%dT%H:%M:%S.%f%z')
-            # time_2 = datetime.strptime('2000-08-01T00:01:00.123456Z', '%Y-%m-%dT%H:%M:%S.%f%z')
-            time_1 = time_1.astimezone(vntz)
-            # new_time = new_time.astimezone(vntz)
-            time_2 = datetime.datetime(time_1.year, time_1.month, time_1.day)
-            time_2 = time_2.astimezone(pytz.timezone('Asia/Saigon'))
-            time_3 = time_2 + datetime.timedelta(1)
-            # print(time_1)
-            # print(time_2)
-            # print(time_3)
-            # print(timezone.now())
+            # request_extractor = self.request_handler.handle(request)
+            # receive_fields = request_extractor.data
+            # vntz = pytz.timezone('Asia/Saigon')
+            # time_now = datetime.datetime.now(vntz)
+            # # print(time_now)
+            # # new_time = time_now.astimezone(pytz.timezone('US/Eastern'))
+            # # print(new_time)
+            # # new_time = datetime.fromisoformat('2000-08-01T00:00:00.000')
+            # time_1 = datetime.datetime.strptime('2000-08-01T00:00:00.123456Z', '%Y-%m-%dT%H:%M:%S.%f%z')
+            # # time_2 = datetime.strptime('2000-08-01T00:01:00.123456Z', '%Y-%m-%dT%H:%M:%S.%f%z')
+            # time_1 = time_1.astimezone(vntz)
+            # # new_time = new_time.astimezone(vntz)
+            # time_2 = datetime.datetime(time_1.year, time_1.month, time_1.day)
+            # time_2 = time_2.astimezone(pytz.timezone('Asia/Saigon'))
+            # time_3 = time_2 + datetime.timedelta(1)
+            # # print(time_1)
+            # # print(time_2)
+            # # print(time_3)
+            # # print(timezone.now())
+            this_user = CustomUser.objects.filter(status=CustomUserStatus.REFUSED, member_x_custom_user__quarantine_room__isnull=False)
+            print(list(this_user))
+            print('haha')
 
 
-
-            return self.response_handler.handle(data="Success")
+            return self.response_handler.handle(data="fSuccess")
         except Exception as exception:
             return self.exception_handler.handle(exception)
