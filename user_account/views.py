@@ -610,7 +610,10 @@ class MemberAPI(AbstractView):
                 if custom_user.role.name == 'MEMBER' and hasattr(custom_user, 'member_x_custom_user') and custom_user.status == CustomUserStatus.WAITING:
                     custom_user.status = CustomUserStatus.REFUSED
                     custom_user.updated_by = request.user
+                    member = custom_user.member_x_custom_user
+                    member.quarantine_room = None
                     custom_user.save()
+                    member.save()
 
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
