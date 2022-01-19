@@ -600,11 +600,8 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_quarantine_room_id'):
-            if not self.is_quarantine_room_id_exist():
+            if self._quarantine_room_id and not self.is_quarantine_room_id_exist():
                 raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
-            member_in_room = CustomUser.objects.filter(member_x_custom_user__quarantine_room__id = self._quarantine_room_id).count()
-            if member_in_room >= self._quarantine_room.capacity:
-                raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
         if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
             raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
 
@@ -688,9 +685,10 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_room_id'):
             if not self.is_quarantine_room_id_exist():
                 raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
-            member_in_room = CustomUser.objects.filter(member_x_custom_user__quarantine_room__id = self._quarantine_room_id).exclude(code=self._code).count()
-            if member_in_room >= self._quarantine_room.capacity:
-                raise exceptions.ValidationException({'quarantine_room_id': messages.QUARANTINE_ROOM_FULL})
+            from ..views import MemberAPI
+            check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
+            if check_room_result != messages.SUCCESS:
+                raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
         if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
             raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
 

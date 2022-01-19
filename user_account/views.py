@@ -81,7 +81,7 @@ class MemberAPI(AbstractView):
             rooms = remain_rooms
         else:
             return_dict['room'] = None
-            return_dict['warning'] = 'All rooms are full'
+            return_dict['warning'] = 'All rooms in this quarantine ward are full'
             return return_dict
 
         tieu_chi = ['max_day_quarantined', 'label', 'gender', 'less_slot']
@@ -121,6 +121,20 @@ class MemberAPI(AbstractView):
         return_dict['room'] = rooms[0]
         return_dict['warning'] = None
         return return_dict
+
+    def check_room_for_member(self, user, room):
+        # Check if this member can be set to this room
+        # Must satisfy max_day_quarantined tieu_chi
+        if not hasattr(user, 'member_x_custom_user') or user.role.name != 'MEMBER':
+            return messages.ISNOTMEMBER
+        if user.member_x_custom_user.quarantine_room == room:
+            return messages.SUCCESS
+        if self.is_room_full(room):
+            return 'This room is full'
+        max_day_had_quarantined_in_room = int(os.environ.get('MAX_DAY_HAD_QUARANTINED_IN_ROOM', 1))
+        if not self.is_pass_max_day_quarantined(room, max_day_had_quarantined_in_room):
+            return 'This room does not satisfy max_day_quarantined'
+        return messages.SUCCESS
 
     @csrf_exempt
     @action(methods=['POST'], url_path='register', detail=False)
@@ -307,7 +321,7 @@ class MemberAPI(AbstractView):
             list_to_create_member = set(list_to_create_member) - \
             {'quarantine_room_id', 'care_staff_code'}
             list_to_create_member = list(list_to_create_member) + \
-            ['quarantine_room', 'care_staff',]
+            ['care_staff',]
 
             dict_to_create_member = validator.get_data(list_to_create_member)
 
@@ -315,6 +329,22 @@ class MemberAPI(AbstractView):
             member.custom_user = custom_user
             if 'quarantined_at' not in accepted_fields.keys():
                 member.quarantined_at = timezone.now()
+
+            # extra set room for this member
+            if hasattr(validator, '_quarantine_room'):
+                # this field is received and not None
+                quarantine_room = validator.get_field('quarantine_room')
+                check_room_result = self.check_room_for_member(custom_user, quarantine_room)
+                if check_room_result != messages.SUCCESS:
+                    raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
+            else:
+                suitable_room_dict = self.get_suitable_room_for_member(custom_user)
+                quarantine_room = suitable_room_dict['room']
+                warning = suitable_room_dict['warning']
+                if not quarantine_room:
+                    raise exceptions.ValidationException({'main': warning})
+
+            member.quarantine_room = quarantine_room
 
             custom_user.save()
             member.save()
