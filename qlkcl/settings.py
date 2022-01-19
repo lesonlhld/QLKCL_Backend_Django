@@ -103,6 +103,7 @@ INSTALLED_APPS = [
     'role',
     'user_account',
     'oauth',
+    'notification',
     'utils',
 ]
 
