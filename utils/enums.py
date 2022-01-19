@@ -85,3 +85,8 @@ class TestType(models.TextChoices):
 class ResetPasswordType(models.TextChoices):
     USER_INPUT = 'USER_INPUT'
     SYSTEM_HANDLE = 'SYSTEM_HANDLE'
+
+class NotificationType(models.TextChoices):
+    PUSH = 'PUSH'
+    EMAIL = 'EMAIL'
+    SMS = 'SMS'

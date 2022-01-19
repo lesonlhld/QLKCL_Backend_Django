@@ -25,6 +25,7 @@ urlpatterns = [
         path('form/', include('form.urls')),
         path('user/', include('user_account.urls')),
         path('quarantine_ward/', include('quarantine_ward.urls')),
+        path('notification/', include('notification.urls')),
         # path('', include('address.urls')),
         path('token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
         path('token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
