@@ -11,3 +11,4 @@ sqlparse==0.4.2
 whitenoise==5.3.0
 djangorestframework_simplejwt
 python-dotenv==0.15.0
+django-cors-headers
