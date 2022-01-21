@@ -840,7 +840,12 @@ class UserValidator(validators.AbstractRequestValidate):
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
 
     def extra_validate_to_get_suitable_room(self):
-        if hasattr(self, '_member_code'):
-            self._code = self._member_code
-            if not self.is_code_exist():
-                raise exceptions.NotFoundException({'member_code': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_old_quarantine_room_id') and self._old_quarantine_room_id:
+            self._quarantine_room_id = self._old_quarantine_room_id
+            if not self.is_quarantine_room_id_exist():
+                raise exceptions.NotFoundException({'old_quarantine_room_id': messages.NOT_EXIST})
+            self._old_quarantine_room = self._quarantine_room
+        else:
+            self._old_quarantine_room = None
