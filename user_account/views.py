@@ -348,7 +348,13 @@ class MemberAPI(AbstractView):
                 if check_room_result != messages.SUCCESS:
                     raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
             else:
-                suitable_room_dict = self.get_suitable_room_for_member(custom_user)
+                input_dict_for_get_suitable_room = dict()
+                input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
+                input_dict_for_get_suitable_room['gender'] = custom_user.gender
+                input_dict_for_get_suitable_room['label'] = member.label
+                input_dict_for_get_suitable_room['old_quarantine_room'] = None
+
+                suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
                 quarantine_room = suitable_room_dict['room']
                 warning = suitable_room_dict['warning']
                 if not quarantine_room:
@@ -878,12 +884,12 @@ class MemberAPI(AbstractView):
 
             validator.extra_validate_to_get_suitable_room()
 
-            input_dict = validator.get_data([
+            input_dict_for_get_suitable_room = validator.get_data([
                 'quarantine_ward', 'gender',
                 'label', 'old_quarantine_room',
             ])
 
-            return_value = self.get_suitable_room_for_member(input_dict=input_dict)
+            return_value = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
             room = return_value['room']
             warning = return_value['warning']
 
