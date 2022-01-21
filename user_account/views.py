@@ -20,7 +20,10 @@ from form.models import Test
 from form.filters.test import TestFilter
 from role.models import Role
 from quarantine_ward.models import QuarantineRoom
-from quarantine_ward.serializers import QuarantineRoomSerializer
+from quarantine_ward.serializers import (
+    QuarantineRoomSerializer, QuarantineFloorSerializer,
+    QuarantineBuildingSerializer, BaseQuarantineWardSerializer,
+)
 from utils import exceptions, messages
 from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus
 from utils.views import AbstractView, paginate_data
@@ -61,20 +64,27 @@ class MemberAPI(AbstractView):
     def count_available_slot(self, room):
         return room.capacity - room.member_x_quarantine_room.all().count()
 
-    def get_suitable_room_for_member(self, user):
+    def get_suitable_room_for_member(self, input_dict):
+        """input_dict.keys() = [
+            quarantine_ward
+            gender
+            label
+            old_quarantine_room (can None)
+        ]
+        default, all field is not None
+
+        """
+
         return_dict = dict()
         return_dict['room'] = None
         return_dict['warning'] = None
 
-        if not hasattr(user, 'member_x_custom_user') or user.role.name != 'MEMBER':
-            return_dict['warning'] = messages.ISNOTMEMBER
-            return return_dict
-        if user.member_x_custom_user.quarantine_room:
-            return_dict['room'] = user.member_x_custom_user.quarantine_room
+        if input_dict['old_quarantine_room']:
+            return_dict['room'] = input_dict['old_quarantine_room']
             return_dict['warning'] = 'This room is current room of this member'
             return return_dict
 
-        rooms = list(QuarantineRoom.objects.filter(quarantine_floor__quarantine_building__quarantine_ward = user.quarantine_ward))
+        rooms = list(QuarantineRoom.objects.filter(quarantine_floor__quarantine_building__quarantine_ward = input_dict['quarantine_ward']))
 
         remain_rooms = [room for room in rooms if not self.is_room_full(room)]
         if len(remain_rooms) > 0:
@@ -101,13 +111,13 @@ class MemberAPI(AbstractView):
             return return_dict
 
         # tieu_chi label
-        count_each_room = [self.count_members_same_label(room, user.member_x_custom_user.label) for room in rooms]
+        count_each_room = [self.count_members_same_label(room, input_dict['label']) for room in rooms]
         max_same_label_in_room = max(count_each_room)
         remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_label_in_room]
         rooms = remain_rooms
         
         # tieu_chi gender
-        count_each_room = [self.count_members_same_gender(room, user.gender) for room in rooms]
+        count_each_room = [self.count_members_same_gender(room, input_dict['gender']) for room in rooms]
         max_same_gender_in_room = max(count_each_room)
         remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_gender_in_room]
         rooms = remain_rooms
@@ -836,12 +846,21 @@ class MemberAPI(AbstractView):
         """Get a suitable room for a member
 
         Args:
-            + member_code: String
+            + quarantine_ward_id: int
+            + gender: String ['MALE', 'FEMALE']
+            + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            - old_quarantine_room_id: int
         """
 
         
         accept_fields = [
-            'member_code',
+            'quarantine_ward_id', 'gender',
+            'label', 'old_quarantine_room_id',
+        ]
+
+        require_fields = [
+            'quarantine_ward_id', 'gender',
+            'label',
         ]
 
         try:
@@ -854,13 +873,17 @@ class MemberAPI(AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = UserValidator(**accepted_fields)
-            validator.is_missing_fields(['member_code',])
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(['gender', 'label',])
 
             validator.extra_validate_to_get_suitable_room()
 
-            user = validator.get_field('custom_user')
+            input_dict = validator.get_data([
+                'quarantine_ward', 'gender',
+                'label', 'old_quarantine_room',
+            ])
 
-            return_value = self.get_suitable_room_for_member(user=user)
+            return_value = self.get_suitable_room_for_member(input_dict=input_dict)
             room = return_value['room']
             warning = return_value['warning']
 
@@ -871,6 +894,15 @@ class MemberAPI(AbstractView):
             if room:
                 serializer = QuarantineRoomSerializer(room, many=False)
                 return_dict['quarantine_room'] = serializer.data
+                floor = room.quarantine_floor
+                serializer = QuarantineFloorSerializer(floor, many=False)
+                return_dict['quarantine_floor'] = serializer.data
+                building = floor.quarantine_building
+                serializer = QuarantineBuildingSerializer(building, many=False)
+                return_dict['quarantine_building'] = serializer.data
+                ward = building.quarantine_ward
+                serializer = BaseQuarantineWardSerializer(ward, many=False)
+                return_dict['quarantine_ward'] = serializer.data
 
             return self.response_handler.handle(data=return_dict)
         except Exception as exception:
