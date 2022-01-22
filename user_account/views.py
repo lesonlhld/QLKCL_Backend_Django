@@ -146,6 +146,28 @@ class MemberAPI(AbstractView):
             return 'This room does not satisfy max_day_quarantined'
         return messages.SUCCESS
 
+    def get_suitable_care_staff_for_member(self, input_dict):
+        """input_dict.keys() = [
+            quarantine_floor
+        ]
+        default, all field is not None
+        """
+
+        return_dict = dict()
+        return_dict['care_staff'] = None
+        return_dict['warning'] = None
+
+        query_set = Staff.objects.filter(
+            care_area__icontains=input_dict['quarantine_floor'].id,
+            custom_user__status=CustomUserStatus.AVAILABLE,
+            custom_user__quarantine_ward=input_dict['quarantine_floor'].quarantine_building.quarantine_ward,
+        )
+        try:
+            return_dict['care_staff'] = query_set.annotate(num_care_member=Count('custom_user__member_x_care_staff')).order_by('num_care_member')[:1].get().custom_user
+        except Exception as exception:
+            return_dict['warning'] = 'Cannot set care_staff for this member'
+        return return_dict
+
     @csrf_exempt
     @action(methods=['POST'], url_path='register', detail=False)
     def register_member(self, request):
@@ -601,19 +623,71 @@ class MemberAPI(AbstractView):
 
             # accept members
 
+            return_messages = dict()
+
             custom_users = validator.get_field('members')
 
             for custom_user in custom_users:
-                if custom_user.role.name == 'MEMBER' and hasattr(custom_user, 'member_x_custom_user'):
-                    custom_user.status = CustomUserStatus.AVAILABLE
-                    member = custom_user.member_x_custom_user
-                    member.quarantined_at = timezone.now()
-                    custom_user.created_by = request.user
-                    custom_user.updated_by = request.user
-                    member.save()
-                    custom_user.save()
+                if custom_user.role.name != 'MEMBER' or not hasattr(custom_user, 'member_x_custom_user'):
+                    return_messages[custom_user.code] = messages.ISNOTMEMBER
+                    continue
+
+                if custom_user.status != CustomUserStatus.WAITING:
+                    return_messages[custom_user.code] = messages.ISNOTWAITING
+                    continue
+
+                member = custom_user.member_x_custom_user
+
+                must_not_empty_fields_of_custom_user = [
+                    'full_name', 'nationality', 'country', 'city', 'district',
+                    'ward', 'identity_number', 'quarantine_ward', 
+                ]
+
+                is_continue_another_custom_user = False
+                for field in must_not_empty_fields_of_custom_user:
+                    if not getattr(custom_user, field):
+                        is_continue_another_custom_user = True
+                        return_messages[custom_user.code] = f'{field}: {messages.EMPTY}'
+                        break
+                if is_continue_another_custom_user:
+                    continue
+                
+                # set room
+                if not member.quarantine_room:
+                    input_dict_for_get_suitable_room = dict()
+                    input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
+                    input_dict_for_get_suitable_room['gender'] = custom_user.gender
+                    input_dict_for_get_suitable_room['label'] = member.label
+                    input_dict_for_get_suitable_room['old_quarantine_room'] = None
+
+                    suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
+                    quarantine_room = suitable_room_dict['room']
+                    warning = suitable_room_dict['warning']
+                    if not quarantine_room:
+                        return_messages[custom_user.code] = warning
+                        continue
+                    else:
+                        member.quarantine_room = quarantine_room
+
+                # set care_staff
+                if not member.care_staff:
+                    input_dict_for_get_care_staff = dict()
+                    input_dict_for_get_care_staff['quarantine_floor'] = member.quarantine_room.quarantine_floor
+
+                    suitable_care_staff_dict = self.get_suitable_care_staff_for_member(input_dict=input_dict_for_get_care_staff)
+                    care_staff = suitable_care_staff_dict['care_staff']
+                    warning = suitable_care_staff_dict['warning']
+                    if care_staff:
+                        member.care_staff = care_staff
+
+                custom_user.status = CustomUserStatus.AVAILABLE
+                member.quarantined_at = timezone.now()
+                custom_user.created_by = request.user
+                custom_user.updated_by = request.user
+                member.save()
+                custom_user.save()
             
-            return self.response_handler.handle(data=messages.SUCCESS)
+            return self.response_handler.handle(data=return_messages)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
