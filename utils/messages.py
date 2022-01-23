@@ -13,6 +13,7 @@ NOT_EXIST = 'Not exist'
 INVALID = 'Invalid'
 TIME_OUT = 'Time out'
 NOT_AVAILABLE = 'Not available'
+CANNOT_CHANGE = 'Cannot change'
 
 EMPTY = 'EMPTY'
 MUST_EMPTY = 'Must empty'
@@ -77,4 +78,4 @@ ISNOTSTAFF = 'This user is not staff'
 ISNOTWAITING = 'This user is not waiting'
 CANNOT_FINISH_QUARANTINE = 'This user cannot finish quarantine'
 
-NOT_IN_QUARANTINE_WARD = 'Not in this quarantine ward'
+NOT_IN_QUARANTINE_WARD_OF_MEMBER = r"""Not in the quarantine ward of this member"""

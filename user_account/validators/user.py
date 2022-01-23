@@ -602,8 +602,15 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_room_id'):
             if self._quarantine_room_id and not self.is_quarantine_room_id_exist():
                 raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
-        if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
-            raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
+        if hasattr(self, '_care_staff_code') and self._care_staff_code:
+            if not self.is_care_staff_code_exist():
+                raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
+            if self._care_staff.role.name != 'STAFF':
+                raise exceptions.ValidationException({'care_staff_code': messages.ISNOTSTAFF})
+            if self._care_staff.status != CustomUserStatus.AVAILABLE:
+                raise exceptions.ValidationException({'care_staff_code': messages.NOT_AVAILABLE})
+            if self._care_staff.quarantine_ward != self._quarantine_ward:
+                raise exceptions.ValidationException({'care_staff_code': messages.NOT_IN_QUARANTINE_WARD_OF_MEMBER})
 
     def extra_validate_to_create_manager(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():
@@ -680,13 +687,19 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_ward_id') and not self.is_ward_id_exist():
             raise exceptions.NotFoundException({'ward_id': messages.NOT_EXIST})
         self.check_country_ward_relationship()
-        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
-            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_ward_id'):
+            if self._quarantine_ward_id:
+                if not self.is_quarantine_ward_id_exist():
+                    raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+                if self._custom_user.status == CustomUserStatus.AVAILABLE:
+                    raise exceptions.ValidationException({'quarantine_ward_id': messages.CANNOT_CHANGE})
+            else:
+                raise exceptions.ValidationException({'quarantine_ward_id': messages.EMPTY})
         if hasattr(self, '_quarantine_room_id'):
             if self._custom_user.status == CustomUserStatus.AVAILABLE:
                 if not self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.EMPTY})
-            elif self._custom_user.status == CustomUserStatus.REFUSED:
+            elif self._custom_user.status in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING]:
                 if self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.MUST_EMPTY})
             if not self.is_quarantine_room_id_exist():
@@ -695,8 +708,18 @@ class UserValidator(validators.AbstractRequestValidate):
             check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
             if check_room_result != messages.SUCCESS:
                 raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
-        if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
-            raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
+        if hasattr(self, '_care_staff_code'):
+            if self._care_staff_code:
+                if not self.is_care_staff_code_exist():
+                    raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
+                if self._care_staff.role.name != 'STAFF':
+                    raise exceptions.ValidationException({'care_staff_code': messages.ISNOTSTAFF})
+                if self._care_staff.status != CustomUserStatus.AVAILABLE:
+                    raise exceptions.ValidationException({'care_staff_code': messages.NOT_AVAILABLE})
+                if self._care_staff.quarantine_ward != self._custom_user.quarantine_ward:
+                    raise exceptions.ValidationException({'care_staff_code': messages.NOT_IN_QUARANTINE_WARD_OF_MEMBER})
+            else:
+                self._care_staff = None
 
     def extra_validate_to_update_manager(self):
         if hasattr(self, '_code') and not self.is_code_exist():
