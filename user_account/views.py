@@ -694,7 +694,7 @@ class MemberAPI(AbstractView):
             else:
                 # check care_staff received
                 if care_staff.quarantine_ward != custom_user.quarantine_ward:
-                    raise exceptions.ValidationException({'care_staff_code': messages.NOT_IN_QUARANTINE_WARD})
+                    raise exceptions.ValidationException({'care_staff_code': messages.NOT_IN_QUARANTINE_WARD_OF_MEMBER})
                 member.care_staff = care_staff
             
             custom_user.status = CustomUserStatus.AVAILABLE
