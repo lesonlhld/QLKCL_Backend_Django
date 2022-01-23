@@ -683,6 +683,12 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_quarantine_room_id'):
+            if self._custom_user.status == CustomUserStatus.AVAILABLE:
+                if not self._quarantine_room_id:
+                    raise exceptions.NotFoundException({'quarantine_room_id': messages.EMPTY})
+            elif self._custom_user.status == CustomUserStatus.REFUSED:
+                if self._quarantine_room_id:
+                    raise exceptions.NotFoundException({'quarantine_room_id': messages.MUST_EMPTY})
             if not self.is_quarantine_room_id_exist():
                 raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
             from ..views import MemberAPI
@@ -748,7 +754,25 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
 
-    def extra_validate_to_accept_member(self):
+    def extra_validate_to_accept_one_member(self):
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
+        if hasattr(self, '_quarantine_room_id') and self._quarantine_room_id:
+            if not self.is_quarantine_room_id_exist():
+                raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        else:
+            self._quarantine_room = None
+        if hasattr(self, '_care_staff_code') and self._care_staff_code:
+            if not self.is_care_staff_code_exist():
+                raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
+            if self._care_staff.role.name != 'STAFF':
+                raise exceptions.ValidationException({'care_staff_code': messages.ISNOTSTAFF})
+            if self._care_staff.status != CustomUserStatus.AVAILABLE:
+                raise exceptions.ValidationException({'care_staff_code': messages.NOT_AVAILABLE})
+        else:
+            self._care_staff = None
+
+    def extra_validate_to_accept_many_members(self):
         if hasattr(self, '_member_codes'):
             self._member_codes = split_input_list(self._member_codes)
             self._members = []

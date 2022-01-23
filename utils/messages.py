@@ -12,8 +12,10 @@ EXIST = 'Exist'
 NOT_EXIST = 'Not exist'
 INVALID = 'Invalid'
 TIME_OUT = 'Time out'
+NOT_AVAILABLE = 'Not available'
 
 EMPTY = 'EMPTY'
+MUST_EMPTY = 'Must empty'
 
 CANNOT_CONVERT_STRING_TO_INT = 'Cannot convert string to int'
 CANNOT_CONVERT_STRING_TO_FLOAT = 'Cannot convert string to float'
@@ -74,3 +76,5 @@ ISNOTMANAGER = 'This user is not manager'
 ISNOTSTAFF = 'This user is not staff'
 ISNOTWAITING = 'This user is not waiting'
 CANNOT_FINISH_QUARANTINE = 'This user cannot finish quarantine'
+
+NOT_IN_QUARANTINE_WARD = 'Not in this quarantine ward'
