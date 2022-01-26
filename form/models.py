@@ -138,3 +138,38 @@ class Test(models.Model):
         null=True,
         blank=True,
     )
+
+class Vaccine(models.Model):
+
+    name = models.CharField(max_length=128, null=False)
+
+    manufacturer = models.CharField(max_length=256, null=False)
+
+class VaccineDose(models.Model):
+
+    vaccine = models.ForeignKey(
+        to=Vaccine,
+        on_delete=models.CASCADE,
+        related_name='vaccine_dose_x_vaccine',
+        null=False,
+    )
+
+    custom_user = models.ForeignKey(
+        to=CustomUser,
+        on_delete=models.CASCADE,
+        related_name='vaccine_dose_x_custom_user',
+        null=False,
+    )
+
+    injection_date = models.DateTimeField(
+        auto_now_add=False,
+        auto_now=False,
+        null=True,
+        blank=True,
+    )
+
+    injection_place = models.TextField(null=True, blank=True)
+
+    batch_number = models.CharField(max_length=64, null=True, blank=True)
+
+    symptom_after_injected = models.CharField(max_length=256, null=True, blank=True)
