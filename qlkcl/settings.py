@@ -229,3 +229,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 django_heroku.settings(locals())
+
+# OneSignal config
+
+ONE_SIGNAL_NOTIFICATION_URL = os.environ.get("ONE_SIGNAL_NOTIFICATION_URL")
+ONE_SIGNAL_APP_ID = os.environ.get("ONE_SIGNAL_APP_ID")
+ONE_SIGNAL_REST_API_KEY = os.environ.get("ONE_SIGNAL_REST_API_KEY")
