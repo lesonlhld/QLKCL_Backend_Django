@@ -7,7 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from utils.views import paginate_data
 from rest_framework import permissions
 from rest_framework.decorators import action
-from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test, Vaccine
+from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test, Vaccine, VaccineDose
 from .validators.medical_declaration import MedicalDeclarationValidator
 from .validators.test import TestValidator
 from .validators.vaccine import VaccineValidator, VaccineDoseValidator
@@ -20,9 +20,11 @@ from .serializers import (
     BaseSymptomSerializer,
     VaccineSerializer,
     VaccineDoseSerializer,
+    FilterVaccineDoseSerializer,
 )
 from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
+from .filters.vaccine import VaccineDoseFilter
 from utils import exceptions, messages
 from utils.enums import SymptomType, TestResult, TestType, HealthStatus
 from utils.views import AbstractView
@@ -825,5 +827,275 @@ class VaccineAPI(AbstractView):
             serializer = VaccineSerializer(query_set, many=True)
 
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class VaccineDoseAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get', detail=False)
+    def get_vaccine_dose(self, request):
+        """Get a vaccine dose
+
+        Args:
+            + id: int
+        """
+
+        accept_fields = [
+            'id',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineDoseValidator(**accepted_fields)
+
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_get_vaccine_dose()
+
+            vaccine_dose = validator.get_field('vaccine_dose')
+
+            serializer = VaccineDoseSerializer(vaccine_dose, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_vaccine_dose(self, request):
+        """Create a vaccine dose
+
+        Args:
+            + vaccine_id: int
+            + custom_user_code: String
+            + injection_date: String vd:'2000-01-26T01:23:45.123456Z'
+            - injection_place: String
+            - batch_number: String
+            - symptom_after_injected: String
+        """
+
+        accept_fields = [
+            'vaccine_id', 'custom_user_code',
+            'injection_date', 'injection_place',
+            'batch_number', 'symptom_after_injected',
+        ]
+
+        require_fields = [
+            'vaccine_id', 'custom_user_code',
+            'injection_date',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineDoseValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(['injection_date'])
+            
+            validator.extra_validate_to_create_vaccine_dose()
+
+            list_to_create_vaccine_dose = [key for key in accepted_fields.keys()]
+
+            list_to_create_vaccine_dose = set(list_to_create_vaccine_dose) - \
+            {'vaccine_id', 'custom_user_code',}
+            list_to_create_vaccine_dose = list(list_to_create_vaccine_dose) + \
+            ['vaccine', 'custom_user',]
+
+            dict_to_create_vaccine_dose = validator.get_data(list_to_create_vaccine_dose)
+
+            vaccine_dose = VaccineDose(**dict_to_create_vaccine_dose)
+            vaccine_dose.save()
+
+            serializer = VaccineDoseSerializer(vaccine_dose, many=False)
+            
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='update', detail=False)
+    def update_vaccine_dose(self, request):
+        """Update a vaccine dose
+
+        Args:
+            + id: int
+            - vaccine_id: int
+            - injection_date: String vd:'2000-01-26T01:23:45.123456Z'
+            - injection_place: String
+            - batch_number: String
+            - symptom_after_injected: String
+        """
+
+        accept_fields = [
+            'id', 'vaccine_id',
+            'injection_date', 'injection_place',
+            'batch_number', 'symptom_after_injected',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineDoseValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(['injection_date'])
+            
+            validator.extra_validate_to_update_vaccine_dose()
+
+            vaccine_dose = validator.get_field('vaccine_dose')
+
+            list_to_update_vaccine_dose = [key for key in accepted_fields.keys()]
+            list_to_update_vaccine_dose = set(list_to_update_vaccine_dose) - \
+            {'id', 'vaccine_id'}
+            list_to_update_vaccine_dose = list(list_to_update_vaccine_dose) + \
+            ['vaccine']
+
+            dict_to_update_vaccine_dose = validator.get_data(list_to_update_vaccine_dose)
+
+            for attr, value in dict_to_update_vaccine_dose.items(): 
+                setattr(vaccine_dose, attr, value)
+
+            vaccine_dose.save()
+
+            serializer = VaccineDoseSerializer(vaccine_dose, many=False)
+            
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='delete', detail=False)
+    def delete_vaccine_dose(self, request):
+        """Delete a vaccine dose
+
+        Args:
+            + id: int
+        """
+
+        accept_fields = [
+            'id'
+        ]
+
+        require_fields = [
+            'id'
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineDoseValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_delete_vaccine_dose()
+
+            vaccine_dose = validator.get_field('vaccine_dose')
+
+            vaccine_dose.delete()
+            
+            return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_vaccine_dose(self, request):
+        """Get a list of vaccine_doses
+
+        Args:
+            - custom_user_code: String
+            - injection_date_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - injection_date_min: String vd:'2000-01-26T01:23:45.123456Z'
+            - page: int
+            - page_size: int
+            - search: String
+        """
+
+        accept_fields = [
+            'custom_user_code',
+            'injection_date_max', 'injection_date_min',
+            'page', 'page_size', 'search',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineDoseValidator(**accepted_fields)
+
+            validator.is_valid_fields([
+                'injection_date_max', 'injection_date_min'
+            ])
+            validator.extra_validate_to_filter_vaccine_dose()
+
+            query_set = VaccineDose.objects.all()
+
+            list_to_filter_vaccine_dose = [key for key in accepted_fields.keys()]
+            list_to_filter_vaccine_dose = set(list_to_filter_vaccine_dose) - \
+            {'page', 'page_size'}
+
+            dict_to_filter_vaccine_dose = validator.get_data(list_to_filter_vaccine_dose)
+
+            dict_to_filter_vaccine_dose.setdefault('order_by', 'injection_date')
+
+            filter = VaccineDoseFilter(dict_to_filter_vaccine_dose, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
+            serializer = FilterVaccineDoseSerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
+
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
