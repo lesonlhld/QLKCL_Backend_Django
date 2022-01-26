@@ -39,6 +39,8 @@ QUARANTINE_WARD_NOT_FOUND = 'Quarantine Ward is not exist'
 QUARANTINE_BUILDING_NOT_FOUND = 'Quarantine Building is not exist'
 QUARANTINE_FLOOR_NOT_FOUND = 'Quarantine Floor is not exist'
 QUARANTINE_ROOM_NOT_FOUND = 'Quarantine Room is not exist'
+NOTIFICATION_NOT_FOUND = 'Notification is not exist'
+USER_NOTIFICATION_NOT_FOUND = 'User Notification is not exist'
 
 CODE_EXIST = 'Code is already exist'
 
@@ -66,6 +68,7 @@ INVALID_QUARANTINE_TIME = 'Quarantine time must be positive float'
 INVALID_CAPACITY_NUMBER = 'Capacity number must be positive integer'
 INVALID_IS_FULL_FIELD = 'is_full must be boolean type'
 INVALID_ROOM_QUANTITY = 'Room quantity must be positive integer'
+INVALID_ROLE_ID = 'Role ID is invalid'
 
 # paging
 NEGATIVE_PAGE = 'Page must be positive integer'

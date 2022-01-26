@@ -1,8 +1,7 @@
-from re import I
 from ..models import QuarantineWard, Country, City, District, Ward, CustomUser
 from utils import validators, messages, enums, exceptions
 from django.db.models import Q
-from utils.tools import date_string_to_timestamp, split_input_list
+from utils.tools import split_input_list
 
 class QuarantineWardValidator(validators.AbstractRequestValidate):
 
