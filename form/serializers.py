@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import MedicalDeclaration, Test, BackgroundDisease, Symptom, Vaccine, VaccineDose
-from user_account.serializers import BaseCustomUserSerializer
+from user_account.serializers import BaseCustomUserSerializer, BaseBaseCustomUserSerializer
 
 class BaseBackgroundDiseaseSerializer(serializers.ModelSerializer):
 
@@ -59,6 +59,18 @@ class VaccineSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class VaccineDoseSerializer(serializers.ModelSerializer):
+
+    vaccine = VaccineSerializer(many=False)
+    custom_user = BaseCustomUserSerializer(many=False)
+
+    class Meta:
+        model = VaccineDose
+        fields = '__all__'
+
+class FilterVaccineDoseSerializer(serializers.ModelSerializer):
+
+    vaccine = VaccineSerializer(many=False)
+    custom_user = BaseBaseCustomUserSerializer(many=False)
 
     class Meta:
         model = VaccineDose
