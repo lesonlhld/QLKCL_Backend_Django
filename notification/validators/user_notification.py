@@ -43,14 +43,14 @@ class UserNotificationValidator(validators.AbstractRequestValidate):
         return user_notification
     
     def is_validate_type(self):
-        value = self._type
+        value = int(self._type)
         if value not in range(0, 3):
             raise exceptions.ValidationException(message=messages.INVALID_TYPE)
         return value
     
     def is_validate_role(self):
-        value = self._role
-        if value not in range(1, 6):
+        value = int(self._role)
+        if value not in range(0, 6):
             raise exceptions.ValidationException(message=messages.INVALID_ROLE_ID)
         return value
 
