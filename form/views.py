@@ -7,9 +7,10 @@ from django.views.decorators.csrf import csrf_exempt
 from utils.views import paginate_data
 from rest_framework import permissions
 from rest_framework.decorators import action
-from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test
+from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test, Vaccine
 from .validators.medical_declaration import MedicalDeclarationValidator
 from .validators.test import TestValidator
+from .validators.vaccine import VaccineValidator, VaccineDoseValidator
 from .serializers import (
     MedicalDeclarationSerializer,
     FilterMedicalDeclarationSerializer,
@@ -17,6 +18,8 @@ from .serializers import (
     FilterTestSerializer,
     BaseBackgroundDiseaseSerializer,
     BaseSymptomSerializer,
+    VaccineSerializer,
+    VaccineDoseSerializer,
 )
 from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
@@ -657,5 +660,170 @@ class TestAPI(AbstractView):
             paginated_data = paginate_data(request, serializer.data)
 
             return self.response_handler.handle(data=paginated_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class VaccineAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get', detail=False)
+    def get_vaccine(self, request):
+        """Get a vaccine
+
+        Args:
+            + id: int
+        """
+
+        accept_fields = [
+            'id',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineValidator(**accepted_fields)
+
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_get_vaccine()
+
+            vaccine = validator.get_field('vaccine')
+
+            serializer = VaccineSerializer(vaccine, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_vaccine(self, request):
+        """Create a vaccine
+
+        Args:
+            + name: String
+            + manufacturer: String
+        """
+
+        accept_fields = [
+            'name', 'manufacturer',
+        ]
+
+        require_fields = [
+            'name', 'manufacturer',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_create_vaccine()
+
+            list_to_create_test = [key for key in accepted_fields.keys()]
+
+            dict_to_create_test = validator.get_data(list_to_create_test)
+
+            vaccine = Vaccine(**dict_to_create_test)
+            vaccine.save()
+
+            serializer = VaccineSerializer(vaccine, many=False)
+            
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='update', detail=False)
+    def update_vaccine(self, request):
+        """Update a vaccine
+
+        Args:
+            + id: int
+            - name: String
+            - manufacturer: String
+        """
+
+        accept_fields = [
+            'id',
+            'name', 'manufacturer',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = VaccineValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_update_vaccine()
+
+            vaccine = validator.get_field('vaccine')
+
+            list_to_update_vaccine = [key for key in accepted_fields.keys()]
+            list_to_update_vaccine = set(list_to_update_vaccine) - {'id'}
+
+            dict_to_update_vaccine = validator.get_data(list_to_update_vaccine)
+
+            for attr, value in dict_to_update_vaccine.items(): 
+                setattr(vaccine, attr, value)
+
+            vaccine.save()
+
+            serializer = VaccineSerializer(vaccine, many=False)
+            
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_vaccine(self, request):
+        """Get a list of vaccine
+
+        Args:
+            None
+        """
+
+        try:
+            query_set = Vaccine.objects.all().order_by('id')
+
+            serializer = VaccineSerializer(query_set, many=True)
+
+            return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
