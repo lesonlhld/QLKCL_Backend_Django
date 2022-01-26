@@ -9,6 +9,8 @@ class BaseCustomUserSerializer(serializers.ModelSerializer):
 
 class NotificationSerializer(serializers.ModelSerializer):
 
+    created_by = BaseCustomUserSerializer(many=False)
+    
     class Meta:
         model = Notification
         fields = '__all__'
@@ -17,7 +19,7 @@ class UserNotificationSerializer(serializers.ModelSerializer):
 
     notification = NotificationSerializer(many=False)
     user = BaseCustomUserSerializer(many=False)
-    
+
     class Meta:
         model = UserNotification
         fields = '__all__'
