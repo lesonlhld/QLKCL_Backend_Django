@@ -96,6 +96,7 @@ class NotificationAPI (AbstractView):
             list_to_create = accepted_fields.keys()
             dict_to_create = validator.get_data(list_to_create)
             notification = Notification(**dict_to_create)
+            notification.created_by = request.user
             notification.save()
 
             serializer = NotificationSerializer(notification, many=False)
@@ -322,9 +323,9 @@ class UserNotificationAPI (AbstractView):
         }
 
         payload = {
-            "app_id": settings.ONE_SINGAL_APP_ID,
-            "headings": {"vi": ""},
-            "contents": {"vi": ""},
+            "app_id": settings.ONE_SIGNAL_APP_ID,
+            "headings": "",
+            "contents": "",
         }
 
         try:
@@ -346,6 +347,9 @@ class UserNotificationAPI (AbstractView):
             get_notification = validator.is_validate_notification()
             get_type = validator.is_validate_type()
             get_role = validator.is_validate_role()
+
+            payload["headings"] = {"vi": get_notification.title}
+            payload["contents"] = {"vi": get_notification.description}
 
             if get_type == 0:
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
