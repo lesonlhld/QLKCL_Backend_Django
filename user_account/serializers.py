@@ -29,6 +29,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
         model = CustomUser
         exclude = ['password']
 
+class BaseBaseCustomUserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = ['code', 'full_name',]
+
 class BaseCustomUserSerializer(serializers.ModelSerializer):
 
     health_status = serializers.SerializerMethodField('get_health_status')

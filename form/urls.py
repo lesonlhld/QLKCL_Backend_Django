@@ -7,5 +7,6 @@ router.register('symptom', views.SymptomAPI, basename='symptom')
 router.register('medical-declaration', views.MedicalDeclarationAPI, basename='medical-declaration')
 router.register('test', views.TestAPI, basename='test')
 router.register('vaccine', views.VaccineAPI, basename='vaccine')
+router.register('vaccine_dose', views.VaccineDoseAPI, basename='vaccine-dose')
 
 urlpatterns = router.urls
