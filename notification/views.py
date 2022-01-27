@@ -505,12 +505,13 @@ class UserNotificationAPI (AbstractView):
             if validator.has_field('notification'):
                 user_notification = validator.is_user_notification_exist()
                 user_notification.delete()
+                serializer = UserNotificationSerializer(user_notification, many=False)
             else:
                 noti_user = validator.get_field('user')
                 list_user_notification = UserNotification.objects.filter(user=noti_user)
                 list_user_notification.delete()
+                serializer = UserNotificationSerializer(list_user_notification, many=True)
 
-            serializer = UserNotificationSerializer(user_notification, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
