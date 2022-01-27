@@ -31,11 +31,11 @@ class UserNotificationValidator(validators.AbstractRequestValidate):
         )
         return self._notification
 
-    def is_user_notification_exist(self):
+    def is_user_notification_exist(self, user):
         user_notification = validators.ModelInstanceExistenceValidator.valid(
             model_cls=UserNotification,
             query_expr=Q(
-                user=self._user,
+                user=user,
                 notification=self._notification
             ),
             message=messages.USER_NOTIFICATION_NOT_FOUND,

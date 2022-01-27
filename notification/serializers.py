@@ -15,6 +15,14 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = '__all__'
 
+class NotificationSerializerForFilter(serializers.ModelSerializer):
+
+    created_by = BaseCustomUserSerializer(many=False)
+    
+    class Meta:
+        model = Notification
+        fields = '__all__'
+
 class UserNotificationSerializer(serializers.ModelSerializer):
 
     notification = NotificationSerializer(many=False)
@@ -23,3 +31,11 @@ class UserNotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserNotification
         fields = '__all__'
+
+class UserNotificationSerializerForFilter(serializers.ModelSerializer):
+
+    notification = NotificationSerializer(many=False)
+
+    class Meta:
+        model = UserNotification
+        fields = ['notification', 'is_read']
