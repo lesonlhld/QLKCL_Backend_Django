@@ -9,7 +9,7 @@ from utils.enums import RoleName
 from .models import Notification, UserNotification, CustomUser
 from .validators.notification import NotificationValidator
 from .validators.user_notification import UserNotificationValidator
-from .serializers import NotificationSerializer, UserNotificationSerializer
+from .serializers import NotificationSerializer, UserNotificationSerializer, UserNotificationSerializerForFilter
 from .filters.notification import NotificationFilter
 
 # Create your views here.
@@ -348,16 +348,18 @@ class UserNotificationAPI (AbstractView):
             get_type = validator.is_validate_type()
             get_role = validator.is_validate_role()
 
-            payload["headings"] = {"vi": get_notification.title}
-            payload["contents"] = {"vi": get_notification.description}
+            payload["headings"] = {"en": get_notification.title}
+            payload["contents"] = {"en": get_notification.description}
 
             if get_type == 0:
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
                 list_user_notification = []
-                for user in all_users:
+                for user_item in all_users:
+                    validator.is_user_notification_exist(user_item)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
-                        user=user,
+                        user=user_item,
+                        created_by=user,
                     )]
                 user_notification = UserNotification.objects.bulk_create(list_user_notification)
                 serializer = UserNotificationSerializer(user_notification, many=True)
@@ -378,10 +380,12 @@ class UserNotificationAPI (AbstractView):
                 ) if get_role > 0 else CustomUser.objects.filter(quarantine_ward=get_quarantine_ward)
 
                 list_user_notification = []
-                for user in all_users:
+                for user_item in all_users:
+                    validator.is_user_notification_exist(user_item)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
-                        user=user,
+                        user=user_item,
+                        created_by=user,
                     )]
                 user_notification = UserNotification.objects.bulk_create(list_user_notification)
                 serializer = UserNotificationSerializer(user_notification, many=True)
@@ -404,10 +408,12 @@ class UserNotificationAPI (AbstractView):
                 list_user_code = validator.is_validate_user_list()
                 all_users = CustomUser.objects.filter(code__in=list_user_code)
                 list_user_notification = []
-                for user in all_users:
+                for user_item in all_users:
+                    validator.is_user_notification_exist(user_item)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
-                        user=user,
+                        user=user_item,
+                        created_by=user,
                     )]
                 user_notification = UserNotification.objects.bulk_create(list_user_notification)
                 serializer = UserNotificationSerializer(user_notification, many=True)
@@ -415,12 +421,100 @@ class UserNotificationAPI (AbstractView):
                 payload.update({"included_external_user_ids": list_user_code})
 
             req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
-            print(json.dumps(payload))
-            print(req.status_code, req.reason)
+            
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
+    @csrf_exempt
+    @action(methods=['POST'], url_path='update', detail=False)
+    def update_user_notification(self, request):
+        """Update a UserNotification 
+
+        Args:
+            + user (id)
+            + notification (id)
+        """
+
+        accept_fields = [
+            'user', 'notification'
+        ]
+
+        require_fields = [
+            'user', 'notification'
+        ]
+
+        try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields:
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserNotificationValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(accepted_fields)
+            user_notification = validator.is_user_notification_exist()
+            user_notification.is_read = not user_notification.is_read
+            user_notification.save()
+            serializer = UserNotificationSerializer(user_notification, many=False)
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='delete', detail=False)
+    def delete_user_notification(self, request):
+        """Delete a UserNotification
+
+        Args:
+            + user (id)
+            - notification (id)
+        """
+
+        accept_fields = [
+            'user', 'notification'
+        ]
+
+        require_fields = [
+            'user',
+        ]
+
+        try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields:
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserNotificationValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(accepted_fields)
+            if validator.has_field('notification'):
+                user_notification = validator.is_user_notification_exist()
+                user_notification.delete()
+            else:
+                noti_user = validator.get_field('user')
+                list_user_notification = UserNotification.objects.filter(user=noti_user)
+                list_user_notification.delete()
+
+            serializer = UserNotificationSerializer(user_notification, many=False)
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
     @csrf_exempt
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_user_notification(self, request):
@@ -448,26 +542,13 @@ class UserNotificationAPI (AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
-            validator = NotificationValidator(**accepted_fields)
+            validator = UserNotificationValidator(**accepted_fields)
             validator.is_valid_fields([
                 'created_at_max', 'created_at_min', 'user',
             ])
             user = validator.get_field('user')
-            query_set = Notification.objects.filter(user_notification_x_user=user)
-            list_to_filter = [key for key in accepted_fields.keys()]
-            list_to_filter = set(list_to_filter) - {'page', 'page_size'}
-
-            dict_to_filter = validator.get_data(list_to_filter)
-
-            dict_to_filter.setdefault('order_by', '-created_at')
-
-            filter = NotificationFilter(dict_to_filter, queryset=query_set)
-
-            query_set = filter.qs
-
-            query_set = query_set.select_related()
-
-            serializer = NotificationSerializer(query_set, many=True)
+            query_set = UserNotification.objects.filter(user=user)
+            serializer = UserNotificationSerializerForFilter(query_set, many=True)
 
             paginated_data = paginate_data(request, serializer.data)
 
