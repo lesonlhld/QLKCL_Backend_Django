@@ -510,6 +510,7 @@ class MemberAPI(AbstractView):
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
+            - number_of_vaccine_doses: int
             - care_staff_code: String
         """
 
@@ -522,7 +523,7 @@ class MemberAPI(AbstractView):
             'quarantine_ward_id', 'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         custom_user_fields = [
@@ -538,7 +539,7 @@ class MemberAPI(AbstractView):
             'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         try:
@@ -558,7 +559,7 @@ class MemberAPI(AbstractView):
                 'email', 'birthday', 'gender', 'passport_number',
                 'health_insurance_number', 'identity_number',
                 'label', 'quarantined_at', 'positive_tested_before',
-                'background_disease',
+                'number_of_vaccine_doses', 'background_disease',
             ])
             validator.extra_validate_to_update_member()
 
@@ -683,6 +684,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
                 input_dict_for_get_suitable_room['gender'] = custom_user.gender
                 input_dict_for_get_suitable_room['label'] = member.label
+                input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = None
 
                 suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
@@ -721,6 +723,7 @@ class MemberAPI(AbstractView):
             custom_user.status = CustomUserStatus.AVAILABLE
             custom_user.created_by = request.user
             custom_user.updated_by = request.user
+            member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
             member.save()
             custom_user.save()
 
@@ -795,6 +798,7 @@ class MemberAPI(AbstractView):
                     input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
                     input_dict_for_get_suitable_room['gender'] = custom_user.gender
                     input_dict_for_get_suitable_room['label'] = member.label
+                    input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                     input_dict_for_get_suitable_room['old_quarantine_room'] = None
 
                     suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
@@ -819,6 +823,7 @@ class MemberAPI(AbstractView):
 
                 custom_user.status = CustomUserStatus.AVAILABLE
                 member.quarantined_at = timezone.now()
+                member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
                 custom_user.created_by = request.user
                 custom_user.updated_by = request.user
                 member.save()
