@@ -11,6 +11,7 @@ from .validators.notification import NotificationValidator
 from .validators.user_notification import UserNotificationValidator
 from .serializers import NotificationSerializer, UserNotificationSerializer, UserNotificationSerializerForFilter
 from .filters.notification import NotificationFilter
+from .filters.user_notification import UserNotificationFilter
 
 # Create your views here.
 
@@ -549,6 +550,20 @@ class UserNotificationAPI (AbstractView):
             ])
             user = validator.get_field('user')
             query_set = UserNotification.objects.filter(user=user)
+
+            list_to_filter = [key for key in accepted_fields.keys()]
+            list_to_filter = set(list_to_filter) - {'page', 'page_size'}
+
+            dict_to_filter = validator.get_data(list_to_filter)
+
+            dict_to_filter.setdefault('order_by', '-created_at')
+
+            filter = UserNotificationFilter(dict_to_filter, queryset=query_set)
+
+            query_set = filter.qs
+
+            query_set = query_set.select_related()
+
             serializer = UserNotificationSerializerForFilter(query_set, many=True)
 
             paginated_data = paginate_data(request, serializer.data)
