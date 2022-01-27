@@ -927,6 +927,26 @@ class VaccineDoseAPI(AbstractView):
             dict_to_create_vaccine_dose = validator.get_data(list_to_create_vaccine_dose)
 
             vaccine_dose = VaccineDose(**dict_to_create_vaccine_dose)
+
+            # Update member/manager/staff.number_of_vaccine_doses
+
+            custom_user = vaccine_dose.custom_user
+
+            if hasattr(custom_user, 'member_x_custom_user'):
+                member = custom_user.member_x_custom_user
+                member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
+                member.save()
+
+            if hasattr(custom_user, 'manager_x_custom_user'):
+                manager = custom_user.manager_x_custom_user
+                manager.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
+                manager.save()
+            
+            if hasattr(custom_user, 'staff_x_custom_user'):
+                staff = custom_user.staff_x_custom_user
+                staff.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
+                staff.save()
+
             vaccine_dose.save()
 
             serializer = VaccineDoseSerializer(vaccine_dose, many=False)
@@ -1034,7 +1054,26 @@ class VaccineDoseAPI(AbstractView):
 
             vaccine_dose = validator.get_field('vaccine_dose')
 
+            custom_user = vaccine_dose.custom_user
+
             vaccine_dose.delete()
+
+            # Update member/manager/staff.number_of_vaccine_doses
+
+            if hasattr(custom_user, 'member_x_custom_user'):
+                member = custom_user.member_x_custom_user
+                member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
+                member.save()
+
+            if hasattr(custom_user, 'manager_x_custom_user'):
+                manager = custom_user.manager_x_custom_user
+                manager.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
+                manager.save()
+            
+            if hasattr(custom_user, 'staff_x_custom_user'):
+                staff = custom_user.staff_x_custom_user
+                staff.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
+                staff.save()
             
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
