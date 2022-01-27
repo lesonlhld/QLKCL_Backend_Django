@@ -369,7 +369,6 @@ class UserNotificationAPI (AbstractView):
                             {"field": "tag", "key": "role", "relation": "=", "value": str(get_role)}
                         ]
                     })
-                req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
 
             elif get_type == 1:
                 get_quarantine_ward = validator.is_validate_quarantine_ward()
@@ -400,7 +399,6 @@ class UserNotificationAPI (AbstractView):
                             {"field": "tag", "key": "role", "relation": "=", "value": str(get_role)}
                         ]
                     })
-                req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
 
             else:
                 list_user_code = validator.is_validate_user_list()
@@ -415,7 +413,9 @@ class UserNotificationAPI (AbstractView):
                 serializer = UserNotificationSerializer(user_notification, many=True)
 
                 payload.update({"included_external_user_ids": list_user_code})
-                req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
+
+            req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
+            print(json.dumps(payload))
             print(req.status_code, req.reason)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
