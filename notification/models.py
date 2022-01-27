@@ -48,3 +48,13 @@ class UserNotification(models.Model):
     )
 
     is_read = models.BooleanField(null=False, default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True, auto_now=False)
+
+    created_by = models.ForeignKey(
+        to=CustomUser,
+        on_delete=models.SET_NULL,
+        related_name='user_notification_x_created_by',
+        null=True,
+        blank=True,
+    )
