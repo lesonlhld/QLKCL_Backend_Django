@@ -2,7 +2,7 @@ import os
 import datetime, pytz
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Count
+from django.db.models import Count, Avg
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
@@ -16,7 +16,7 @@ from .serializers import (
 from .filters.member import MemberFilter
 from .filters.user import UserFilter
 from .filters.staff import StaffFilter
-from form.models import Test
+from form.models import Test, VaccineDose
 from form.filters.test import TestFilter
 from role.models import Role
 from quarantine_ward.models import QuarantineRoom
@@ -56,6 +56,13 @@ class MemberAPI(AbstractView):
             return 0
         return room.member_x_quarantine_room.all().filter(label=label).count()
 
+    def count_average_number_of_vaccine_doses(self, room):
+        return_value = room.member_x_quarantine_room.all().aggregate(Avg('number_of_vaccine_doses'))['number_of_vaccine_doses__avg']
+        if not return_value:
+            # Nobody in room
+            return_value = 1
+        return return_value
+
     def count_members_same_gender(self, room, gender):
         if not gender:
             return 0
@@ -69,6 +76,7 @@ class MemberAPI(AbstractView):
             quarantine_ward
             gender
             label
+            number_of_vaccine_doses
             old_quarantine_room (can None)
         ]
         default, all field is not None
@@ -94,9 +102,10 @@ class MemberAPI(AbstractView):
             return_dict['warning'] = 'All rooms in this quarantine ward are full'
             return return_dict
 
-        tieu_chi = ['max_day_quarantined', 'label', 'gender', 'less_slot']
+        tieu_chi = ['max_day_quarantined', 'label', 'vaccine', 'gender', 'less_slot']
         # max_day_quarantined: All members in this room must have quarantined at most 1 day ago.
         # label: This room must have at most number of members that is same label as this member.
+        # vaccine: This room must have minimum average abs(this.number_of_vaccine_doses - another_member.number_of_vaccine_doses)
         # gender: This room must have at most number of members that is same gender as this member.
         # less_slot: This room must have at less number of available slot.
 
@@ -116,6 +125,12 @@ class MemberAPI(AbstractView):
         remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_label_in_room]
         rooms = remain_rooms
         
+        # tieu_chi vaccine
+        difference_each_room = [abs(self.count_average_number_of_vaccine_doses(room) - input_dict['number_of_vaccine_doses']) for room in rooms]
+        min_difference_each_room = min(difference_each_room)
+        remain_rooms = [rooms[i] for i in range(len(rooms)) if difference_each_room[i] == min_difference_each_room]
+        rooms = remain_rooms
+
         # tieu_chi gender
         count_each_room = [self.count_members_same_gender(room, input_dict['gender']) for room in rooms]
         max_same_gender_in_room = max(count_each_room)
@@ -269,6 +284,7 @@ class MemberAPI(AbstractView):
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
+            - number_of_vaccine_doses: int
             - care_staff_code: String
         """
 
@@ -281,7 +297,7 @@ class MemberAPI(AbstractView):
             'quarantine_ward_id', 'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         require_fields = [
@@ -304,10 +320,13 @@ class MemberAPI(AbstractView):
             'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -322,7 +341,7 @@ class MemberAPI(AbstractView):
                 'phone_number', 'email', 'birthday', 'gender',
                 'passport_number', 'health_insurance_number', 'identity_number',
                 'label', 'quarantined_at', 'positive_tested_before',
-                'background_disease',
+                'background_disease', 'number_of_vaccine_doses',
             ])
             validator.extra_validate_to_create_member()
 
@@ -375,6 +394,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
                 input_dict_for_get_suitable_room['gender'] = custom_user.gender
                 input_dict_for_get_suitable_room['label'] = member.label
+                input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = None
 
                 suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
@@ -384,9 +404,10 @@ class MemberAPI(AbstractView):
                     raise exceptions.ValidationException({'main': warning})
 
             member.quarantine_room = quarantine_room
+            member.number_of_vaccine_doses = 0
 
-            custom_user.save()
-            member.save()
+            # custom_user.save()
+            # member.save()
 
             custom_user_serializer = CustomUserSerializer(custom_user, many=False)
             member_serializer = MemberSerializer(member, many=False)
@@ -489,6 +510,7 @@ class MemberAPI(AbstractView):
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
+            - number_of_vaccine_doses: int
             - care_staff_code: String
         """
 
@@ -501,7 +523,7 @@ class MemberAPI(AbstractView):
             'quarantine_ward_id', 'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         custom_user_fields = [
@@ -517,7 +539,7 @@ class MemberAPI(AbstractView):
             'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         try:
@@ -537,7 +559,7 @@ class MemberAPI(AbstractView):
                 'email', 'birthday', 'gender', 'passport_number',
                 'health_insurance_number', 'identity_number',
                 'label', 'quarantined_at', 'positive_tested_before',
-                'background_disease',
+                'number_of_vaccine_doses', 'background_disease',
             ])
             validator.extra_validate_to_update_member()
 
@@ -662,6 +684,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
                 input_dict_for_get_suitable_room['gender'] = custom_user.gender
                 input_dict_for_get_suitable_room['label'] = member.label
+                input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = None
 
                 suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
@@ -700,6 +723,7 @@ class MemberAPI(AbstractView):
             custom_user.status = CustomUserStatus.AVAILABLE
             custom_user.created_by = request.user
             custom_user.updated_by = request.user
+            member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
             member.save()
             custom_user.save()
 
@@ -774,6 +798,7 @@ class MemberAPI(AbstractView):
                     input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
                     input_dict_for_get_suitable_room['gender'] = custom_user.gender
                     input_dict_for_get_suitable_room['label'] = member.label
+                    input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                     input_dict_for_get_suitable_room['old_quarantine_room'] = None
 
                     suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
@@ -798,6 +823,7 @@ class MemberAPI(AbstractView):
 
                 custom_user.status = CustomUserStatus.AVAILABLE
                 member.quarantined_at = timezone.now()
+                member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
                 custom_user.created_by = request.user
                 custom_user.updated_by = request.user
                 member.save()
@@ -1045,18 +1071,20 @@ class MemberAPI(AbstractView):
             + quarantine_ward_id: int
             + gender: String ['MALE', 'FEMALE']
             + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            + number_of_vaccine_doses: int
             - old_quarantine_room_id: int
         """
 
         
         accept_fields = [
             'quarantine_ward_id', 'gender',
-            'label', 'old_quarantine_room_id',
+            'label', 'number_of_vaccine_doses',
+            'old_quarantine_room_id',
         ]
 
         require_fields = [
             'quarantine_ward_id', 'gender',
-            'label',
+            'label', 'number_of_vaccine_doses',
         ]
 
         try:
@@ -1070,13 +1098,14 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
-            validator.is_valid_fields(['gender', 'label',])
+            validator.is_valid_fields(['gender', 'label', 'number_of_vaccine_doses'])
 
             validator.extra_validate_to_get_suitable_room()
 
             input_dict_for_get_suitable_room = validator.get_data([
                 'quarantine_ward', 'gender',
-                'label', 'old_quarantine_room',
+                'label', 'number_of_vaccine_doses',
+                'old_quarantine_room',
             ])
 
             return_value = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)

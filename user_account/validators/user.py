@@ -213,6 +213,17 @@ class UserValidator(validators.AbstractRequestValidate):
                 message={'abroad': messages.INVALID},
             )
 
+    def is_validate_number_of_vaccine_doses(self):
+        if hasattr(self, '_number_of_vaccine_doses'):
+            if self._number_of_vaccine_doses:
+                self._number_of_vaccine_doses = validators.PositiveIntegerValidator.valid(
+                    self._number_of_vaccine_doses,
+                    message={'number_of_vaccine_doses': messages.INVALID},
+                    message1={'number_of_vaccine_doses': messages.INVALID},
+                )
+            else:
+                self._number_of_vaccine_doses = 0
+
     def is_id_exist(self):
         if hasattr(self, '_id'):
             try:
@@ -708,6 +719,10 @@ class UserValidator(validators.AbstractRequestValidate):
             check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
             if check_room_result != messages.SUCCESS:
                 raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
+        if hasattr(self, '_number_of_vaccine_doses'):
+            if self._custom_user.status not in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING]:
+                if self._number_of_vaccine_doses != self._custom_user.member_x_custom_user.number_of_vaccine_doses:
+                    raise exceptions.NotFoundException({'number_of_vaccine_doses': messages.CANNOT_CHANGE})
         if hasattr(self, '_care_staff_code'):
             if self._care_staff_code:
                 if not self.is_care_staff_code_exist():
