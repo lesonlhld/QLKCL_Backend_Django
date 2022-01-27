@@ -416,7 +416,7 @@ class UserNotificationAPI (AbstractView):
 
                 payload.update({"included_external_user_ids": list_user_code})
                 req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
-
+            print(req.status_code, req.reason)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
