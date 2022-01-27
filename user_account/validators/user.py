@@ -215,11 +215,14 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def is_validate_number_of_vaccine_doses(self):
         if hasattr(self, '_number_of_vaccine_doses'):
-            self._number_of_vaccine_doses = validators.PositiveIntegerValidator.valid(
-                self._number_of_vaccine_doses,
-                message={'number_of_vaccine_doses': messages.INVALID},
-                message1={'number_of_vaccine_doses': messages.INVALID},
-            )
+            if self._number_of_vaccine_doses:
+                self._number_of_vaccine_doses = validators.PositiveIntegerValidator.valid(
+                    self._number_of_vaccine_doses,
+                    message={'number_of_vaccine_doses': messages.INVALID},
+                    message1={'number_of_vaccine_doses': messages.INVALID},
+                )
+            else:
+                self._number_of_vaccine_doses = 0
 
     def is_id_exist(self):
         if hasattr(self, '_id'):

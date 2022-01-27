@@ -16,7 +16,7 @@ from .serializers import (
 from .filters.member import MemberFilter
 from .filters.user import UserFilter
 from .filters.staff import StaffFilter
-from form.models import Test
+from form.models import Test, VaccineDose
 from form.filters.test import TestFilter
 from role.models import Role
 from quarantine_ward.models import QuarantineRoom
@@ -284,6 +284,7 @@ class MemberAPI(AbstractView):
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
+            - number_of_vaccine_doses: int
             - care_staff_code: String
         """
 
@@ -296,7 +297,7 @@ class MemberAPI(AbstractView):
             'quarantine_ward_id', 'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         require_fields = [
@@ -319,7 +320,7 @@ class MemberAPI(AbstractView):
             'quarantine_room_id',
             'label', 'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'care_staff_code',
+            'number_of_vaccine_doses', 'care_staff_code',
         ]
 
         try:
@@ -340,7 +341,7 @@ class MemberAPI(AbstractView):
                 'phone_number', 'email', 'birthday', 'gender',
                 'passport_number', 'health_insurance_number', 'identity_number',
                 'label', 'quarantined_at', 'positive_tested_before',
-                'background_disease',
+                'background_disease', 'number_of_vaccine_doses',
             ])
             validator.extra_validate_to_create_member()
 
@@ -393,6 +394,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
                 input_dict_for_get_suitable_room['gender'] = custom_user.gender
                 input_dict_for_get_suitable_room['label'] = member.label
+                input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = None
 
                 suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
@@ -402,9 +404,10 @@ class MemberAPI(AbstractView):
                     raise exceptions.ValidationException({'main': warning})
 
             member.quarantine_room = quarantine_room
+            member.number_of_vaccine_doses = 0
 
-            custom_user.save()
-            member.save()
+            # custom_user.save()
+            # member.save()
 
             custom_user_serializer = CustomUserSerializer(custom_user, many=False)
             member_serializer = MemberSerializer(member, many=False)
