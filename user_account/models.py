@@ -249,6 +249,8 @@ class Member(models.Model):
 
     background_disease_note = models.TextField(null=True, blank=True)
 
+    number_of_vaccine_doses = models.DecimalField(max_digits=2, decimal_places=0, default=0)
+
     quarantine_room = models.ForeignKey(
         to='quarantine_ward.QuarantineRoom',
         on_delete=models.SET_NULL,
@@ -303,6 +305,8 @@ class Manager(models.Model):
 
     positive_test_now = models.BooleanField(null=True, blank=True)
 
+    number_of_vaccine_doses = models.DecimalField(max_digits=2, decimal_places=0, default=0)
+
 class Staff(models.Model):
 
     custom_user = models.OneToOneField(
@@ -327,5 +331,7 @@ class Staff(models.Model):
     health_note = models.TextField(null=True, blank=True)
 
     positive_test_now = models.BooleanField(null=True, blank=True)
+
+    number_of_vaccine_doses = models.DecimalField(max_digits=2, decimal_places=0, default=0)
 
     care_area = models.TextField(null=True, blank=True)
