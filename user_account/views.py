@@ -406,8 +406,8 @@ class MemberAPI(AbstractView):
             member.quarantine_room = quarantine_room
             member.number_of_vaccine_doses = 0
 
-            # custom_user.save()
-            # member.save()
+            custom_user.save()
+            member.save()
 
             custom_user_serializer = CustomUserSerializer(custom_user, many=False)
             member_serializer = MemberSerializer(member, many=False)
