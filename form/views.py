@@ -927,6 +927,7 @@ class VaccineDoseAPI(AbstractView):
             dict_to_create_vaccine_dose = validator.get_data(list_to_create_vaccine_dose)
 
             vaccine_dose = VaccineDose(**dict_to_create_vaccine_dose)
+            vaccine_dose.save()
 
             # Update member/manager/staff.number_of_vaccine_doses
 
@@ -946,8 +947,6 @@ class VaccineDoseAPI(AbstractView):
                 staff = custom_user.staff_x_custom_user
                 staff.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
                 staff.save()
-
-            vaccine_dose.save()
 
             serializer = VaccineDoseSerializer(vaccine_dose, many=False)
             
