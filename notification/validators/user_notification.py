@@ -67,15 +67,16 @@ class UserNotificationValidator(validators.AbstractRequestValidate):
     def is_validate_user_list(self):
         user_list = split_input_list(self._users)
         user_code_list = []
-        for user_id in user_list:
+        for user_code in user_list:
             try:
                 user = validators.ModelInstanceExistenceValidator.valid(
                     model_cls=CustomUser,
-                    query_expr=Q(id=user_id),
+                    query_expr=Q(code=user_code),
                 )
                 user_code_list += [user.code]
             except Exception as exception:
-                raise exceptions.NotFoundException({f'User {user_id}': messages.NOT_EXIST})
+                raise exceptions.NotFoundException({f'User {user_code}': messages.NOT_EXIST})
+        return user_code_list
     
     def is_validate_created_at_max(self):
         if hasattr(self, '_created_at_max'):
