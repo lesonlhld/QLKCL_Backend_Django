@@ -40,18 +40,17 @@ class NotificationAPI (AbstractView):
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
-
             for key in receive_fields:
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
-            validator = UserNotificationValidator(**accepted_fields)
+            validator = NotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            user_notification = validator.is_user_notification_exist()
+            notification = validator.get_field('id')
 
-            serializer = NotificationSerializer(user_notification, many=False)
+            serializer = NotificationSerializer(notification, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -286,9 +285,9 @@ class UserNotificationAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            notification = validator.get_field('id')
+            user_notification = validator.is_user_notification_exist()
 
-            serializer = NotificationSerializer(notification, many=False)
+            serializer = UserNotificationSerializer(user_notification, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
@@ -356,7 +355,6 @@ class UserNotificationAPI (AbstractView):
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
                 list_user_notification = []
                 for user_item in all_users:
-                    validator.is_user_notification_exist(user_item)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
                         user=user_item,
@@ -374,6 +372,7 @@ class UserNotificationAPI (AbstractView):
                     })
 
             elif get_type == 1:
+                validator.is_missing_fields(['quarantine_ward'])
                 get_quarantine_ward = validator.is_validate_quarantine_ward()
                 all_users = CustomUser.objects.filter(
                     quarantine_ward=get_quarantine_ward,
@@ -382,7 +381,6 @@ class UserNotificationAPI (AbstractView):
 
                 list_user_notification = []
                 for user_item in all_users:
-                    validator.is_user_notification_exist(user_item)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
                         user=user_item,
@@ -393,24 +391,24 @@ class UserNotificationAPI (AbstractView):
                 if get_role == 0:
                     payload.update({
                         "filters": [
-                            {"field": "tag", "key": "quarantine_ward", "relation": "=", "value": str(get_quarantine_ward.id)}
+                            {"field": "tag", "key": "quarantine_ward_id", "relation": "=", "value": str(get_quarantine_ward.id)}
                         ]
                     })
                 else:
                     payload.update({
                         "filters": [
-                            {"field": "tag", "key": "quarantine_ward", "relation": "=", "value": str(get_quarantine_ward.id)},
+                            {"field": "tag", "key": "quarantine_ward_id", "relation": "=", "value": str(get_quarantine_ward.id)},
                             {"operator": "AND"},
                             {"field": "tag", "key": "role", "relation": "=", "value": str(get_role)}
                         ]
                     })
 
             else:
+                validator.is_missing_fields(['users'])
                 list_user_code = validator.is_validate_user_list()
                 all_users = CustomUser.objects.filter(code__in=list_user_code)
                 list_user_notification = []
                 for user_item in all_users:
-                    validator.is_user_notification_exist(user_item)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
                         user=user_item,
@@ -419,7 +417,12 @@ class UserNotificationAPI (AbstractView):
                 user_notification = UserNotification.objects.bulk_create(list_user_notification)
                 serializer = UserNotificationSerializer(user_notification, many=True)
 
-                payload.update({"included_external_user_ids": list_user_code})
+                payload.update(
+                    {
+                        "include_external_user_ids": list_user_code,
+                        "channel_for_external_user_ids": "push",
+                    }
+                )
 
             req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
             
