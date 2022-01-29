@@ -998,6 +998,15 @@ class MemberAPI(AbstractView):
 
             dict_to_filter_user = validator.get_data(list_to_filter_user)
 
+            # Check ward of sender
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                if hasattr(validator, '_quarantine_ward'):
+                    # Sender want filter with ward, building, floor or room
+                    if validator.get_field('quarantine_ward') != request.user.quarantine_ward:
+                        raise exceptions.AuthenticationException({'quarantine_ward_id': messages.NO_PERMISSION})
+                else:
+                    dict_to_filter_user['quarantine_ward_id'] = request.user.quarantine_ward.id
+
             dict_to_filter_user.setdefault('order_by', '-created_at')
 
             filter = MemberFilter(dict_to_filter_user, queryset=query_set)
@@ -1646,9 +1655,11 @@ class HomeAPI(AbstractView):
         """
 
         try:
-
-            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
+            sender_role_name = request.user.role.name
+            if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
                 raise exceptions.AuthenticationException()
+
+            sender_quarantine_ward_id = request.user.quarantine_ward.id
 
             users_query_set = CustomUser.objects.all()
             tests_query_set = Test.objects.all()
@@ -1660,6 +1671,9 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.WAITING,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_waiting_users['quarantine_ward_id'] = sender_quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_waiting_users, queryset=users_query_set)
 
@@ -1673,6 +1687,9 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_suspected_users['quarantine_ward_id'] = sender_quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_suspected_users, queryset=users_query_set)
 
@@ -1689,6 +1706,9 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_need_test_users['quarantine_ward_id'] = sender_quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_need_test_users, queryset=users_query_set)
 
@@ -1709,6 +1729,9 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_can_finish_users['quarantine_ward_id'] = sender_quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
 
@@ -1742,6 +1765,9 @@ class HomeAPI(AbstractView):
                     'quarantined_at_min': start_of_day,
                 }
 
+                if sender_role_name in ['MANAGER', 'STAFF']:
+                    dict_to_filter_in_members['quarantine_ward_id'] = sender_quarantine_ward_id
+
                 filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
 
                 dict_of_in_members[f'{day}'] = filter.qs.count()
@@ -1758,13 +1784,16 @@ class HomeAPI(AbstractView):
                 end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
                 end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
 
-                dict_to_filter_in_members = {
+                dict_to_filter_out_members = {
                     'role_name': 'MEMBER',
                     'quarantined_finished_at_max': end_of_day,
                     'quarantined_finished_at_min': start_of_day,
                 }
 
-                filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
+                if sender_role_name in ['MANAGER', 'STAFF']:
+                    dict_to_filter_out_members['quarantine_ward_id'] = sender_quarantine_ward_id
+
+                filter = MemberFilter(dict_to_filter_out_members, queryset=users_query_set)
 
                 dict_of_out_members[f'{day}'] = filter.qs.count()
 

@@ -75,7 +75,7 @@ class MemberFilter(django_filters.FilterSet):
     )
 
     quarantine_ward_id = django_filters.CharFilter(
-        field_name='member_x_custom_user__quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id',
+        field_name='quarantine_ward__id',
         lookup_expr='iexact',
     )
 
