@@ -703,7 +703,8 @@ class UserValidator(validators.AbstractRequestValidate):
                 if not self.is_quarantine_ward_id_exist():
                     raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
                 if self._custom_user.status == CustomUserStatus.AVAILABLE:
-                    raise exceptions.ValidationException({'quarantine_ward_id': messages.CANNOT_CHANGE})
+                    if self._custom_user.quarantine_ward != self._quarantine_ward:
+                        raise exceptions.ValidationException({'quarantine_ward_id': messages.CANNOT_CHANGE})
             else:
                 raise exceptions.ValidationException({'quarantine_ward_id': messages.EMPTY})
         if hasattr(self, '_quarantine_room_id'):
