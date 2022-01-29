@@ -58,6 +58,7 @@ class ResetPasswordAPI(AbstractView):
             reset_password_for_user = ResetPassword.objects.create(
                 user=user,
                 otp=generateOTP(4),
+                created_by=request.user,
             )
             
             subject = 'Mã đặt lại mật khẩu'
@@ -119,6 +120,7 @@ class ResetPasswordAPI(AbstractView):
                 user=user,
                 otp=generateOTP(4),
                 type=ResetPasswordType.SYSTEM_HANDLE,
+                created_by=request.user
             )
             serializer = ResetPasswordSerializer(new_reset_password, many=False)
             

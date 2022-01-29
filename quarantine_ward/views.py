@@ -133,6 +133,7 @@ class QuarantineWardAPI (AbstractView):
             list_to_create = accepted_fields.keys()
             dict_to_create = validator.get_data(list_to_create)
             quarantine_ward = QuarantineWard(**dict_to_create)
+            quarantine_ward.created_by = user
             quarantine_ward.save()
 
             serializer = QuarantineWardSerializer(quarantine_ward, many=False)
@@ -208,6 +209,7 @@ class QuarantineWardAPI (AbstractView):
                 quarantine_ward.ward = validator.get_field('ward')
             if validator.has_field('main_manager'):
                 quarantine_ward.main_manager = validator.get_field('main_manager')
+            quarantine_ward.updated_by = user
             quarantine_ward.save()
             serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
