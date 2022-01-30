@@ -15,7 +15,7 @@ import pytz
 from form.models import Test
 from form.serializers import TestSerializer
 from user_account.models import CustomUser, Member
-from utils.enums import CustomUserStatus
+from utils.enums import CustomUserStatus, MemberQuarantinedStatus
 
 # Create your views here.
 
@@ -124,9 +124,11 @@ class DebugAPI(AbstractView):
             # # print(time_2)
             # # print(time_3)
             # # print(timezone.now())
-            this_user = CustomUser.objects.filter(status=CustomUserStatus.REFUSED, member_x_custom_user__quarantine_room__isnull=False)
-            print(list(this_user))
-            print('haha')
+            # this_user = CustomUser.objects.filter(status=CustomUserStatus.REFUSED, member_x_custom_user__quarantine_room__isnull=False)
+            # print(list(this_user))
+            # members = Member.objects.filter(quarantined_status=MemberQuarantinedStatus.COMPLETED, quarantine_room__isnull=True)
+            # print('haha')
+            # print(list(members))
 
 
             return self.response_handler.handle(data="fSuccess")
