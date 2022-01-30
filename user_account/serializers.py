@@ -58,7 +58,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     quarantine_room = serializers.SerializerMethodField('get_quarantine_room')
     quarantine_floor = serializers.SerializerMethodField('get_quarantine_floor')
     quarantine_building = serializers.SerializerMethodField('get_quarantine_building')
-    quarantine_ward = serializers.SerializerMethodField('get_quarantine_ward')
+    quarantine_ward = BaseQuarantineWardSerializer(many=False)
 
     health_status = serializers.SerializerMethodField('get_health_status')
     positive_test_now = serializers.SerializerMethodField('get_positive_test_now')
@@ -87,12 +87,6 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     def get_quarantine_building(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_building:
             return BaseQuarantineBuildingSerializer(custom_user.member_x_custom_user.quarantine_building, many=False).data
-        else:
-            return None
-
-    def get_quarantine_ward(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_ward:
-            return BaseQuarantineWardSerializer(custom_user.member_x_custom_user.quarantine_ward, many=False).data
         else:
             return None
 

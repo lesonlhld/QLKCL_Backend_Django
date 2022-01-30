@@ -858,7 +858,6 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def extra_validate_to_filter_member(self):
         self._role_name = 'MEMBER'
-        self._quarantined_status = MemberQuarantinedStatus.QUARANTINING
         if not hasattr(self, '_status'):
             self._status = CustomUserStatus.AVAILABLE
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
