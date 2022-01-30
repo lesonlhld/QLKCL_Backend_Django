@@ -918,6 +918,7 @@ class MemberAPI(AbstractView):
 
             for custom_user in custom_users:
                 if hasattr(custom_user, 'member_x_custom_user'):
+                    custom_user.status = CustomUserStatus.LEAVE
                     custom_user.updated_by = request.user
                     member = custom_user.member_x_custom_user
                     member.quarantined_status = MemberQuarantinedStatus.COMPLETED

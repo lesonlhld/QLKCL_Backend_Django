@@ -711,7 +711,7 @@ class UserValidator(validators.AbstractRequestValidate):
             if self._custom_user.status == CustomUserStatus.AVAILABLE:
                 if not self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.EMPTY})
-            elif self._custom_user.status in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING]:
+            elif self._custom_user.status in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING, CustomUserStatus.LEAVE]:
                 if self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.MUST_EMPTY})
             if not self.is_quarantine_room_id_exist():
