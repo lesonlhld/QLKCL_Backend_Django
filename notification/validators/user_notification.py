@@ -20,6 +20,7 @@ class UserNotificationValidator(validators.AbstractRequestValidate):
             ),
             message=messages.USER_NOT_FOUND,
         )
+        return self._user
     
     def is_validate_notification(self):
         self._notification = validators.ModelInstanceExistenceValidator.valid(
@@ -31,16 +32,50 @@ class UserNotificationValidator(validators.AbstractRequestValidate):
         )
         return self._notification
 
-    def is_user_notification_exist(self, user):
+    def is_user_notification_exist(self):
         user_notification = validators.ModelInstanceExistenceValidator.valid(
             model_cls=UserNotification,
             query_expr=Q(
-                user=user,
-                notification=self._notification
+                user__id=self._user.id,
+                notification__id=self._notification.id,
             ),
             message=messages.USER_NOTIFICATION_NOT_FOUND,
         )
         return user_notification
+    
+    def is_user_notification_exist_with_args(self, user, notification):
+        if self._is_user_notification_exist_with_args(user, notification):
+            raise exceptions.InvalidArgumentException({f'UserNotification with user {user.id} and notification {notification.id}': messages.EXIST})
+
+    def _is_user_notification_exist_with_args(self, user, notification):
+        try:
+            user_notification = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=UserNotification,
+                query_expr=Q(
+                    user__id=user.id,
+                    notification__id=notification.id,
+                ),
+            )
+            return True
+        except Exception as exception:
+            return False
+
+    def is_user_notification_exist_with_args_list(self, user, list_notification):
+        user_notification_id_list = []
+        for notification in list_notification:
+            try:
+                user_notification = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=UserNotification,
+                    query_expr=Q(
+                        user__id=user.id,
+                        notification__id=notification.id,
+                    ),
+                )
+                user_notification_id_list += [user_notification.id]
+            except Exception as exception:
+                print(exception)
+                raise exceptions.NotFoundException({f'UserNotification with user {user.id} and notification {notification.id}': messages.NOT_EXIST})
+        return user_notification_id_list
     
     def is_validate_type(self):
         value = int(self._type)
@@ -77,6 +112,20 @@ class UserNotificationValidator(validators.AbstractRequestValidate):
             except Exception as exception:
                 raise exceptions.NotFoundException({f'User {user_code}': messages.NOT_EXIST})
         return user_code_list
+    
+    def is_validate_notification_list(self):
+        notification_id_list = split_input_list(self._notification_list)
+        notification_list = []
+        for id in notification_id_list:
+            try:
+                notification = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=Notification,
+                    query_expr=Q(id=id),
+                )
+                notification_list += [notification]
+            except Exception as exception:
+                raise exceptions.NotFoundException({f'Notification (id = {id})': messages.NOT_EXIST})
+        return notification_list
     
     def is_validate_created_at_max(self):
         if hasattr(self, '_created_at_max'):
