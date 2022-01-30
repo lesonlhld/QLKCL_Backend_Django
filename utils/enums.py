@@ -12,6 +12,7 @@ class CustomUserStatus(models.TextChoices):
     REFUSED = 'REFUSED'
     LOCKED = 'LOCKED'
     AVAILABLE = 'AVAILABLE'
+    LEAVE = 'LEAVE'
 
 class QuarantineWardType(models.TextChoices):
     CONCENTRATE = 'CONCENTRATE'
