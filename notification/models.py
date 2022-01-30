@@ -33,6 +33,9 @@ class Notification(models.Model):
 
 class UserNotification(models.Model):
 
+    class Meta:
+        unique_together = [['user', 'notification', ], ]
+        
     user = models.ForeignKey(
         to=CustomUser,
         on_delete=models.CASCADE,

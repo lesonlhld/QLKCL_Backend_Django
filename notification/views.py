@@ -3,9 +3,10 @@ import json
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action
-from rest_framework import permissions, exceptions
+from rest_framework import permissions
 from utils.views import AbstractView, paginate_data
 from utils.enums import RoleName
+from utils import exceptions
 from .models import Notification, UserNotification, CustomUser
 from .validators.notification import NotificationValidator
 from .validators.user_notification import UserNotificationValidator
@@ -284,7 +285,6 @@ class UserNotificationAPI (AbstractView):
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
-
             user_notification = validator.is_user_notification_exist()
 
             serializer = UserNotificationSerializer(user_notification, many=False)
@@ -355,6 +355,7 @@ class UserNotificationAPI (AbstractView):
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
                 list_user_notification = []
                 for user_item in all_users:
+                    validator.is_user_notification_exist_with_args(user_item, get_notification)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
                         user=user_item,
@@ -381,6 +382,7 @@ class UserNotificationAPI (AbstractView):
 
                 list_user_notification = []
                 for user_item in all_users:
+                    validator.is_user_notification_exist_with_args(user_item, get_notification)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
                         user=user_item,
@@ -409,6 +411,7 @@ class UserNotificationAPI (AbstractView):
                 all_users = CustomUser.objects.filter(code__in=list_user_code)
                 list_user_notification = []
                 for user_item in all_users:
+                    validator.is_user_notification_exist_with_args(user_item, get_notification)
                     list_user_notification += [UserNotification(
                         notification=get_notification,
                         user=user_item,
@@ -431,9 +434,9 @@ class UserNotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
-    @action(methods=['POST'], url_path='update', detail=False)
-    def update_user_notification(self, request):
-        """Update a UserNotification 
+    @action(methods=['POST'], url_path='change_status', detail=False)
+    def change_read_status_user_notification(self, request):
+        """Change is_read field in UserNotification 
 
         Args:
             + user (id)
@@ -479,15 +482,15 @@ class UserNotificationAPI (AbstractView):
 
         Args:
             + user (id)
-            - notification (id)
+            + notification_list (list of id seperated by comma)
         """
 
         accept_fields = [
-            'user', 'notification'
+            'user', 'notification_list'
         ]
 
         require_fields = [
-            'user',
+            'user', 'notification_list'
         ]
 
         try:
@@ -505,16 +508,12 @@ class UserNotificationAPI (AbstractView):
 
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
-            validator.is_valid_fields(accepted_fields)
-            if validator.has_field('notification'):
-                user_notification = validator.is_user_notification_exist()
-                user_notification.delete()
-                serializer = UserNotificationSerializer(user_notification, many=False)
-            else:
-                noti_user = validator.get_field('user')
-                list_user_notification = UserNotification.objects.filter(user=noti_user)
-                list_user_notification.delete()
-                serializer = UserNotificationSerializer(list_user_notification, many=True)
+            get_user = validator.is_validate_user()
+            list_notification = validator.is_validate_notification_list()
+            list_user_notification_id = validator.is_user_notification_exist_with_args_list(get_user, list_notification)
+            list_user_notification = UserNotification.objects.filter(id__in=list_user_notification_id)
+            list_user_notification.delete()
+            serializer = UserNotificationSerializer(list_user_notification, many=True)
 
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
@@ -530,7 +529,7 @@ class UserNotificationAPI (AbstractView):
             - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - page: int
             - page_size: int
-            + user (id)
+            - user (id)
         """
 
         accept_fields = [
@@ -539,6 +538,7 @@ class UserNotificationAPI (AbstractView):
         ]
 
         try:
+            user = request.user
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -548,10 +548,9 @@ class UserNotificationAPI (AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = UserNotificationValidator(**accepted_fields)
-            validator.is_valid_fields([
-                'created_at_max', 'created_at_min', 'user',
-            ])
-            user = validator.get_field('user')
+            validator.is_valid_fields(accepted_fields)
+            if validator.has_field('user'):
+                user = validator.get_field('user')
             query_set = UserNotification.objects.filter(user=user)
 
             list_to_filter = [key for key in accepted_fields.keys()]
