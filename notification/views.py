@@ -261,7 +261,7 @@ class UserNotificationAPI (AbstractView):
         """Get a User Notification
 
         Args:
-            + user (int): id
+            - user (int): id
             + notification (int): id
         """
 
@@ -270,10 +270,11 @@ class UserNotificationAPI (AbstractView):
         ]
 
         require_fields = [
-            'user', 'notification'
+            'notification'
         ]
 
         try:
+            user = request.user
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -281,6 +282,9 @@ class UserNotificationAPI (AbstractView):
             for key in receive_fields:
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
+
+            if 'user' not in accepted_fields:
+                accepted_fields['user'] = user.id
 
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
@@ -439,7 +443,7 @@ class UserNotificationAPI (AbstractView):
         """Change is_read field in UserNotification 
 
         Args:
-            + user (id)
+            - user (id)
             + notification (id)
         """
 
@@ -448,7 +452,7 @@ class UserNotificationAPI (AbstractView):
         ]
 
         require_fields = [
-            'user', 'notification'
+            'notification'
         ]
 
         try:
@@ -463,6 +467,9 @@ class UserNotificationAPI (AbstractView):
             for key in receive_fields:
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
+            
+            if 'user' not in accepted_fields:
+                accepted_fields['user'] = user.id
 
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
@@ -481,7 +488,7 @@ class UserNotificationAPI (AbstractView):
         """Delete a UserNotification
 
         Args:
-            + user (id)
+            - user (id)
             + notification_list (list of id seperated by comma)
         """
 
@@ -490,7 +497,7 @@ class UserNotificationAPI (AbstractView):
         ]
 
         require_fields = [
-            'user', 'notification_list'
+            'notification_list'
         ]
 
         try:
@@ -506,10 +513,13 @@ class UserNotificationAPI (AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
+            if 'user' not in accepted_fields:
+                accepted_fields['user'] = user.id
+
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
-            get_user = validator.is_validate_user()
             list_notification = validator.is_validate_notification_list()
+            get_user = validator.is_validate_user()
             list_user_notification_id = validator.is_user_notification_exist_with_args_list(get_user, list_notification)
             list_user_notification = UserNotification.objects.filter(id__in=list_user_notification_id)
             list_user_notification.delete()
