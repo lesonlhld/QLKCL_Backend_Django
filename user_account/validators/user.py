@@ -377,6 +377,18 @@ class UserValidator(validators.AbstractRequestValidate):
                     return False
             return True
 
+    def is_custom_user_code_exist(self):
+        if hasattr(self, '_custom_user_code'):
+            try:
+                self._custom_user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(code=self._custom_user_code),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
     def is_phone_number_exist(self):
         if hasattr(self, '_phone_number'):
             try:
@@ -909,3 +921,23 @@ class UserValidator(validators.AbstractRequestValidate):
             self._old_quarantine_room = self._quarantine_room
         else:
             self._old_quarantine_room = None
+
+    def extra_validate_to_change_quarantine_ward_and_room_of_available_member(self):
+        if hasattr(self, '_custom_user_code') and not self.is_custom_user_code_exist():
+            raise exceptions.NotFoundException({'main': messages.MEMBER_NOT_FOUND})
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_room_id') and self._quarantine_room_id:
+            if not self.is_quarantine_room_id_exist():
+                raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        else:
+            self._quarantine_room = None
+        if hasattr(self, '_care_staff_code') and self._care_staff_code:
+            if not self.is_care_staff_code_exist():
+                raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
+            if self._care_staff.role.name != 'STAFF':
+                raise exceptions.ValidationException({'care_staff_code': messages.ISNOTSTAFF})
+            if self._care_staff.status != CustomUserStatus.AVAILABLE:
+                raise exceptions.ValidationException({'care_staff_code': messages.NOT_AVAILABLE})
+        else:
+            self._care_staff = None

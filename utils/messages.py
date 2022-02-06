@@ -79,6 +79,7 @@ ISNOTMEMBER = 'This user is not member'
 ISNOTMANAGER = 'This user is not manager'
 ISNOTSTAFF = 'This user is not staff'
 ISNOTWAITING = 'This user is not waiting'
+ISNOTAVAILABLE = 'This user is not available'
 CANNOT_FINISH_QUARANTINE = 'This user cannot finish quarantine'
 
 NOT_IN_QUARANTINE_WARD_OF_MEMBER = r"""Not in the quarantine ward of this member"""
