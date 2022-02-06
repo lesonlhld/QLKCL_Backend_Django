@@ -87,7 +87,7 @@ class MemberAPI(AbstractView):
         return_dict['room'] = None
         return_dict['warning'] = None
 
-        if input_dict['old_quarantine_room']:
+        if input_dict['old_quarantine_room'] and input_dict['old_quarantine_room'].quarantine_floor.quarantine_building.quarantine_ward == input_dict['quarantine_ward']:
             return_dict['room'] = input_dict['old_quarantine_room']
             return_dict['warning'] = 'This room is current room of this member'
             return return_dict
@@ -151,10 +151,10 @@ class MemberAPI(AbstractView):
         # Check if this member can be set to this room
         if not hasattr(user, 'member_x_custom_user') or user.role.name != 'MEMBER':
             return messages.ISNOTMEMBER
-        if user.member_x_custom_user.quarantine_room == room:
-            return messages.SUCCESS
         if room.quarantine_floor.quarantine_building.quarantine_ward != user.quarantine_ward:
             return 'This room is not in the quarantine ward of this user'
+        if user.member_x_custom_user.quarantine_room == room:
+            return messages.SUCCESS
         if self.is_room_full(room):
             return 'This room is full'
         max_day_had_quarantined_in_room = int(os.environ.get('MAX_DAY_HAD_QUARANTINED_IN_ROOM', 1))
@@ -730,6 +730,7 @@ class MemberAPI(AbstractView):
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
             return self.exception_handler.handle(exception)
+    
     @csrf_exempt
     @action(methods=['POST'], url_path='accept_many', detail=False)
     def accept_many_members(self, request):
@@ -1140,6 +1141,110 @@ class MemberAPI(AbstractView):
                 return_dict['quarantine_ward'] = serializer.data
 
             return self.response_handler.handle(data=return_dict)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='change_quarantine_ward_and_room', detail=False)
+    def change_quarantine_ward_and_room(self, request):
+        """Change quarantine_ward and room of an available member, can change care staff too
+
+        Args:
+            + custom_user_code: String
+            + quarantine_ward_id: int
+            - quarantine_room_id: int
+            - care_staff_code: String
+        """
+
+        accept_fields = [
+            'custom_user_code', 'quarantine_ward_id',
+            'quarantine_room_id', 'care_staff_code',
+        ]
+
+        require_fields = [
+            'custom_user_code', 'quarantine_ward_id',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+
+            validator.extra_validate_to_change_quarantine_ward_and_room_of_available_member()
+
+            # check member
+            custom_user = validator.get_field('custom_user')
+            quarantine_ward = validator.get_field('quarantine_ward')
+            quarantine_room = validator.get_field('quarantine_room')
+            care_staff = validator.get_field('care_staff')
+
+            if custom_user.role.name != 'MEMBER' or not hasattr(custom_user, 'member_x_custom_user'):
+                raise exceptions.ValidationException({'main': messages.ISNOTMEMBER})
+            if custom_user.status != CustomUserStatus.AVAILABLE:
+                raise exceptions.ValidationException({'main': messages.ISNOTAVAILABLE})
+            
+            member = custom_user.member_x_custom_user
+
+            custom_user.quarantine_ward = quarantine_ward
+
+            # room
+            if not quarantine_room:
+                # auto set room
+                input_dict_for_get_suitable_room = dict()
+                input_dict_for_get_suitable_room['quarantine_ward'] = quarantine_ward
+                input_dict_for_get_suitable_room['gender'] = custom_user.gender
+                input_dict_for_get_suitable_room['label'] = member.label
+                input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
+                input_dict_for_get_suitable_room['old_quarantine_room'] = member.quarantine_room
+
+                suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
+                quarantine_room = suitable_room_dict['room']
+                warning = suitable_room_dict['warning']
+                if not quarantine_room:
+                    raise exceptions.ValidationException({'main': warning})
+                else:
+                    member.quarantine_room = quarantine_room
+            else:
+                # check room received
+                result = self.check_room_for_member(custom_user, quarantine_room)
+                if result == messages.SUCCESS:
+                    member.quarantine_room = quarantine_room
+                else:
+                    raise exceptions.ValidationException({'quarantine_room_id': result})
+
+            # care_staff
+            if not care_staff:
+                if not member.care_staff or member.care_staff.quarantine_ward != custom_user.quarantine_ward:
+                    # auto set care_staff
+                    input_dict_for_get_care_staff = dict()
+                    input_dict_for_get_care_staff['quarantine_floor'] = member.quarantine_room.quarantine_floor
+
+                    suitable_care_staff_dict = self.get_suitable_care_staff_for_member(input_dict=input_dict_for_get_care_staff)
+                    care_staff = suitable_care_staff_dict['care_staff']
+
+                    member.care_staff = care_staff
+
+            else:
+                # check care_staff received
+                if care_staff.quarantine_ward != custom_user.quarantine_ward:
+                    raise exceptions.ValidationException({'care_staff_code': messages.NOT_IN_QUARANTINE_WARD_OF_MEMBER})
+                member.care_staff = care_staff
+            
+            custom_user.updated_by = request.user
+            member.save()
+            custom_user.save()
+
+            return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
