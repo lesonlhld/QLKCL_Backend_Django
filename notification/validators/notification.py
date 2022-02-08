@@ -6,7 +6,8 @@ from utils.tools import split_input_list
 class NotificationValidator(validators.AbstractRequestValidate):
 
     def is_valid_fields(self, keys: list):
-        ignorable_fields = {'title', 'description', 'url'}
+        ignorable_fields = {'title', 'description', 'url', 'page', 'page_size',
+                            'created_at_max', 'created_at_min'}
 
         set_of_keys = set(keys) - ignorable_fields
 
