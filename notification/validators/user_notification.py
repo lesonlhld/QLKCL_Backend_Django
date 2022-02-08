@@ -8,7 +8,9 @@ class UserNotificationValidator(validators.AbstractRequestValidate):
 
     def is_valid_fields(self, keys: list):
 
-        set_of_keys = set(keys)
+        ignorabled_fields = {'page', 'page_size'}
+        
+        set_of_keys = set(keys) - ignorabled_fields
 
         return super().is_valid_fields(set_of_keys)
     

@@ -7,7 +7,7 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
 
     def is_valid_fields(self, keys: list):
         ignorable_fields = {'address', 'page', 'page_size', 'search', 'full_name',
-                            'created_at_max', 'created_at_min', 'country', 'city', 'district'}
+                            'country', 'city', 'district'}
 
         set_of_keys = set(keys) - ignorable_fields
 
