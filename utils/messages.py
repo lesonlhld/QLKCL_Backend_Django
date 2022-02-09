@@ -75,11 +75,12 @@ NEGATIVE_PAGE = 'Page must be positive integer'
 NEGATIVE_PAGE_SIZE = 'Page size must be positive integer'
 OVER_PAGE_SIZE_MAX = 'Page size must not be greater than '
 
-ISNOTMEMBER = 'This user is not member'
-ISNOTMANAGER = 'This user is not manager'
-ISNOTSTAFF = 'This user is not staff'
+ISNOTMEMBER = 'This user is not a member'
+ISNOTMANAGER = 'This user is not a manager'
+ISNOTSTAFF = 'This user is not a staff'
 ISNOTWAITING = 'This user is not waiting'
 ISNOTAVAILABLE = 'This user is not available'
+ISNOTLEAVE = 'This user is not leave'
 CANNOT_FINISH_QUARANTINE = 'This user cannot finish quarantine'
 
 NOT_IN_QUARANTINE_WARD_OF_MEMBER = r"""Not in the quarantine ward of this member"""

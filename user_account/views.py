@@ -1248,6 +1248,62 @@ class MemberAPI(AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
+    @csrf_exempt
+    @action(methods=['POST'], url_path='requarantine', detail=False)
+    def requarantine(self, request):
+        """Requarantine a 'LEAVE' member. This member will be added to waiting member list
+
+        Args:
+            + code: String
+        """
+
+        
+        accept_fields = [
+            'code'
+        ]
+
+        require_fields = [
+            'code'
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+
+            validator.extra_validate_to_requarantine()
+
+            custom_user = validator.get_field('custom_user')
+            member = custom_user.member_x_custom_user
+
+            # requarantine
+            custom_user.status = CustomUserStatus.WAITING
+            member.quarantined_at = None
+            member.quarantined_finished_at = None
+            member.quarantined_status = MemberQuarantinedStatus.REQUARANTINING
+            member.positive_test_now = None
+            member.care_staff_id = None
+            
+            # custom_user.save()
+            # member.save()
+
+            response_data = dict()
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            response_data['custom_user'] = custom_user_serializer.data
+            member_serializer = MemberSerializer(member, many=False)
+            response_data['member'] = member_serializer.data
+
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
 class ManagerAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]

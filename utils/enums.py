@@ -41,6 +41,7 @@ class MemberQuarantinedStatus(models.TextChoices):
     COMPLETED = 'COMPLETED'
     QUARANTINING = 'QUARANTINING'
     REQUARANTINING = 'REQUARANTINING'
+    HOSPITALIZE = 'HOSPITALIZE'
     MOVED = 'MOVED'
 
 class HealthStatus(models.TextChoices):
