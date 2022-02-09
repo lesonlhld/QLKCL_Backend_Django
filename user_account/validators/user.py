@@ -744,7 +744,7 @@ class UserValidator(validators.AbstractRequestValidate):
                     raise exceptions.ValidationException({'care_staff_code': messages.ISNOTSTAFF})
                 if self._care_staff.status != CustomUserStatus.AVAILABLE:
                     raise exceptions.ValidationException({'care_staff_code': messages.NOT_AVAILABLE})
-                if self._care_staff.quarantine_ward != self._custom_user.quarantine_ward:
+                if self._care_staff.quarantine_ward != (self._quarantine_ward if hasattr(self, '_quarantine_ward') else self._custom_user.quarantine_ward):
                     raise exceptions.ValidationException({'care_staff_code': messages.NOT_IN_QUARANTINE_WARD_OF_MEMBER})
             else:
                 self._care_staff = None
@@ -941,3 +941,12 @@ class UserValidator(validators.AbstractRequestValidate):
                 raise exceptions.ValidationException({'care_staff_code': messages.NOT_AVAILABLE})
         else:
             self._care_staff = None
+
+    def extra_validate_to_requarantine(self):
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
+        if hasattr(self, '_custom_user') and self._custom_user:
+            if self._custom_user.role.name != 'MEMBER' or not hasattr(self._custom_user, 'member_x_custom_user'):
+                raise exceptions.ValidationException({'code': messages.ISNOTMEMBER})
+            if self._custom_user.status != 'LEAVE':
+                raise exceptions.ValidationException({'code': messages.ISNOTLEAVE})
