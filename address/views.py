@@ -332,6 +332,8 @@ class CityAPI(AbstractView):
 
             dict_to_filter_city = validator.get_data(list_to_filter_city)
 
+            dict_to_filter_city.setdefault('order_by', 'name')
+
             filter = CityFilter(dict_to_filter_city, queryset=query_set)
 
             query_set = filter.qs
@@ -381,6 +383,8 @@ class DistrictAPI(AbstractView):
 
             dict_to_filter_district = validator.get_data(list_to_filter_district)
 
+            dict_to_filter_district.setdefault('order_by', 'name')
+
             filter = DistrictFilter(dict_to_filter_district, queryset=query_set)
 
             query_set = filter.qs
@@ -429,6 +433,8 @@ class WardAPI(AbstractView):
             list_to_filter_ward = [key for key in accepted_fields.keys()]
 
             dict_to_filter_ward = validator.get_data(list_to_filter_ward)
+
+            dict_to_filter_ward.setdefault('order_by', 'name')
 
             filter = WardFilter(dict_to_filter_ward, queryset=query_set)
 
