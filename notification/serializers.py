@@ -39,3 +39,20 @@ class UserNotificationSerializerForFilter(serializers.ModelSerializer):
     class Meta:
         model = UserNotification
         fields = ['notification', 'is_read']
+
+class NotificationFullSerializer(serializers.ModelSerializer):
+
+    created_by = BaseCustomUserSerializer(many=False)
+    
+    class Meta:
+        model = Notification
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data =  super().to_representation(instance)
+        
+        user_ids = UserNotification.objects.filter(notification__id=data['id']).values_list('user', flat=True)
+        list_user = CustomUser.objects.filter(id__in=user_ids)
+        data['receivers'] = BaseCustomUserSerializer(list_user, many=True).data
+
+        return data
