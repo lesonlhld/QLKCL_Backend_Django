@@ -9,6 +9,12 @@ class CityFilter(django_filters.FilterSet):
         lookup_expr='iexact',
     )
 
+    order_by = django_filters.OrderingFilter(
+        fields=(
+            ('name', 'name'),
+        ),
+    )
+
     search = django_filters.CharFilter(method='query_search')
 
     def query_search(self, queryset, name, value):
