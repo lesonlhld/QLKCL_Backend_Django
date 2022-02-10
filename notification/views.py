@@ -1,3 +1,4 @@
+import re
 import requests
 import json
 from django.conf import settings
@@ -10,7 +11,7 @@ from utils import exceptions
 from .models import Notification, UserNotification, CustomUser
 from .validators.notification import NotificationValidator
 from .validators.user_notification import UserNotificationValidator
-from .serializers import NotificationSerializer, UserNotificationSerializer, UserNotificationSerializerForFilter
+from .serializers import NotificationSerializer, UserNotificationSerializer, UserNotificationSerializerForFilter, NotificationFullSerializer
 from .filters.notification import NotificationFilter
 from .filters.user_notification import UserNotificationFilter
 
@@ -102,6 +103,173 @@ class NotificationAPI (AbstractView):
 
             serializer = NotificationSerializer(notification, many=False)
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+    
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create_all', detail=False)
+    def create_notification_and_related(self, request):
+        """Create a Notification and its related (UserNotification and notifications on user's device)
+
+        Args:
+            + title (str)
+            + description (str)
+            - image (str)
+            - url (str)
+            - type (str)
+            + receiver_type (int): enum
+                - 0: All user
+                - 1: All user with QuarantineWard id
+                - 2: External Users
+            + quarantine_ward (id): required if type = 1
+            + users (str of id): list id seperated by comma, required if type = 2
+            + role (id)
+        """
+
+        accept_fields_for_notification = [
+            'title', 'description', 'image', 'url', 'type',
+        ]
+
+        require_fields_for_notification = [
+            'title', 'description',
+        ]
+
+        accept_fields_for_user_notification = [
+            'receiver_type', 'quarantine_ward', 'users', 'role',
+        ]
+
+        require_fields_for_user_notification = [
+            'type', 'role',
+        ]
+
+        header = {
+            "Content-Type": "application/json; charset=utf-8",
+            "Authorization": "Bearer " + settings.ONE_SIGNAL_REST_API_KEY,
+        }
+
+        payload = {
+            "app_id": settings.ONE_SIGNAL_APP_ID,
+            "headings": "",
+            "contents": "",
+        }
+
+        try:
+            user = request.user
+            if user.role.name != RoleName.ADMINISTRATOR:
+                raise exceptions.AuthenticationException()
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields_for_notification = dict()
+            accepted_fields_for_user_notification = dict()
+
+            for key in receive_fields:
+                if key in accept_fields_for_notification:
+                    accepted_fields_for_notification[key] = receive_fields[key]
+                elif key in accept_fields_for_user_notification:
+                    accepted_fields_for_user_notification[key] = receive_fields[key]
+
+            validator = NotificationValidator(**accepted_fields_for_notification)
+            
+            validator.is_missing_fields(require_fields_for_notification)
+            validator.is_valid_fields(accepted_fields_for_notification)
+            list_to_create = accepted_fields_for_notification.keys()
+            dict_to_create = validator.get_data(list_to_create)
+            notification = Notification(**dict_to_create)
+            notification.created_by = request.user
+            notification.save()
+            
+            if 'receiver_type' in accepted_fields_for_user_notification:
+                accepted_fields_for_user_notification['type'] = accepted_fields_for_user_notification.pop('receiver_type')
+            validator = UserNotificationValidator(**accepted_fields_for_user_notification)
+            
+            validator.is_missing_fields(require_fields_for_user_notification)
+            get_notification = notification
+            get_type = validator.is_validate_type()
+            get_role = validator.is_validate_role()
+
+            payload["headings"] = {"en": get_notification.title}
+            payload["contents"] = {"en": get_notification.description}
+
+            if get_type == 0:
+                all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
+                list_user_notification = []
+                for user_item in all_users:
+                    validator.is_user_notification_exist_with_args(user_item, get_notification)
+                    list_user_notification += [UserNotification(
+                        notification=get_notification,
+                        user=user_item,
+                        created_by=user,
+                    )]
+                user_notification = UserNotification.objects.bulk_create(list_user_notification)
+
+                if get_role == 0:
+                    payload.update({"included_segments": ["Subscribed Users"]})
+                else:
+                    payload.update({
+                        "filters": [
+                            {"field": "tag", "key": "role", "relation": "=", "value": str(get_role)}
+                        ]
+                    })
+
+            elif get_type == 1:
+                validator.is_missing_fields(['quarantine_ward'])
+                get_quarantine_ward = validator.is_validate_quarantine_ward()
+                all_users = CustomUser.objects.filter(
+                    quarantine_ward=get_quarantine_ward,
+                    role__id=get_role
+                ) if get_role > 0 else CustomUser.objects.filter(quarantine_ward=get_quarantine_ward)
+
+                list_user_notification = []
+                for user_item in all_users:
+                    validator.is_user_notification_exist_with_args(user_item, get_notification)
+                    list_user_notification += [UserNotification(
+                        notification=get_notification,
+                        user=user_item,
+                        created_by=user,
+                    )]
+                user_notification = UserNotification.objects.bulk_create(list_user_notification)
+                if get_role == 0:
+                    payload.update({
+                        "filters": [
+                            {"field": "tag", "key": "quarantine_ward_id", "relation": "=", "value": str(get_quarantine_ward.id)}
+                        ]
+                    })
+                else:
+                    payload.update({
+                        "filters": [
+                            {"field": "tag", "key": "quarantine_ward_id", "relation": "=", "value": str(get_quarantine_ward.id)},
+                            {"operator": "AND"},
+                            {"field": "tag", "key": "role", "relation": "=", "value": str(get_role)}
+                        ]
+                    })
+
+            else:
+                validator.is_missing_fields(['users'])
+                list_user_code = validator.is_validate_user_list()
+                all_users = CustomUser.objects.filter(code__in=list_user_code)
+                list_user_notification = []
+                for user_item in all_users:
+                    validator.is_user_notification_exist_with_args(user_item, get_notification)
+                    list_user_notification += [UserNotification(
+                        notification=get_notification,
+                        user=user_item,
+                        created_by=user,
+                    )]
+                user_notification = UserNotification.objects.bulk_create(list_user_notification)
+
+                payload.update(
+                    {
+                        "include_external_user_ids": list_user_code,
+                        "channel_for_external_user_ids": "push",
+                    }
+                )
+
+            req = requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
+
+            serializer = NotificationFullSerializer(notification, many=False)
+            return self.response_handler.handle(data=serializer.data)
+
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
@@ -457,8 +625,6 @@ class UserNotificationAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
