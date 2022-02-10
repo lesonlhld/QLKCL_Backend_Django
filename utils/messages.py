@@ -1,4 +1,5 @@
 SUCCESS = 'Success'
+WARNING = 'Warning'
 CONTACT_ADMIN_FOR_SUPPORT = 'Contact admin for support'
 INVALID_ARGUMENT = 'Invalid argument'
 FIELD_NOT_SUPPORT = 'Field is not support'

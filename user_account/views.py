@@ -764,17 +764,17 @@ class MemberAPI(AbstractView):
 
             # accept members
 
-            return_messages = dict()
+            return_data = dict()
 
             custom_users = validator.get_field('members')
 
             for custom_user in custom_users:
                 if custom_user.role.name != 'MEMBER' or not hasattr(custom_user, 'member_x_custom_user'):
-                    return_messages[custom_user.code] = messages.ISNOTMEMBER
+                    return_data[custom_user.code] = messages.ISNOTMEMBER
                     continue
 
                 if custom_user.status != CustomUserStatus.WAITING:
-                    return_messages[custom_user.code] = messages.ISNOTWAITING
+                    return_data[custom_user.code] = messages.ISNOTWAITING
                     continue
 
                 member = custom_user.member_x_custom_user
@@ -788,7 +788,7 @@ class MemberAPI(AbstractView):
                 for field in must_not_empty_fields_of_custom_user:
                     if not getattr(custom_user, field):
                         is_continue_another_custom_user = True
-                        return_messages[custom_user.code] = f'{field}: {messages.EMPTY}'
+                        return_data[custom_user.code] = f'{field}: {messages.EMPTY}'
                         break
                 if is_continue_another_custom_user:
                     continue
@@ -806,7 +806,7 @@ class MemberAPI(AbstractView):
                     quarantine_room = suitable_room_dict['room']
                     warning = suitable_room_dict['warning']
                     if not quarantine_room:
-                        return_messages[custom_user.code] = warning
+                        return_data[custom_user.code] = warning
                         continue
                     else:
                         member.quarantine_room = quarantine_room
@@ -829,8 +829,12 @@ class MemberAPI(AbstractView):
                 custom_user.updated_by = request.user
                 member.save()
                 custom_user.save()
+
+            return_message = messages.SUCCESS
+            if return_data:
+                return_message = messages.WARNING
             
-            return self.response_handler.handle(data=return_messages)
+            return self.response_handler.handle(data=return_data, message=return_message)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
