@@ -190,7 +190,8 @@ class NotificationAPI (AbstractView):
 
             payload["headings"] = {"en": get_notification.title}
             payload["contents"] = {"en": get_notification.description}
-
+            if notification.image != None:
+                payload["big_picture"] = notification.image
             if get_type == 0:
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
                 list_user_notification = []
@@ -522,7 +523,8 @@ class UserNotificationAPI (AbstractView):
 
             payload["headings"] = {"en": get_notification.title}
             payload["contents"] = {"en": get_notification.description}
-
+            if get_notification.image != None:
+                payload["big_picture"] = get_notification.image
             if get_type == 0:
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
                 list_user_notification = []
