@@ -999,6 +999,7 @@ class MemberAPI(AbstractView):
             [
                 'status', 'quarantined_status',
                 'last_tested_max', 'role_name', 'quarantined_at_max',
+                'quarantined_finish_expected_at_max',
                 'positive_test_now', 'health_status_list',
             ]
 
@@ -1824,8 +1825,11 @@ class HomeAPI(AbstractView):
             sender_role_name = request.user.role.name
             if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
                 raise exceptions.AuthenticationException()
-
-            sender_quarantine_ward_id = request.user.quarantine_ward.id
+            
+            if sender_role_name != 'ADMINISTRATOR':
+                sender_quarantine_ward_id = request.user.quarantine_ward.id
+            else:
+                sender_quarantine_ward_id = 'All'
 
             users_query_set = CustomUser.objects.all()
             tests_query_set = Test.objects.all()
@@ -1884,14 +1888,13 @@ class HomeAPI(AbstractView):
 
             positive_test_now = 'false'
             health_status_list = HealthStatus.NORMAL
-            quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
-            quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
+            quarantined_finish_expected_at_max = timezone.now()
 
             dict_to_filter_can_finish_users = {
                 'role_name': 'MEMBER',
                 'positive_test_now': positive_test_now,
                 'health_status_list': health_status_list,
-                'quarantined_at_max': quarantined_at_max,
+                'quarantined_finish_expected_at_max': quarantined_finish_expected_at_max,
                 'status': CustomUserStatus.AVAILABLE,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }

@@ -67,6 +67,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
 
     created_at = serializers.SerializerMethodField('get_created_at')
     quarantined_at = serializers.SerializerMethodField('get_quarantined_at')
+    quarantined_finish_expected_at = serializers.SerializerMethodField('get_quarantined_finish_expected_at')
 
     label = serializers.SerializerMethodField('get_label')
 
@@ -124,6 +125,12 @@ class FilterMemberSerializer(serializers.ModelSerializer):
         else:
             return None
 
+    def get_quarantined_finish_expected_at(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.quarantined_finish_expected_at
+        else:
+            return None
+
     def get_label(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
             return custom_user.member_x_custom_user.label
@@ -141,7 +148,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
         fields = [
             'code', 'status',
             'full_name', 'gender', 'birthday', 'quarantine_room',
-            'phone_number', 'created_at', 'quarantined_at',
+            'phone_number', 'created_at', 'quarantined_at', 'quarantined_finish_expected_at',
             'quarantine_floor', 'quarantine_building', 'quarantine_ward',
             'health_status', 'positive_test_now', 'last_tested',
             'last_tested_had_result', 'label', 'number_of_vaccine_doses',

@@ -64,6 +64,11 @@ class MemberFilter(django_filters.FilterSet):
         lookup_expr='gte',
     )
 
+    quarantined_finish_expected_at_max = django_filters.DateTimeFilter(
+        field_name='member_x_custom_user__quarantined_finish_expected_at',
+        lookup_expr='lte',
+    )
+
     quarantined_finished_at_max = django_filters.DateTimeFilter(
         field_name='member_x_custom_user__quarantined_finished_at',
         lookup_expr='lte',
