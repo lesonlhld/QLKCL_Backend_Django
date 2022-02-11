@@ -373,14 +373,12 @@ class MemberAPI(AbstractView):
             list_to_create_member = set(list_to_create_member) - \
             {'quarantine_room_id', 'care_staff_code'}
             list_to_create_member = list(list_to_create_member) + \
-            ['care_staff',]
+            ['quarantined_at', 'quarantined_finish_expected_at', 'care_staff',]
 
             dict_to_create_member = validator.get_data(list_to_create_member)
 
             member = Member(**dict_to_create_member)
             member.custom_user = custom_user
-            if 'quarantined_at' not in accepted_fields.keys():
-                member.quarantined_at = timezone.now()
 
             # extra set room for this member
             if hasattr(validator, '_quarantine_room'):
@@ -595,7 +593,7 @@ class MemberAPI(AbstractView):
                 list_to_update_member = set(list_to_update_member) - \
                 {'quarantine_room_id', 'care_staff_code',}
                 list_to_update_member = list(list_to_update_member) + \
-                ['quarantine_room', 'care_staff',]
+                ['quarantine_room', 'quarantined_finish_expected_at', 'care_staff',]
 
                 dict_to_update_member = validator.get_data(list_to_update_member)
 
@@ -672,10 +670,11 @@ class MemberAPI(AbstractView):
             member = custom_user.member_x_custom_user
 
             # quarantined_at
-            if quarantined_at:
-                member.quarantined_at = quarantined_at
-            else:
-                member.quarantined_at = timezone.now()
+            if not quarantined_at:
+                quarantined_at = timezone.now()
+            member.quarantined_at = quarantined_at
+            number_of_quarantine_days = int(custom_user.quarantine_ward.quarantine_time)
+            member.quarantined_finish_expected_at = quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
 
             # room
             if not quarantine_room:
@@ -823,7 +822,11 @@ class MemberAPI(AbstractView):
                         member.care_staff = care_staff
 
                 custom_user.status = CustomUserStatus.AVAILABLE
-                member.quarantined_at = timezone.now()
+                quarantined_at = timezone.now()
+                member.quarantined_at = quarantined_at
+                number_of_quarantine_days = int(custom_user.quarantine_ward.quarantine_time)
+                member.quarantined_finish_expected_at = quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+
                 member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
                 custom_user.created_by = request.user
                 custom_user.updated_by = request.user
@@ -1291,6 +1294,7 @@ class MemberAPI(AbstractView):
             # requarantine
             custom_user.status = CustomUserStatus.WAITING
             member.quarantined_at = None
+            member.quarantined_finish_expected_at = None
             member.quarantined_finished_at = None
             member.quarantined_status = MemberQuarantinedStatus.REQUARANTINING
             member.positive_test_now = None
