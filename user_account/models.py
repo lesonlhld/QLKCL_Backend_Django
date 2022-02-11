@@ -211,6 +211,8 @@ class Member(models.Model):
 
     quarantined_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
+    quarantined_finish_expected_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
+
     quarantined_finished_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
     quarantined_status = models.CharField(
