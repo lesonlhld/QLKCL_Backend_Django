@@ -187,6 +187,8 @@ class MemberHomeSerializer(serializers.ModelSerializer):
     last_tested_had_result = serializers.SerializerMethodField('get_last_tested_had_result')
     created_at = serializers.SerializerMethodField('get_created_at')
     quarantined_at = serializers.SerializerMethodField('get_quarantined_at')
+    quarantined_finish_expected_at = serializers.SerializerMethodField('get_quarantined_finish_expected_at')
+    care_staff = serializers.SerializerMethodField('get_care_staff')
 
     def get_custom_user(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
@@ -249,6 +251,18 @@ class MemberHomeSerializer(serializers.ModelSerializer):
     def get_quarantined_at(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
             return custom_user.member_x_custom_user.quarantined_at
+        else:
+            return None
+    
+    def get_quarantined_finish_expected_at(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.quarantined_finish_expected_at
+        else:
+            return None
+    
+    def get_care_staff(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.care_staff:
+            return BaseCustomUserSerializer(custom_user.member_x_custom_user.care_staff, many=False).data
         else:
             return None
 
