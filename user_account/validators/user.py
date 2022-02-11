@@ -893,8 +893,7 @@ class UserValidator(validators.AbstractRequestValidate):
             if self._can_finish_quarantine:
                 self._positive_test_now = 'false'
                 self._health_status_list = HealthStatus.NORMAL
-                quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
-                self._quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
+                self._quarantined_finish_expected_at_max = timezone.now()
 
     def extra_validate_to_filter_staff(self):
         self._role_name = 'STAFF'

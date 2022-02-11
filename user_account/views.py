@@ -999,6 +999,7 @@ class MemberAPI(AbstractView):
             [
                 'status', 'quarantined_status',
                 'last_tested_max', 'role_name', 'quarantined_at_max',
+                'quarantined_finish_expected_at_max',
                 'positive_test_now', 'health_status_list',
             ]
 
@@ -1820,162 +1821,164 @@ class HomeAPI(AbstractView):
             None
         """
 
-        try:
-            sender_role_name = request.user.role.name
-            if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
-                raise exceptions.AuthenticationException()
-
+        # try:
+        sender_role_name = request.user.role.name
+        if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
+            raise exceptions.AuthenticationException()
+        
+        if sender_role_name != 'ADMINISTRATOR':
             sender_quarantine_ward_id = request.user.quarantine_ward.id
+        else:
+            sender_quarantine_ward_id = 'All'
 
-            users_query_set = CustomUser.objects.all()
-            tests_query_set = Test.objects.all()
+        users_query_set = CustomUser.objects.all()
+        tests_query_set = Test.objects.all()
 
-            # Calculate number of waiting users
+        # Calculate number of waiting users
 
-            dict_to_filter_waiting_users = {
+        dict_to_filter_waiting_users = {
+            'role_name': 'MEMBER',
+            'status': CustomUserStatus.WAITING,
+            'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
+        }
+
+        if sender_role_name in ['MANAGER', 'STAFF']:
+            dict_to_filter_waiting_users['quarantine_ward_id'] = sender_quarantine_ward_id
+
+        filter = MemberFilter(dict_to_filter_waiting_users, queryset=users_query_set)
+
+        number_of_waiting_users = filter.qs.count()
+
+        # Calculate number of suspected users
+
+        dict_to_filter_suspected_users = {
+            'role_name': 'MEMBER',
+            'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
+            'status': CustomUserStatus.AVAILABLE,
+            'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
+        }
+
+        if sender_role_name in ['MANAGER', 'STAFF']:
+            dict_to_filter_suspected_users['quarantine_ward_id'] = sender_quarantine_ward_id
+
+        filter = MemberFilter(dict_to_filter_suspected_users, queryset=users_query_set)
+
+        number_of_suspected_users = filter.qs.count()
+
+        # Calculate number of need test users
+
+        test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
+        last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
+
+        dict_to_filter_need_test_users = {
+            'role_name': 'MEMBER',
+            'last_tested_max': last_tested_max,
+            'status': CustomUserStatus.AVAILABLE,
+            'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
+        }
+
+        if sender_role_name in ['MANAGER', 'STAFF']:
+            dict_to_filter_need_test_users['quarantine_ward_id'] = sender_quarantine_ward_id
+
+        filter = MemberFilter(dict_to_filter_need_test_users, queryset=users_query_set)
+
+        number_of_need_test_users = filter.qs.count()
+
+        # Calculate number of can finish users
+
+        positive_test_now = 'false'
+        health_status_list = HealthStatus.NORMAL
+        quarantined_finish_expected_at_max = timezone.now()
+
+        dict_to_filter_can_finish_users = {
+            'role_name': 'MEMBER',
+            'positive_test_now': positive_test_now,
+            'health_status_list': health_status_list,
+            'quarantined_finish_expected_at_max': quarantined_finish_expected_at_max,
+            'status': CustomUserStatus.AVAILABLE,
+            'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
+        }
+
+        if sender_role_name in ['MANAGER', 'STAFF']:
+            dict_to_filter_can_finish_users['quarantine_ward_id'] = sender_quarantine_ward_id
+
+        filter = MemberFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
+
+        number_of_can_finish_users = filter.qs.count()
+
+        # Calculate number of waiting tests
+
+        dict_to_filter_waiting_tests = {
+            'status': TestStatus.WAITING,
+        }
+
+        filter = TestFilter(dict_to_filter_waiting_tests, queryset=tests_query_set)
+
+        number_of_waiting_tests = filter.qs.count()
+
+        # Calculate number of member 'in' today
+
+        dict_of_in_members = dict()
+
+        for day_sub in range(3):
+            day = timezone.now() - datetime.timedelta(days=day_sub)
+            day = day.astimezone(pytz.timezone('Asia/Saigon'))
+            start_of_day = datetime.datetime(day.year, day.month, day.day)
+            start_of_day = start_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+            end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
+            end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+
+            dict_to_filter_in_members = {
                 'role_name': 'MEMBER',
-                'status': CustomUserStatus.WAITING,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
+                'quarantined_at_max': end_of_day,
+                'quarantined_at_min': start_of_day,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_waiting_users['quarantine_ward_id'] = sender_quarantine_ward_id
+                dict_to_filter_in_members['quarantine_ward_id'] = sender_quarantine_ward_id
 
-            filter = MemberFilter(dict_to_filter_waiting_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
 
-            number_of_waiting_users = filter.qs.count()
+            dict_of_in_members[f'{day}'] = filter.qs.count()
 
-            # Calculate number of suspected users
+        # Calculate number of member 'out' today
 
-            dict_to_filter_suspected_users = {
+        dict_of_out_members = dict()
+
+        for day_sub in range(3):
+            day = timezone.now() - datetime.timedelta(days=day_sub)
+            day = day.astimezone(pytz.timezone('Asia/Saigon'))
+            start_of_day = datetime.datetime(day.year, day.month, day.day)
+            start_of_day = start_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+            end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
+            end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+
+            dict_to_filter_out_members = {
                 'role_name': 'MEMBER',
-                'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
-                'status': CustomUserStatus.AVAILABLE,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
+                'quarantined_finished_at_max': end_of_day,
+                'quarantined_finished_at_min': start_of_day,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_suspected_users['quarantine_ward_id'] = sender_quarantine_ward_id
+                dict_to_filter_out_members['quarantine_ward_id'] = sender_quarantine_ward_id
 
-            filter = MemberFilter(dict_to_filter_suspected_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_out_members, queryset=users_query_set)
 
-            number_of_suspected_users = filter.qs.count()
+            dict_of_out_members[f'{day}'] = filter.qs.count()
 
-            # Calculate number of need test users
+        response_data = {
+            'number_of_waiting_users': number_of_waiting_users,
+            'number_of_suspected_users': number_of_suspected_users,
+            'number_of_need_test_users': number_of_need_test_users,
+            'number_of_can_finish_users': number_of_can_finish_users,
+            'number_of_waiting_tests': number_of_waiting_tests,
+            'in': dict_of_in_members,
+            'out': dict_of_out_members,
+        }
 
-            test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
-            last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
-
-            dict_to_filter_need_test_users = {
-                'role_name': 'MEMBER',
-                'last_tested_max': last_tested_max,
-                'status': CustomUserStatus.AVAILABLE,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
-            }
-
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_need_test_users['quarantine_ward_id'] = sender_quarantine_ward_id
-
-            filter = MemberFilter(dict_to_filter_need_test_users, queryset=users_query_set)
-
-            number_of_need_test_users = filter.qs.count()
-
-            # Calculate number of can finish users
-
-            positive_test_now = 'false'
-            health_status_list = HealthStatus.NORMAL
-            quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
-            quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
-
-            dict_to_filter_can_finish_users = {
-                'role_name': 'MEMBER',
-                'positive_test_now': positive_test_now,
-                'health_status_list': health_status_list,
-                'quarantined_at_max': quarantined_at_max,
-                'status': CustomUserStatus.AVAILABLE,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
-            }
-
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_can_finish_users['quarantine_ward_id'] = sender_quarantine_ward_id
-
-            filter = MemberFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
-
-            number_of_can_finish_users = filter.qs.count()
-
-            # Calculate number of waiting tests
-
-            dict_to_filter_waiting_tests = {
-                'status': TestStatus.WAITING,
-            }
-
-            filter = TestFilter(dict_to_filter_waiting_tests, queryset=tests_query_set)
-
-            number_of_waiting_tests = filter.qs.count()
-
-            # Calculate number of member 'in' today
-
-            dict_of_in_members = dict()
-
-            for day_sub in range(3):
-                day = timezone.now() - datetime.timedelta(days=day_sub)
-                day = day.astimezone(pytz.timezone('Asia/Saigon'))
-                start_of_day = datetime.datetime(day.year, day.month, day.day)
-                start_of_day = start_of_day.astimezone(pytz.timezone('Asia/Saigon'))
-                end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
-                end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
-
-                dict_to_filter_in_members = {
-                    'role_name': 'MEMBER',
-                    'quarantined_at_max': end_of_day,
-                    'quarantined_at_min': start_of_day,
-                }
-
-                if sender_role_name in ['MANAGER', 'STAFF']:
-                    dict_to_filter_in_members['quarantine_ward_id'] = sender_quarantine_ward_id
-
-                filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
-
-                dict_of_in_members[f'{day}'] = filter.qs.count()
-
-            # Calculate number of member 'out' today
-
-            dict_of_out_members = dict()
-
-            for day_sub in range(3):
-                day = timezone.now() - datetime.timedelta(days=day_sub)
-                day = day.astimezone(pytz.timezone('Asia/Saigon'))
-                start_of_day = datetime.datetime(day.year, day.month, day.day)
-                start_of_day = start_of_day.astimezone(pytz.timezone('Asia/Saigon'))
-                end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
-                end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
-
-                dict_to_filter_out_members = {
-                    'role_name': 'MEMBER',
-                    'quarantined_finished_at_max': end_of_day,
-                    'quarantined_finished_at_min': start_of_day,
-                }
-
-                if sender_role_name in ['MANAGER', 'STAFF']:
-                    dict_to_filter_out_members['quarantine_ward_id'] = sender_quarantine_ward_id
-
-                filter = MemberFilter(dict_to_filter_out_members, queryset=users_query_set)
-
-                dict_of_out_members[f'{day}'] = filter.qs.count()
-
-            response_data = {
-                'number_of_waiting_users': number_of_waiting_users,
-                'number_of_suspected_users': number_of_suspected_users,
-                'number_of_need_test_users': number_of_need_test_users,
-                'number_of_can_finish_users': number_of_can_finish_users,
-                'number_of_waiting_tests': number_of_waiting_tests,
-                'in': dict_of_in_members,
-                'out': dict_of_out_members,
-            }
-
-            return self.response_handler.handle(data=response_data)
-        except Exception as exception:
-            return self.exception_handler.handle(exception)
+        return self.response_handler.handle(data=response_data)
+        # except Exception as exception:
+        #     return self.exception_handler.handle(exception)
     
     @csrf_exempt
     @action(methods=['POST'], url_path='member', detail=False)
