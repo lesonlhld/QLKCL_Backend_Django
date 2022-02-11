@@ -625,6 +625,14 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_room_id'):
             if self._quarantine_room_id and not self.is_quarantine_room_id_exist():
                 raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantined_at') and self._quarantined_at:
+            ...
+        else:
+            self._quarantined_at = timezone.now()
+
+        number_of_quarantine_days = int(self._quarantine_ward.quarantine_time)
+        self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+
         if hasattr(self, '_care_staff_code') and self._care_staff_code:
             if not self.is_care_staff_code_exist():
                 raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
@@ -732,6 +740,12 @@ class UserValidator(validators.AbstractRequestValidate):
             check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
             if check_room_result != messages.SUCCESS:
                 raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
+        if hasattr(self, '_quarantined_at'):
+            if not self._quarantined_at:
+                raise exceptions.ValidationException({'quarantined_at': messages.EMPTY})
+            else:
+                number_of_quarantine_days = int(self._custom_user.quarantine_ward.quarantine_time)
+                self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
         if hasattr(self, '_number_of_vaccine_doses'):
             if self._custom_user.status not in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING]:
                 if self._number_of_vaccine_doses != self._custom_user.member_x_custom_user.number_of_vaccine_doses:
