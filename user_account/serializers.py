@@ -38,6 +38,7 @@ class BaseBaseCustomUserSerializer(serializers.ModelSerializer):
 class BaseCustomUserSerializer(serializers.ModelSerializer):
 
     health_status = serializers.SerializerMethodField('get_health_status')
+    positive_test_now = serializers.SerializerMethodField('get_positive_test_now')
 
     def get_health_status(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
@@ -49,9 +50,19 @@ class BaseCustomUserSerializer(serializers.ModelSerializer):
         else:
             return None
 
+    def get_positive_test_now(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.positive_test_now
+        elif hasattr(custom_user, 'manager_x_custom_user'):
+            return custom_user.manager_x_custom_user.positive_test_now
+        elif hasattr(custom_user, 'staff_x_custom_user'):
+            return custom_user.staff_x_custom_user.positive_test_now
+        else:
+            return None
+
     class Meta:
         model = CustomUser
-        fields = ['code', 'full_name', 'birthday', 'gender', 'status', 'health_status',]
+        fields = ['code', 'full_name', 'birthday', 'gender', 'status', 'health_status', 'positive_test_now']
 
 class FilterMemberSerializer(serializers.ModelSerializer):
 
