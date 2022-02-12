@@ -1300,16 +1300,10 @@ class MemberAPI(AbstractView):
             member.positive_test_now = None
             member.care_staff_id = None
             
-            # custom_user.save()
-            # member.save()
+            custom_user.save()
+            member.save()
 
-            response_data = dict()
-            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
-            response_data['custom_user'] = custom_user_serializer.data
-            member_serializer = MemberSerializer(member, many=False)
-            response_data['member'] = member_serializer.data
-
-            return self.response_handler.handle(data=response_data)
+            return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 

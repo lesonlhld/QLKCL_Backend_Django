@@ -365,28 +365,24 @@ class TestAPI(AbstractView):
         return first_part + second_part + third_part
 
     def calculate_new_conclude_from_test(self, test, old_positive_test_now):
+        """test must be the last test has result of this member"""
         if test.result == TestResult.POSITIVE:
             return True
         elif test.result == TestResult.NEGATIVE:
-            if old_positive_test_now == True:
-                number_test_need = int(os.environ.get("NUMBER_TEST_FROM_POSITIVE_TO_NEGATIVE", "1"))
-            elif old_positive_test_now == None:
-                number_test_need = int(os.environ.get("NUMBER_TEST_FROM_UNKNOWN_TO_NEGATIVE", "1"))
-
-            if old_positive_test_now != False:
-                tests_to_check = Test.objects.filter(user = test.user, type=TestType.RT_PCR).order_by('-created_at')[:number_test_need]
-
-                is_negative = True
-                for test in list(tests_to_check):
-                    if test.result == TestResult.POSITIVE:
-                        is_negative = False
-                        break
-                if is_negative:
-                    return False
-                else:
-                    return True
-            else:
+            if old_positive_test_now == False or old_positive_test_now == None:
                 return False
+            else:
+                number_test_need = int(os.environ.get("NUMBER_TEST_FROM_POSITIVE_TO_NEGATIVE", "3"))
+                tests_to_check = Test.objects.filter(user = test.user, type=TestType.RT_PCR).filter(~Q(result=TestResult.NONE)).order_by('-created_at')[:number_test_need]
+                tests_to_check = list(tests_to_check)
+                if len(tests_to_check) < number_test_need:
+                    return True
+                is_positive = False
+                for test in tests_to_check:
+                    if test.result == TestResult.POSITIVE:
+                        is_positive = True
+                        break
+                return is_positive
         else:
             return old_positive_test_now
 
@@ -444,31 +440,31 @@ class TestAPI(AbstractView):
             test.save()
 
             # Update user
-            if test.user != None:
-                if hasattr(test.user, 'member_x_custom_user'):
-                    this_member = test.user.member_x_custom_user
+            user = test.user
+            if hasattr(user, 'member_x_custom_user'):
+                this_member = user.member_x_custom_user
+                this_member.last_tested = test.created_at
+                if test.result != TestResult.NONE:
                     new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)
                     this_member.positive_test_now = new_positive_test_now
-                    this_member.last_tested = test.created_at
-                    if test.result != TestResult.NONE:
-                        this_member.last_tested_had_result = test.created_at
-                    this_member.save()
-                if hasattr(test.user, 'manager_x_custom_user'):
-                    this_manager = test.user.manager_x_custom_user
+                    this_member.last_tested_had_result = test.created_at
+                this_member.save()
+            if hasattr(user, 'manager_x_custom_user'):
+                this_manager = user.manager_x_custom_user
+                this_manager.last_tested = test.created_at
+                if test.result != TestResult.NONE:
                     new_positive_test_now = self.calculate_new_conclude_from_test(test, this_manager.positive_test_now)
                     this_manager.positive_test_now = new_positive_test_now
-                    this_manager.last_tested = test.created_at
-                    if test.result != TestResult.NONE:
-                        this_manager.last_tested_had_result = test.created_at
-                    this_manager.save()
-                if hasattr(test.user, 'staff_x_custom_user'):
-                    this_staff = test.user.staff_x_custom_user
+                    this_manager.last_tested_had_result = test.created_at
+                this_manager.save()
+            if hasattr(user, 'staff_x_custom_user'):
+                this_staff = user.staff_x_custom_user
+                this_staff.last_tested = test.created_at
+                if test.result != TestResult.NONE:
                     new_positive_test_now = self.calculate_new_conclude_from_test(test, this_staff.positive_test_now)
                     this_staff.positive_test_now = new_positive_test_now
-                    this_staff.last_tested = test.created_at
-                    if test.result != TestResult.NONE:
-                        this_staff.last_tested_had_result = test.created_at
-                    this_staff.save()
+                    this_staff.last_tested_had_result = test.created_at
+                this_staff.save()
 
             serializer = TestSerializer(test, many=False)
 
@@ -569,8 +565,10 @@ class TestAPI(AbstractView):
 
             # Update user
             if test.result != TestResult.NONE:
+                # if this test has result
                 last_test_has_result = Test.objects.filter(user = test.user).filter(~Q(result=TestResult.NONE)).order_by('-created_at')[0]
-                if last_test_has_result == test and test.user:
+                if last_test_has_result == test:
+                    # if this test is the last test of this user that has result
                     if hasattr(test.user, 'member_x_custom_user'):
                         this_member = test.user.member_x_custom_user
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)

@@ -15,7 +15,7 @@ import pytz
 from form.models import Test
 from form.serializers import TestSerializer
 from user_account.models import CustomUser, Member
-from utils.enums import CustomUserStatus, MemberQuarantinedStatus
+from utils.enums import CustomUserStatus, MemberQuarantinedStatus, TestType
 
 # Create your views here.
 
