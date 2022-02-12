@@ -129,9 +129,7 @@ class DebugAPI(AbstractView):
             # members = Member.objects.filter(quarantined_status=MemberQuarantinedStatus.COMPLETED, quarantine_room__isnull=True)
             # print('haha')
             # print(list(members))
-            user = CustomUser.objects.get(id=20)
-            tests_to_check = Test.objects.filter(user = user, type=TestType.RT_PCR).order_by('-created_at')[:3]
-            print(list(tests_to_check))
+
 
             return self.response_handler.handle(data="fSuccess")
         except Exception as exception:
