@@ -224,6 +224,18 @@ class UserValidator(validators.AbstractRequestValidate):
             else:
                 self._number_of_vaccine_doses = 0
 
+    def is_validate_not_quarantine_room_ids(self):
+        if hasattr(self, '_not_quarantine_room_ids'):
+            self._not_quarantine_room_ids = split_input_list(self._not_quarantine_room_ids)
+            for id in self._not_quarantine_room_ids:
+                try:
+                    validators.ModelInstanceExistenceValidator.valid(
+                        model_cls=QuarantineRoom,
+                        query_expr=Q(id=id),
+                    )
+                except Exception as exception:
+                    raise exceptions.NotFoundException({'not_quarantine_room_ids': messages.NOT_EXIST})
+
     def is_id_exist(self):
         if hasattr(self, '_id'):
             try:
@@ -934,6 +946,8 @@ class UserValidator(validators.AbstractRequestValidate):
             self._old_quarantine_room = self._quarantine_room
         else:
             self._old_quarantine_room = None
+        if not hasattr(self, '_not_quarantine_room_ids'):
+            self._not_quarantine_room_ids = []
 
     def extra_validate_to_change_quarantine_ward_and_room_of_available_member(self):
         if hasattr(self, '_custom_user_code') and not self.is_custom_user_code_exist():

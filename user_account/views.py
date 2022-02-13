@@ -78,6 +78,7 @@ class MemberAPI(AbstractView):
             label
             number_of_vaccine_doses
             old_quarantine_room (can None)
+            not_quarantine_room_ids (can empty list)
         ]
         default, all field is not None
 
@@ -87,12 +88,16 @@ class MemberAPI(AbstractView):
         return_dict['room'] = None
         return_dict['warning'] = None
 
-        if input_dict['old_quarantine_room'] and input_dict['old_quarantine_room'].quarantine_floor.quarantine_building.quarantine_ward == input_dict['quarantine_ward']:
+        if input_dict['old_quarantine_room'] and \
+        input_dict['old_quarantine_room'].quarantine_floor.quarantine_building.quarantine_ward == input_dict['quarantine_ward'] and \
+        input_dict['old_quarantine_room'].id not in input_dict['not_quarantine_room_ids']:
             return_dict['room'] = input_dict['old_quarantine_room']
             return_dict['warning'] = 'This room is current room of this member'
             return return_dict
 
-        rooms = list(QuarantineRoom.objects.filter(quarantine_floor__quarantine_building__quarantine_ward = input_dict['quarantine_ward']))
+        rooms = QuarantineRoom.objects.filter(quarantine_floor__quarantine_building__quarantine_ward = input_dict['quarantine_ward'])
+        rooms = rooms.exclude(id__in=input_dict['not_quarantine_room_ids'])
+        rooms = list(rooms)
 
         remain_rooms = [room for room in rooms if not self.is_room_full(room)]
         if len(remain_rooms) > 0:
@@ -394,6 +399,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['label'] = member.label
                 input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = None
+                input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
 
                 suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
                 quarantine_room = suitable_room_dict['room']
@@ -685,6 +691,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['label'] = member.label
                 input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = None
+                input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
 
                 suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
                 quarantine_room = suitable_room_dict['room']
@@ -800,6 +807,7 @@ class MemberAPI(AbstractView):
                     input_dict_for_get_suitable_room['label'] = member.label
                     input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                     input_dict_for_get_suitable_room['old_quarantine_room'] = None
+                    input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
 
                     suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
                     quarantine_room = suitable_room_dict['room']
@@ -1092,13 +1100,14 @@ class MemberAPI(AbstractView):
             + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             + number_of_vaccine_doses: int
             - old_quarantine_room_id: int
+            - not_quarantine_room_ids: String <id>,<id>,<id>
         """
 
         
         accept_fields = [
             'quarantine_ward_id', 'gender',
             'label', 'number_of_vaccine_doses',
-            'old_quarantine_room_id',
+            'old_quarantine_room_id', 'not_quarantine_room_ids',
         ]
 
         require_fields = [
@@ -1117,14 +1126,14 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
-            validator.is_valid_fields(['gender', 'label', 'number_of_vaccine_doses'])
+            validator.is_valid_fields(['gender', 'label', 'number_of_vaccine_doses', 'not_quarantine_room_ids',])
 
             validator.extra_validate_to_get_suitable_room()
 
             input_dict_for_get_suitable_room = validator.get_data([
                 'quarantine_ward', 'gender',
                 'label', 'number_of_vaccine_doses',
-                'old_quarantine_room',
+                'old_quarantine_room', 'not_quarantine_room_ids',
             ])
 
             return_value = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
@@ -1214,6 +1223,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['label'] = member.label
                 input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = member.quarantine_room
+                input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
 
                 suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
                 quarantine_room = suitable_room_dict['room']
