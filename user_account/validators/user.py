@@ -731,15 +731,15 @@ class UserValidator(validators.AbstractRequestValidate):
             if self._custom_user.status == CustomUserStatus.AVAILABLE:
                 if not self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.EMPTY})
+                if not self.is_quarantine_room_id_exist():
+                    raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+                from ..views import MemberAPI
+                check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
+                if check_room_result != messages.SUCCESS:
+                    raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
             elif self._custom_user.status in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING, CustomUserStatus.LEAVE]:
                 if self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.MUST_EMPTY})
-            if not self.is_quarantine_room_id_exist():
-                raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
-            from ..views import MemberAPI
-            check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
-            if check_room_result != messages.SUCCESS:
-                raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
         if hasattr(self, '_quarantined_at'):
             if not self._quarantined_at:
                 raise exceptions.ValidationException({'quarantined_at': messages.EMPTY})

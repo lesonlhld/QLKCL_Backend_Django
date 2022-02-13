@@ -26,7 +26,7 @@ from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
 from .filters.vaccine import VaccineDoseFilter
 from utils import exceptions, messages
-from utils.enums import SymptomType, TestResult, TestType, HealthStatus
+from utils.enums import SymptomType, TestResult, TestType, HealthStatus, MemberLabel
 from utils.views import AbstractView
 
 # Create your views here.
@@ -447,6 +447,8 @@ class TestAPI(AbstractView):
                 if test.result != TestResult.NONE:
                     new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)
                     this_member.positive_test_now = new_positive_test_now
+                    if new_positive_test_now == True:
+                        this_member.label = MemberLabel.F0
                     this_member.last_tested_had_result = test.created_at
                 this_member.save()
             if hasattr(user, 'manager_x_custom_user'):
@@ -573,6 +575,8 @@ class TestAPI(AbstractView):
                         this_member = test.user.member_x_custom_user
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)
                         this_member.positive_test_now = new_positive_test_now
+                        if new_positive_test_now == True:
+                            this_member.label = MemberLabel.F0
                         this_member.last_tested_had_result = test.created_at
                         this_member.save()
                     if hasattr(test.user, 'manager_x_custom_user'):
