@@ -224,6 +224,18 @@ class UserValidator(validators.AbstractRequestValidate):
             else:
                 self._number_of_vaccine_doses = 0
 
+    def is_validate_not_quarantine_room_ids(self):
+        if hasattr(self, '_not_quarantine_room_ids'):
+            self._not_quarantine_room_ids = split_input_list(self._not_quarantine_room_ids)
+            for id in self._not_quarantine_room_ids:
+                try:
+                    validators.ModelInstanceExistenceValidator.valid(
+                        model_cls=QuarantineRoom,
+                        query_expr=Q(id=id),
+                    )
+                except Exception as exception:
+                    raise exceptions.NotFoundException({'not_quarantine_room_ids': messages.NOT_EXIST})
+
     def is_id_exist(self):
         if hasattr(self, '_id'):
             try:
@@ -731,15 +743,15 @@ class UserValidator(validators.AbstractRequestValidate):
             if self._custom_user.status == CustomUserStatus.AVAILABLE:
                 if not self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.EMPTY})
+                if not self.is_quarantine_room_id_exist():
+                    raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+                from ..views import MemberAPI
+                check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
+                if check_room_result != messages.SUCCESS:
+                    raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
             elif self._custom_user.status in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING, CustomUserStatus.LEAVE]:
                 if self._quarantine_room_id:
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.MUST_EMPTY})
-            if not self.is_quarantine_room_id_exist():
-                raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
-            from ..views import MemberAPI
-            check_room_result = MemberAPI.check_room_for_member(MemberAPI(), user=self._custom_user, room=self._quarantine_room)
-            if check_room_result != messages.SUCCESS:
-                raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
         if hasattr(self, '_quarantined_at'):
             if not self._quarantined_at:
                 raise exceptions.ValidationException({'quarantined_at': messages.EMPTY})
@@ -934,6 +946,8 @@ class UserValidator(validators.AbstractRequestValidate):
             self._old_quarantine_room = self._quarantine_room
         else:
             self._old_quarantine_room = None
+        if not hasattr(self, '_not_quarantine_room_ids'):
+            self._not_quarantine_room_ids = []
 
     def extra_validate_to_change_quarantine_ward_and_room_of_available_member(self):
         if hasattr(self, '_custom_user_code') and not self.is_custom_user_code_exist():
