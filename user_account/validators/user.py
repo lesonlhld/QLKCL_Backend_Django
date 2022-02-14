@@ -177,7 +177,14 @@ class UserValidator(validators.AbstractRequestValidate):
                 self._can_finish_quarantine,
                 message={'can_finish_quarantine': messages.INVALID},
             )
-        
+    
+    def is_validate_is_need_change_room_because_be_positive(self):
+        if hasattr(self, '_is_need_change_room_because_be_positive') and self._is_need_change_room_because_be_positive:
+            self._is_need_change_room_because_be_positive = validators.BooleanValidator.valid(
+                self._is_need_change_room_because_be_positive,
+                message={'is_need_change_room_because_be_positive': messages.INVALID},
+            )
+
     def is_validate_background_disease(self):
         if hasattr(self, '_background_disease'):
             self._list_background_disease_objects = []
@@ -920,6 +927,9 @@ class UserValidator(validators.AbstractRequestValidate):
                 self._positive_test_now = 'false'
                 self._health_status_list = HealthStatus.NORMAL
                 self._quarantined_finish_expected_at_max = timezone.now()
+        if hasattr(self, '_is_need_change_room_because_be_positive') and self._is_need_change_room_because_be_positive == True:
+            self._status = CustomUserStatus.AVAILABLE
+            self._positive_test_now = 'true'
 
     def extra_validate_to_filter_staff(self):
         self._role_name = 'STAFF'

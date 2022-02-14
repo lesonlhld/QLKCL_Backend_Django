@@ -2,7 +2,7 @@ import os
 import datetime, pytz
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Count, Avg
+from django.db.models import Count, Avg, Q
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
@@ -188,6 +188,11 @@ class MemberAPI(AbstractView):
         except Exception as exception:
             return_dict['warning'] = 'Cannot set care_staff for this member'
         return return_dict
+
+    def count_positive_test_now_not_true_in_room(self, room):
+        if room:
+            return room.member_x_quarantine_room.all().filter(Q(positive_test_now=False) | Q(positive_test_now__isnull=True)).count()
+        return 0
 
     @csrf_exempt
     @action(methods=['POST'], url_path='register', detail=False)
@@ -958,6 +963,7 @@ class MemberAPI(AbstractView):
             - positive_test_now: boolean
             - is_last_tested: boolean - True để lọc những người cách ly đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
             - can_finish_quarantine: boolean - True để lọc những người cách ly có thể hoàn thành cách ly, False hoặc không truyền đồng nghĩa không lọc
+            - is_need_change_room_because_be_positive: boolean
             - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
             - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantined_at_max: String vd:'2000-01-26T01:23:45.123456Z'
@@ -975,6 +981,7 @@ class MemberAPI(AbstractView):
         accept_fields = [
             'status', 'health_status_list', 'positive_test_now',
             'is_last_tested', 'can_finish_quarantine',
+            'is_need_change_room_because_be_positive',
             'created_at_max', 'created_at_min',
             'quarantined_at_max', 'quarantined_at_min',
             'quarantine_ward_id', 'quarantine_building_id',
@@ -996,7 +1003,8 @@ class MemberAPI(AbstractView):
 
             validator.is_valid_fields([
                 'status', 'positive_test_now', 'health_status_list', 'is_last_tested',
-                'can_finish_quarantine', 'created_at_max', 'created_at_min',
+                'can_finish_quarantine', 'is_need_change_room_because_be_positive',
+                'created_at_max', 'created_at_min',
                 'quarantined_at_max', 'quarantined_at_min', 'label_list',
             ])
             validator.extra_validate_to_filter_member()
@@ -1005,7 +1013,7 @@ class MemberAPI(AbstractView):
 
             list_to_filter_user = [key for key in accepted_fields.keys()]
             list_to_filter_user = set(list_to_filter_user) - \
-            {'is_last_tested', 'page', 'page_size'}
+            {'is_last_tested', 'is_need_change_room_because_be_positive', 'page', 'page_size'}
             list_to_filter_user = list(list_to_filter_user) + \
             [
                 'status', 'quarantined_status',
@@ -1034,6 +1042,13 @@ class MemberAPI(AbstractView):
             query_set = query_set.select_related()
 
             serializer = FilterMemberSerializer(query_set, many=True)
+
+            is_need_change_room_because_be_positive = validator.get_field('is_need_change_room_because_be_positive')
+            if is_need_change_room_because_be_positive == True:
+                # filter user that positive_test_now = True and need change room
+                result_users = list(query_set)
+                remain_result_users = [user for user in result_users if self.count_positive_test_now_not_true_in_room(user.member_x_custom_user.quarantine_room) >= 1]
+                serializer = FilterMemberSerializer(remain_result_users, many=True)
 
             paginated_data = paginate_data(request, serializer.data)
 
