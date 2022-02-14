@@ -82,7 +82,7 @@ class UserValidator(validators.AbstractRequestValidate):
             )
 
     def is_validate_positive_test_now(self):
-        if hasattr(self, '_positive_test_now'):
+        if hasattr(self, '_positive_test_now') and self._positive_test_now != None:
             self._positive_test_now = validators.BooleanValidator.valid(
                 value=self._positive_test_now,
                 message={'positive_test_now': messages.INVALID},
@@ -947,6 +947,8 @@ class UserValidator(validators.AbstractRequestValidate):
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
 
     def extra_validate_to_get_suitable_room(self):
+        if not hasattr(self, '_positive_test_now'):
+            self._positive_test_now = None
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_old_quarantine_room_id') and self._old_quarantine_room_id:
