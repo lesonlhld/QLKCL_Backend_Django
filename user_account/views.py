@@ -25,7 +25,7 @@ from quarantine_ward.serializers import (
     QuarantineBuildingSerializer, BaseQuarantineWardSerializer,
 )
 from utils import exceptions, messages
-from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus
+from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus, MemberLabel
 from utils.views import AbstractView, paginate_data
 from utils.tools import custom_user_code_generator
 
@@ -226,6 +226,19 @@ class MemberAPI(AbstractView):
         if room:
             return room.member_x_quarantine_room.all().filter(Q(positive_test_now=False) | Q(positive_test_now__isnull=True)).count()
         return 0
+
+    def do_after_member_change_room_work(self, member, old_room):
+        """
+        run this function after changing room of an AVAILABLE member
+        """
+        if member.positive_test_now == True:
+            members_in_old_room = list(old_room.member_x_quarantine_room.all().exclude(id=member.id))
+            for each_member in members_in_old_room:
+                if each_member.label != MemberLabel.F0:
+                    number_of_quarantine_days = int(each_member.custom_user.quarantine_ward.quarantine_time)
+                    each_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+            for each_member in members_in_old_room:    
+                each_member.save()
 
     @csrf_exempt
     @action(methods=['POST'], url_path='register', detail=False)
@@ -633,6 +646,7 @@ class MemberAPI(AbstractView):
 
             if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
                 member = custom_user.member_x_custom_user
+                old_room = member.quarantine_room
 
                 list_to_update_member = [key for key in accepted_fields.keys() if key in member_fields]
                 list_to_update_member = set(list_to_update_member) - \
@@ -645,10 +659,14 @@ class MemberAPI(AbstractView):
                 for attr, value in dict_to_update_member.items(): 
                     setattr(member, attr, value)
 
-                member.save()
-
                 member_serializer = MemberSerializer(member, many=False)
                 response_data['member'] = member_serializer.data
+
+                # if change room, do 'after change room' work
+                if old_room != member.quarantine_room:
+                    self.do_after_member_change_room_work(member, old_room)
+
+                member.save()
 
             custom_user.save()
 
@@ -1004,6 +1022,7 @@ class MemberAPI(AbstractView):
             - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantined_at_max: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantined_at_min: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantined_finish_expected_at_max: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantine_ward_id: String
             - quarantine_building_id: String
             - quarantine_floor_id: String
@@ -1020,6 +1039,7 @@ class MemberAPI(AbstractView):
             'is_need_change_room_because_be_positive',
             'created_at_max', 'created_at_min',
             'quarantined_at_max', 'quarantined_at_min',
+            'quarantined_finish_expected_at_max',
             'quarantine_ward_id', 'quarantine_building_id',
             'quarantine_floor_id', 'quarantine_room_id',
             'label_list',
@@ -1041,7 +1061,8 @@ class MemberAPI(AbstractView):
                 'status', 'positive_test_now', 'health_status_list', 'is_last_tested',
                 'can_finish_quarantine', 'is_need_change_room_because_be_positive',
                 'created_at_max', 'created_at_min',
-                'quarantined_at_max', 'quarantined_at_min', 'label_list',
+                'quarantined_at_max', 'quarantined_at_min',
+                'quarantined_finish_expected_at_max', 'label_list',
             ])
             validator.extra_validate_to_filter_member()
 
@@ -1079,6 +1100,7 @@ class MemberAPI(AbstractView):
 
             serializer = FilterMemberSerializer(query_set, many=True)
 
+            # check if filter member is need change room because be positive
             is_need_change_room_because_be_positive = validator.get_field('is_need_change_room_because_be_positive')
             if is_need_change_room_because_be_positive == True:
                 # filter user that positive_test_now = True and need change room
@@ -1271,6 +1293,8 @@ class MemberAPI(AbstractView):
 
             custom_user.quarantine_ward = quarantine_ward
 
+            old_room = member.quarantine_room
+
             # room
             if not quarantine_room:
                 # auto set room
@@ -1317,6 +1341,11 @@ class MemberAPI(AbstractView):
                 member.care_staff = care_staff
             
             custom_user.updated_by = request.user
+
+            # if change room, do 'after change room' work
+            if old_room != member.quarantine_room:
+                self.do_after_member_change_room_work(member, old_room)
+
             member.save()
             custom_user.save()
 
