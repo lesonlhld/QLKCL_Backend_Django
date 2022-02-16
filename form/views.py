@@ -449,6 +449,13 @@ class TestAPI(AbstractView):
                     this_member.positive_test_now = new_positive_test_now
                     if new_positive_test_now == True:
                         this_member.label = MemberLabel.F0
+                        this_room = this_member.quarantine_room
+                        members_in_this_room = this_room.member_x_quarantine_room.all()
+                        for member in list(members_in_this_room):
+                            if member.label != MemberLabel.F0:
+                                member.label = MemberLabel.F1
+                                member.quarantined_finish_expected_at = None
+                                member.save()
                     this_member.last_tested_had_result = test.created_at
                 this_member.save()
             if hasattr(user, 'manager_x_custom_user'):
