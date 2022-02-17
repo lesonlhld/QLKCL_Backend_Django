@@ -4,6 +4,7 @@ from random import randint
 from django.db.models import Q
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from utils.views import paginate_data
 from rest_framework import permissions
 from rest_framework.decorators import action
@@ -444,10 +445,13 @@ class TestAPI(AbstractView):
             if hasattr(user, 'member_x_custom_user'):
                 this_member = user.member_x_custom_user
                 this_member.last_tested = test.created_at
+
                 if test.result != TestResult.NONE:
-                    new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)
+                    old_positive_test_now = this_member.positive_test_now
+                    new_positive_test_now = self.calculate_new_conclude_from_test(test, old_positive_test_now)
                     this_member.positive_test_now = new_positive_test_now
-                    if new_positive_test_now == True:
+
+                    if old_positive_test_now != True and new_positive_test_now == True:
                         this_member.label = MemberLabel.F0
                         this_room = this_member.quarantine_room
                         members_in_this_room = this_room.member_x_quarantine_room.all()
@@ -456,6 +460,15 @@ class TestAPI(AbstractView):
                                 member.label = MemberLabel.F1
                                 member.quarantined_finish_expected_at = None
                                 member.save()
+                    elif old_positive_test_now == True and new_positive_test_now == False:
+                        this_room = this_member.quarantine_room
+                        members_in_this_room = this_room.member_x_quarantine_room.all()
+                        for member in list(members_in_this_room):
+                            if member.label != MemberLabel.F0:
+                                number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
+                                member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+                                member.save()
+
                     this_member.last_tested_had_result = test.created_at
                 this_member.save()
             if hasattr(user, 'manager_x_custom_user'):
@@ -580,18 +593,38 @@ class TestAPI(AbstractView):
                     # if this test is the last test of this user that has result
                     if hasattr(test.user, 'member_x_custom_user'):
                         this_member = test.user.member_x_custom_user
+                        old_positive_test_now = this_member.positive_test_now
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_member.positive_test_now)
                         this_member.positive_test_now = new_positive_test_now
-                        if new_positive_test_now == True:
+
+                        if old_positive_test_now != True and new_positive_test_now == True:
                             this_member.label = MemberLabel.F0
+                            this_room = this_member.quarantine_room
+                            members_in_this_room = this_room.member_x_quarantine_room.all()
+                            for member in list(members_in_this_room):
+                                if member.label != MemberLabel.F0:
+                                    member.label = MemberLabel.F1
+                                    member.quarantined_finish_expected_at = None
+                                    member.save()
+                        elif old_positive_test_now == True and new_positive_test_now == False:
+                            this_room = this_member.quarantine_room
+                            members_in_this_room = this_room.member_x_quarantine_room.all()
+                            for member in list(members_in_this_room):
+                                if member.label != MemberLabel.F0:
+                                    number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
+                                    member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+                                    member.save()
+
                         this_member.last_tested_had_result = test.created_at
                         this_member.save()
+
                     if hasattr(test.user, 'manager_x_custom_user'):
                         this_manager = test.user.manager_x_custom_user
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_manager.positive_test_now)
                         this_manager.positive_test_now = new_positive_test_now
                         this_manager.last_tested_had_result = test.created_at
                         this_manager.save()
+                        
                     if hasattr(test.user, 'staff_x_custom_user'):
                         this_staff = test.user.staff_x_custom_user
                         new_positive_test_now = self.calculate_new_conclude_from_test(test, this_staff.positive_test_now)
