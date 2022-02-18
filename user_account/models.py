@@ -203,7 +203,7 @@ class Member(models.Model):
     label = models.CharField(
         max_length=32,
         choices=MemberLabel.choices,
-        default=MemberLabel.F0,
+        default=MemberLabel.F1,
         null=False,
     )
 
