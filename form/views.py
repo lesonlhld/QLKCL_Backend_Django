@@ -461,13 +461,16 @@ class TestAPI(AbstractView):
                                 member.quarantined_finish_expected_at = None
                                 member.save()
                     elif old_positive_test_now == True and new_positive_test_now == False:
+                        this_member.positive_tested_before = True
                         this_room = this_member.quarantine_room
-                        members_in_this_room = this_room.member_x_quarantine_room.all()
-                        for member in list(members_in_this_room):
-                            if member.label != MemberLabel.F0:
-                                number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
-                                member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
-                                member.save()
+                        other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
+                        number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
+                        if number_of_other_positive_member_in_this_room == 0:
+                            for member in list(other_members_in_this_room):
+                                if member.label != MemberLabel.F0:
+                                    number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
+                                    member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+                                    member.save()
 
                     this_member.last_tested_had_result = test.created_at
                 this_member.save()
@@ -607,13 +610,16 @@ class TestAPI(AbstractView):
                                     member.quarantined_finish_expected_at = None
                                     member.save()
                         elif old_positive_test_now == True and new_positive_test_now == False:
+                            this_member.positive_tested_before = True
                             this_room = this_member.quarantine_room
-                            members_in_this_room = this_room.member_x_quarantine_room.all()
-                            for member in list(members_in_this_room):
-                                if member.label != MemberLabel.F0:
-                                    number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
-                                    member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
-                                    member.save()
+                            other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
+                            number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
+                            if number_of_other_positive_member_in_this_room == 0:
+                                for member in list(other_members_in_this_room):
+                                    if member.label != MemberLabel.F0:
+                                        number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
+                                        member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+                                        member.save()
 
                         this_member.last_tested_had_result = test.created_at
                         this_member.save()
