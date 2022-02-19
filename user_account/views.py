@@ -672,10 +672,14 @@ class MemberAPI(AbstractView):
                 if new_label:
                     if new_label != old_label:
                         member.label = new_label
+
                         if old_label != MemberLabel.F0 and new_label == MemberLabel.F0:
                             member.positive_test_now = True
                             
                             if member.custom_user.status == CustomUserStatus.AVAILABLE:
+                                if member.quarantined_finish_expected_at == None:
+                                    number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
+                                    member.quarantined_finish_expected_at = member.quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
                                 # affect other member in this room
                                 this_room = member.quarantine_room
                                 other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=member.id)
@@ -687,20 +691,22 @@ class MemberAPI(AbstractView):
 
                         elif old_label == MemberLabel.F0 and new_label != MemberLabel.F0:
                             member.positive_test_now = None
-                            # check if this room have any positive member
-                            this_room = member.quarantine_room
-                            number_of_other_positive_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=member.id).filter(positive_test_now=True).count()
-                            if number_of_other_positive_members_in_this_room >= 1:
-                                member.label = MemberLabel.F1
-                                member.quarantined_finish_expected_at = None
-                            else:
-                                # affect other member in this room
-                                other_members_in_this_room = list(this_room.member_x_quarantine_room.all().exclude(id=member.id))
-                                for each_member in other_members_in_this_room:
-                                    if each_member.label != MemberLabel.F0:
-                                        number_of_quarantine_days = int(each_member.custom_user.quarantine_ward.quarantine_time)
-                                        each_member.quarantined_finish_expected_at = each_member.quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
-                                        each_member.save()
+
+                            if member.custom_user.status == CustomUserStatus.AVAILABLE:
+                                # check if this room have any positive member
+                                this_room = member.quarantine_room
+                                number_of_other_positive_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=member.id).filter(positive_test_now=True).count()
+                                if number_of_other_positive_members_in_this_room >= 1:
+                                    member.label = MemberLabel.F1
+                                    member.quarantined_finish_expected_at = None
+                                else:
+                                    # affect other member in this room
+                                    other_members_in_this_room = list(this_room.member_x_quarantine_room.all().exclude(id=member.id))
+                                    for each_member in other_members_in_this_room:
+                                        if each_member.label != MemberLabel.F0:
+                                            number_of_quarantine_days = int(each_member.custom_user.quarantine_ward.quarantine_time)
+                                            each_member.quarantined_finish_expected_at = each_member.quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+                                            each_member.save()
 
                 # check room
                 old_room = member.quarantine_room
