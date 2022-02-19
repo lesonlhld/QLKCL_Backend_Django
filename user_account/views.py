@@ -231,14 +231,20 @@ class MemberAPI(AbstractView):
         """
         run this function after changing room of an AVAILABLE member
         """
+        # old room
         if member.positive_test_now == True:
-            members_in_old_room = list(old_room.member_x_quarantine_room.all().exclude(id=member.id))
-            for each_member in members_in_old_room:
-                if each_member.label != MemberLabel.F0:
-                    number_of_quarantine_days = int(each_member.custom_user.quarantine_ward.quarantine_time)
-                    each_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
-            for each_member in members_in_old_room:    
-                each_member.save()
+            remain_members_in_old_room = old_room.member_x_quarantine_room.all().exclude(id=member.id)
+            number_of_remain_positive_member_in_old_room = remain_members_in_old_room.filter(positive_test_now=True).count()
+            if number_of_remain_positive_member_in_old_room == 0:
+                for each_member in remain_members_in_old_room:
+                    if each_member.label != MemberLabel.F0:
+                        number_of_quarantine_days = int(each_member.custom_user.quarantine_ward.quarantine_time)
+                        each_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+                for each_member in remain_members_in_old_room:    
+                    each_member.save()
+
+        # new room
+        #
 
     @csrf_exempt
     @action(methods=['POST'], url_path='register', detail=False)
@@ -429,7 +435,7 @@ class MemberAPI(AbstractView):
             list_to_create_member = set(list_to_create_member) - \
             {'quarantine_room_id', 'care_staff_code'}
             list_to_create_member = list(list_to_create_member) + \
-            ['quarantined_at', 'quarantined_finish_expected_at', 'care_staff',]
+            ['quarantined_at', 'quarantined_finish_expected_at', 'positive_test_now', 'care_staff',]
 
             dict_to_create_member = validator.get_data(list_to_create_member)
 
@@ -448,7 +454,7 @@ class MemberAPI(AbstractView):
                 input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
                 input_dict_for_get_suitable_room['gender'] = custom_user.gender
                 input_dict_for_get_suitable_room['label'] = member.label
-                input_dict_for_get_suitable_room['positive_test_now'] = None
+                input_dict_for_get_suitable_room['positive_test_now'] = member.positive_test_now
                 input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
                 input_dict_for_get_suitable_room['old_quarantine_room'] = None
                 input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
@@ -646,25 +652,69 @@ class MemberAPI(AbstractView):
 
             if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
                 member = custom_user.member_x_custom_user
-                old_room = member.quarantine_room
 
                 list_to_update_member = [key for key in accepted_fields.keys() if key in member_fields]
                 list_to_update_member = set(list_to_update_member) - \
-                {'quarantine_room_id', 'care_staff_code',}
+                {'quarantine_room_id', 'label', 'care_staff_code',}
                 list_to_update_member = list(list_to_update_member) + \
-                ['quarantine_room', 'quarantined_finish_expected_at', 'care_staff',]
+                ['quarantined_finish_expected_at', 'care_staff',]
 
                 dict_to_update_member = validator.get_data(list_to_update_member)
 
                 for attr, value in dict_to_update_member.items(): 
                     setattr(member, attr, value)
 
+                # because extra_validate func, label and room cannot change together
+
+                # check label
+                old_label = member.label
+                new_label = validator.get_field('label')
+                if new_label:
+                    if new_label != old_label:
+                        member.label = new_label
+                        if old_label != MemberLabel.F0 and new_label == MemberLabel.F0:
+                            member.positive_test_now = True
+                            
+                            if member.custom_user.status == CustomUserStatus.AVAILABLE:
+                                # affect other member in this room
+                                this_room = member.quarantine_room
+                                other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=member.id)
+                                for each_member in list(other_members_in_this_room):
+                                    if each_member.label != MemberLabel.F0:
+                                        each_member.label = MemberLabel.F1
+                                        each_member.quarantined_finish_expected_at = None
+                                        each_member.save()
+
+                        elif old_label == MemberLabel.F0 and new_label != MemberLabel.F0:
+                            member.positive_test_now = None
+                            # check if this room have any positive member
+                            this_room = member.quarantine_room
+                            number_of_other_positive_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=member.id).filter(positive_test_now=True).count()
+                            if number_of_other_positive_members_in_this_room >= 1:
+                                member.label = MemberLabel.F1
+                                member.quarantined_finish_expected_at = None
+                            else:
+                                # affect other member in this room
+                                other_members_in_this_room = list(this_room.member_x_quarantine_room.all().exclude(id=member.id))
+                                for each_member in other_members_in_this_room:
+                                    if each_member.label != MemberLabel.F0:
+                                        number_of_quarantine_days = int(each_member.custom_user.quarantine_ward.quarantine_time)
+                                        each_member.quarantined_finish_expected_at = each_member.quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+                                        each_member.save()
+
+                # check room
+                old_room = member.quarantine_room
+                new_room = validator.get_field('quarantine_room')
+                if new_room:
+                    if new_room != old_room:
+                        check_room_result = self.check_room_for_member(user=custom_user, room=new_room)
+                        if check_room_result != messages.SUCCESS:
+                            raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
+                        member.quarantine_room = new_room
+                        self.do_after_member_change_room_work(member, old_room)
+
                 member_serializer = MemberSerializer(member, many=False)
                 response_data['member'] = member_serializer.data
-
-                # if change room, do 'after change room' work
-                if old_room != member.quarantine_room:
-                    self.do_after_member_change_room_work(member, old_room)
 
                 member.save()
 

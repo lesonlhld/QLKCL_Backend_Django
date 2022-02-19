@@ -85,3 +85,5 @@ ISNOTLEAVE = 'This user is not leave'
 CANNOT_FINISH_QUARANTINE = 'This user cannot finish quarantine'
 
 NOT_IN_QUARANTINE_WARD_OF_MEMBER = r"""Not in the quarantine ward of this member"""
+
+CANNOT_CHANGE_ROOM_LABEL_TOGETHER = 'Cannot change room and label together'
