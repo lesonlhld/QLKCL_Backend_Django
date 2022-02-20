@@ -1410,6 +1410,53 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @action(methods=['POST'], url_path='hospitalize', detail=False)
+    def hospitalize(self, request):
+        """Hospitalize a 'AVAILABLE' member.
+
+        Args:
+            + code: String
+        """
+
+        
+        accept_fields = [
+            'code'
+        ]
+
+        require_fields = [
+            'code'
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+
+            validator.extra_validate_to_hospitalize()
+
+            custom_user = validator.get_field('custom_user')
+            member = custom_user.member_x_custom_user
+
+            # hospitalize
+            custom_user.status = CustomUserStatus.LEAVE
+            member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE
+            member.quarantine_room = None
+            
+            custom_user.save()
+            member.save()
+
+            return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
     @action(methods=['POST'], url_path='requarantine', detail=False)
     def requarantine(self, request):
         """Requarantine a 'LEAVE' member. This member will be added to waiting member list
