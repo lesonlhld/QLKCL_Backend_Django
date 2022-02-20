@@ -621,8 +621,8 @@ class TestAPI(AbstractView):
                                 
                                 # affect other members in this room
                                 this_room = this_member.quarantine_room
-                                members_in_this_room = this_room.member_x_quarantine_room.all()
-                                for member in list(members_in_this_room):
+                                other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
+                                for member in list(other_members_in_this_room):
                                     if member.label != MemberLabel.F0:
                                         member.label = MemberLabel.F1
                                         member.quarantined_finish_expected_at = None
