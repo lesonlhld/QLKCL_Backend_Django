@@ -990,11 +990,19 @@ class UserValidator(validators.AbstractRequestValidate):
         else:
             self._care_staff = None
 
+    def extra_validate_to_hospitalize(self):
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
+        if hasattr(self, '_custom_user') and self._custom_user:
+            if self._custom_user.role.name != 'MEMBER' or not hasattr(self._custom_user, 'member_x_custom_user'):
+                raise exceptions.ValidationException({'code': messages.ISNOTMEMBER})
+            if self._custom_user.status != CustomUserStatus.AVAILABLE:
+                raise exceptions.ValidationException({'code': messages.ISNOTAVAILABLE})
     def extra_validate_to_requarantine(self):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
         if hasattr(self, '_custom_user') and self._custom_user:
             if self._custom_user.role.name != 'MEMBER' or not hasattr(self._custom_user, 'member_x_custom_user'):
                 raise exceptions.ValidationException({'code': messages.ISNOTMEMBER})
-            if self._custom_user.status != 'LEAVE':
+            if self._custom_user.status != CustomUserStatus.LEAVE:
                 raise exceptions.ValidationException({'code': messages.ISNOTLEAVE})
