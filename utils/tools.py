@@ -5,6 +5,7 @@ from random import randint
 from datetime import time, timezone
 import pytz
 import math, random
+from .enums import MemberLabel
 
 def split_input_list(str_list):
     """
@@ -104,3 +105,45 @@ def custom_user_code_generator(quarantine_ward_id):
     third_part = ''.join(str(randint(0, 9)) for i in range(third_part_length))
 
     return first_part + second_part + third_part
+
+def get_key_from_value_in_dict(dict, value):
+    return list(dict.keys())[list(dict.values()).index(value)]
+
+class LabelTool:
+    label_value_dict = {
+        MemberLabel.F0 : 0,
+        MemberLabel.F1 : 1,
+        MemberLabel.F2 : 2,
+        MemberLabel.F3 : 3,
+        MemberLabel.FROM_EPIDEMIC_AREA : 4,
+        MemberLabel.ABROAD : 5,
+    }
+
+    def get_value_of_label(self, label):
+        return self.label_value_dict[label]
+
+    def is_F_label(self, label):
+        if 0 <= self.get_value_of_label(label) <= 3:
+            return True
+        else:
+            return False
+
+    def compare_label(self, label1, label2):
+        """
+        label1 serious more than label2: return 1
+        label1 serious same than label2: return 0
+        label1 serious less than label2: return -1
+        """
+        if self.get_value_of_label(label1) < self.get_value_of_label(label2): return 1
+        if self.get_value_of_label(label1) == self.get_value_of_label(label2): return 0
+        if self.get_value_of_label(label1) > self.get_value_of_label(label2): return -1
+
+    def down_label(self, label):
+        """
+        return label that less serious than input label one level
+        """
+        try:
+            new_label_value = self.get_value_of_label(label) + 1
+            return get_key_from_value_in_dict(self.label_value_dict, new_label_value)
+        except Exception as exception:
+            return label
