@@ -1121,6 +1121,7 @@ class MemberAPI(AbstractView):
             - quarantine_floor_id: String
             - quarantine_room_id: String
             - label_list: String <label>,<label> ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            - care_staff_code: String
             - page: int
             - page_size: int
             - search: String
@@ -1135,7 +1136,7 @@ class MemberAPI(AbstractView):
             'quarantined_finish_expected_at_max',
             'quarantine_ward_id', 'quarantine_building_id',
             'quarantine_floor_id', 'quarantine_room_id',
-            'label_list',
+            'label_list', 'care_staff_code',
             'page', 'page_size', 'search',
         ]
 
@@ -1214,11 +1215,12 @@ class MemberAPI(AbstractView):
 
         Args:
             + role_name_list: String <role_name>,<role_name> ['MEMBER', 'SUPER_MANAGER', 'MANAGER', 'ADMINISTRATOR', 'STAFF']
+            - quarantine_ward_id: String
         """
 
         
         accept_fields = [
-            'role_name_list',
+            'role_name_list', 'quarantine_ward_id',
         ]
 
         try:
@@ -1232,12 +1234,21 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_missing_fields(['role_name_list',])
-
             validator.is_valid_fields([
                 'role_name_list',
             ])
+            validator.extra_validate_to_filter_not_member()
 
-            dict_to_filter_user = validator.get_data(['role_name_list',])
+            dict_to_filter_user = validator.get_data(['role_name_list', 'quarantine_ward_id', 'status'])
+
+            # Check ward of sender
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                if hasattr(validator, '_quarantine_ward'):
+                    # Sender want filter with ward, building, floor or room
+                    if validator.get_field('quarantine_ward') != request.user.quarantine_ward:
+                        raise exceptions.AuthenticationException({'quarantine_ward_id': messages.NO_PERMISSION})
+                else:
+                    dict_to_filter_user['quarantine_ward_id'] = request.user.quarantine_ward.id
 
             dict_to_filter_user.setdefault('order_by', '-created_at')
 

@@ -5,6 +5,16 @@ from utils.tools import split_input_list
 
 class UserFilter(django_filters.FilterSet):
 
+    status = django_filters.CharFilter(
+        field_name='status',
+        lookup_expr='iexact',
+    )
+
+    quarantine_ward_id = django_filters.CharFilter(
+        field_name='quarantine_ward__id',
+        lookup_expr='iexact',
+    )
+
     role_name_list = django_filters.CharFilter(method='role_name_in_list')
 
     def role_name_in_list(self, queryset, name, value):

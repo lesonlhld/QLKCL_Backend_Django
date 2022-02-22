@@ -104,6 +104,11 @@ class MemberFilter(django_filters.FilterSet):
         lookup_expr='iexact',
     )
 
+    care_staff_code = django_filters.CharFilter(
+        field_name='member_x_custom_user__care_staff__code',
+        lookup_expr='iexact',
+    )
+
     role_name = django_filters.CharFilter(
         field_name='role__name',
         lookup_expr='iexact',

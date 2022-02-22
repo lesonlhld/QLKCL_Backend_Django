@@ -923,6 +923,8 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
             raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
         self.check_quarantine_ward_room_relationship()
+        if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
+            raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
         if hasattr(self, '_positive_test_now'):
             if (self._positive_test_now):
                 self._positive_test_now = 'true'
@@ -954,6 +956,12 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
+
+    def extra_validate_to_filter_not_member(self):
+        if not hasattr(self, '_status'):
+            self._status = CustomUserStatus.AVAILABLE
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
 
     def extra_validate_to_get_suitable_room(self):
         if not hasattr(self, '_positive_test_now'):
