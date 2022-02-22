@@ -726,7 +726,7 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
         if hasattr(self, '_custom_user'):
-            if self._custom_user.role.name != 'MEMBER':
+            if self._custom_user.role.name != 'MEMBER' or not hasattr(self._custom_user, 'member_x_custom_user'):
                 raise exceptions.ValidationException({'main': messages.ISNOTMEMBER})
         if hasattr(self, '_email') and not self.is_new_email_valid():
             raise exceptions.NotFoundException({'email': messages.EXIST})
