@@ -1006,6 +1006,7 @@ class UserValidator(validators.AbstractRequestValidate):
                 raise exceptions.ValidationException({'code': messages.ISNOTMEMBER})
             if self._custom_user.status != CustomUserStatus.AVAILABLE:
                 raise exceptions.ValidationException({'code': messages.ISNOTAVAILABLE})
+
     def extra_validate_to_requarantine(self):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
