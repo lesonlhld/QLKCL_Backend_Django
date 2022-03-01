@@ -6,6 +6,7 @@ from django.db.models import Count, Avg, Q
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
+from .validators.home import HomeValidator
 from .models import CustomUser, Member, Manager, Staff
 from .serializers import (
     CustomUserSerializer, MemberSerializer,
@@ -2065,10 +2066,32 @@ class HomeAPI(AbstractView):
         """Get informations to display home screen for manager
 
         Args:
-            None
+            + number_of_days_in_out: int
         """
 
+        accept_fields = [
+            'number_of_days_in_out'
+        ]
+
+        require_fields = [
+            'number_of_days_in_out'
+        ]
+
         try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = HomeValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(['number_of_days_in_out'])
+
+            number_of_days_in_out = validator.get_field('number_of_days_in_out')
+
             sender_role_name = request.user.role.name
             if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
                 raise exceptions.AuthenticationException()
@@ -2081,24 +2104,38 @@ class HomeAPI(AbstractView):
             users_query_set = CustomUser.objects.all()
             tests_query_set = Test.objects.all()
 
-            # Calculate number of waiting users
+            # Calculate number of members
 
-            dict_to_filter_waiting_users = {
+            dict_to_filter_members = {
+                'role_name': 'MEMBER',
+                'status': CustomUserStatus.AVAILABLE,
+            }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_members['quarantine_ward_id'] = sender_quarantine_ward_id
+
+            filter = MemberFilter(dict_to_filter_members, queryset=users_query_set)
+
+            number_of_members = filter.qs.count()
+
+            # Calculate number of waiting members
+
+            dict_to_filter_waiting_members = {
                 'role_name': 'MEMBER',
                 'status': CustomUserStatus.WAITING,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_waiting_users['quarantine_ward_id'] = sender_quarantine_ward_id
+                dict_to_filter_waiting_members['quarantine_ward_id'] = sender_quarantine_ward_id
 
-            filter = MemberFilter(dict_to_filter_waiting_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_waiting_members, queryset=users_query_set)
 
-            number_of_waiting_users = filter.qs.count()
+            number_of_waiting_members = filter.qs.count()
 
-            # Calculate number of suspected users
+            # Calculate number of suspected members
 
-            dict_to_filter_suspected_users = {
+            dict_to_filter_suspected_members = {
                 'role_name': 'MEMBER',
                 'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
                 'status': CustomUserStatus.AVAILABLE,
@@ -2106,18 +2143,18 @@ class HomeAPI(AbstractView):
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_suspected_users['quarantine_ward_id'] = sender_quarantine_ward_id
+                dict_to_filter_suspected_members['quarantine_ward_id'] = sender_quarantine_ward_id
 
-            filter = MemberFilter(dict_to_filter_suspected_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_suspected_members, queryset=users_query_set)
 
-            number_of_suspected_users = filter.qs.count()
+            number_of_suspected_members = filter.qs.count()
 
-            # Calculate number of need test users
+            # Calculate number of need test members
 
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
 
-            dict_to_filter_need_test_users = {
+            dict_to_filter_need_test_members = {
                 'role_name': 'MEMBER',
                 'last_tested_max': last_tested_max,
                 'status': CustomUserStatus.AVAILABLE,
@@ -2125,19 +2162,19 @@ class HomeAPI(AbstractView):
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_need_test_users['quarantine_ward_id'] = sender_quarantine_ward_id
+                dict_to_filter_need_test_members['quarantine_ward_id'] = sender_quarantine_ward_id
 
-            filter = MemberFilter(dict_to_filter_need_test_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_need_test_members, queryset=users_query_set)
 
-            number_of_need_test_users = filter.qs.count()
+            number_of_need_test_members = filter.qs.count()
 
-            # Calculate number of can finish users
+            # Calculate number of can finish members
 
             positive_test_now = 'false'
             health_status_list = HealthStatus.NORMAL
             quarantined_finish_expected_at_max = timezone.now()
 
-            dict_to_filter_can_finish_users = {
+            dict_to_filter_can_finish_members = {
                 'role_name': 'MEMBER',
                 'positive_test_now': positive_test_now,
                 'health_status_list': health_status_list,
@@ -2147,11 +2184,11 @@ class HomeAPI(AbstractView):
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_can_finish_users['quarantine_ward_id'] = sender_quarantine_ward_id
+                dict_to_filter_can_finish_members['quarantine_ward_id'] = sender_quarantine_ward_id
 
-            filter = MemberFilter(dict_to_filter_can_finish_users, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_can_finish_members, queryset=users_query_set)
 
-            number_of_can_finish_users = filter.qs.count()
+            number_of_can_finish_members = filter.qs.count()
 
             # Calculate number of waiting tests
 
@@ -2163,11 +2200,11 @@ class HomeAPI(AbstractView):
 
             number_of_waiting_tests = filter.qs.count()
 
-            # Calculate number of member 'in' today
+            # Calculate number of member 'in'
 
             dict_of_in_members = dict()
 
-            for day_sub in range(3):
+            for day_sub in range(number_of_days_in_out - 1, -1, -1):
                 day = timezone.now() - datetime.timedelta(days=day_sub)
                 day = day.astimezone(pytz.timezone('Asia/Saigon'))
                 start_of_day = datetime.datetime(day.year, day.month, day.day)
@@ -2186,13 +2223,13 @@ class HomeAPI(AbstractView):
 
                 filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
 
-                dict_of_in_members[f'{day}'] = filter.qs.count()
+                dict_of_in_members[f'{day}'[:10]] = filter.qs.count()
 
-            # Calculate number of member 'out' today
+            # Calculate number of member 'out'
 
             dict_of_out_members = dict()
 
-            for day_sub in range(3):
+            for day_sub in range(number_of_days_in_out - 1, -1, -1):
                 day = timezone.now() - datetime.timedelta(days=day_sub)
                 day = day.astimezone(pytz.timezone('Asia/Saigon'))
                 start_of_day = datetime.datetime(day.year, day.month, day.day)
@@ -2211,13 +2248,14 @@ class HomeAPI(AbstractView):
 
                 filter = MemberFilter(dict_to_filter_out_members, queryset=users_query_set)
 
-                dict_of_out_members[f'{day}'] = filter.qs.count()
+                dict_of_out_members[f'{day}'[:10]] = filter.qs.count()
 
             response_data = {
-                'number_of_waiting_users': number_of_waiting_users,
-                'number_of_suspected_users': number_of_suspected_users,
-                'number_of_need_test_users': number_of_need_test_users,
-                'number_of_can_finish_users': number_of_can_finish_users,
+                'number_of_members': number_of_members,
+                'number_of_waiting_members': number_of_waiting_members,
+                'number_of_suspected_members': number_of_suspected_members,
+                'number_of_need_test_members': number_of_need_test_members,
+                'number_of_can_finish_members': number_of_can_finish_members,
                 'number_of_waiting_tests': number_of_waiting_tests,
                 'in': dict_of_in_members,
                 'out': dict_of_out_members,
