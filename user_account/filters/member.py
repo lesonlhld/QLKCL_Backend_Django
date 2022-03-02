@@ -135,6 +135,7 @@ class MemberFilter(django_filters.FilterSet):
     def query_search(self, queryset, name, value):
         query = (
             Q(full_name__icontains=value) |
+            Q(full_name__unaccent__icontains=value) |
             Q(code__iexact=value) |
             Q(phone_number__iexact=value)
         )
