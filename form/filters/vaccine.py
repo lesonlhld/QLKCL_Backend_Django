@@ -29,7 +29,8 @@ class VaccineDoseFilter(django_filters.FilterSet):
 
     def query_search(self, queryset, name, value):
         query = (
-            Q(vaccine__name__icontains=value)
+            Q(vaccine__name__icontains=value) |
+            Q(vaccine__name__unaccent__icontains=value)
         )
         qs = queryset.filter(query)
         return qs

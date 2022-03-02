@@ -56,6 +56,7 @@ class TestFilter(django_filters.FilterSet):
     def query_search(self, queryset, name, value):
         query = (
             Q(user__full_name__icontains=value) |
+            Q(user__full_name__unaccent__icontains=value) |
             Q(code__iexact=value)
         )
         qs = queryset.filter(query)
