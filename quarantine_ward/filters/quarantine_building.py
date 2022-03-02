@@ -19,7 +19,8 @@ class QuarantineBuildingFilter(django_filters.FilterSet):
 
     def query_search(self, queryset, name, value):
         query = (
-            Q(name__icontains=value)
+            Q(name__icontains=value) |
+            Q(name__unaccent__icontains=value)
         )
         qs = queryset.filter(query)
         return qs

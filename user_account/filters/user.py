@@ -21,7 +21,8 @@ class UserFilter(django_filters.FilterSet):
         # value in String, not list, so need to convert String to list
         value = split_input_list(value)
         query = (
-            Q(role__name__in=value)
+            Q(role__name__in=value) |
+            Q(role__name__unaccent__in=value)
         )
         qs = queryset.filter(query)
         return qs
