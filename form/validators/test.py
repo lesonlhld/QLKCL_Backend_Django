@@ -1,6 +1,7 @@
 from django.db.models import Q
 from ..models import MedicalDeclaration, Test
 from user_account.models import CustomUser
+from quarantine_ward.models import QuarantineWard, QuarantineBuilding, QuarantineFloor, QuarantineRoom
 from form.models import Symptom
 from utils import validators, messages, exceptions
 from utils.enums import TestStatus, TestType, TestResult
@@ -100,6 +101,89 @@ class TestValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def is_quarantine_ward_id_exist(self):
+        if hasattr(self, '_quarantine_ward_id'):
+            try:
+                self._quarantine_ward = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineWard,
+                    query_expr=Q(id=self._quarantine_ward_id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return True
+
+    def is_quarantine_building_id_exist(self):
+        if hasattr(self, '_quarantine_building_id'):
+            try:
+                self._quarantine_building = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineBuilding,
+                    query_expr=Q(id=self._quarantine_building_id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return True
+
+    def is_quarantine_floor_id_exist(self, id=None):
+        if id:
+            try:
+                validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineFloor,
+                    query_expr=Q(id=id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        elif hasattr(self, '_quarantine_floor_id'):
+            try:
+                self._quarantine_floor = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineFloor,
+                    query_expr=Q(id=self._quarantine_floor_id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return True
+
+    def is_quarantine_room_id_exist(self):
+        if hasattr(self, '_quarantine_room_id'):
+            try:
+                self._quarantine_room = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineRoom,
+                    query_expr=Q(id=self._quarantine_room_id),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return True
+
+
+    def check_quarantine_ward_room_relationship(self):
+        if hasattr(self, '_quarantine_room'):
+            if not hasattr(self, '_quarantine_floor'):
+                self._quarantine_floor = self._quarantine_room.quarantine_floor
+                self._quarantine_floor_id = self._quarantine_room.quarantine_floor.id
+            else:
+                if self._quarantine_floor != self._quarantine_room.quarantine_floor:
+                    raise exceptions.ValidationException({'quarantine_ward_room_relationship': messages.INVALID})
+        
+        if hasattr(self, '_quarantine_floor'):
+            if not hasattr(self, '_quarantine_building'):
+                self._quarantine_building = self._quarantine_floor.quarantine_building
+                self._quarantine_building_id = self._quarantine_floor.quarantine_building.id
+            else:
+                if self._quarantine_building != self._quarantine_floor.quarantine_building:
+                    raise exceptions.ValidationException({'quarantine_ward_room_relationship': messages.INVALID})
+
+        if hasattr(self, '_quarantine_building'):
+            if not hasattr(self, '_quarantine_ward'):
+                self._quarantine_ward = self._quarantine_building.quarantine_ward
+                self._quarantine_ward_id = self._quarantine_building.quarantine_ward.id
+            else:
+                if self._quarantine_ward != self._quarantine_building.quarantine_ward:
+                    raise exceptions.ValidationException({'quarantine_ward_room_relationship': messages.INVALID})
+
     def extra_validate_to_create_test(self):
         if hasattr(self, '_user_code') and not self.is_user_code_exist():
             raise exceptions.ValidationException({'user_code': messages.NOT_EXIST})
@@ -115,4 +199,13 @@ class TestValidator(validators.AbstractRequestValidate):
     def extra_validate_to_filter_test(self):
         if hasattr(self, '_user_code') and not self.is_user_code_exist():
             raise exceptions.ValidationException({'main': messages.USER_NOT_FOUND})
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_building_id') and not self.is_quarantine_building_id_exist():
+            raise exceptions.NotFoundException({'quarantine_building_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_floor_id') and not self.is_quarantine_floor_id_exist():
+            raise exceptions.NotFoundException({'quarantine_floor_id': messages.NOT_EXIST})
+        if hasattr(self, '_quarantine_room_id') and not self.is_quarantine_room_id_exist():
+            raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        self.check_quarantine_ward_room_relationship()
         

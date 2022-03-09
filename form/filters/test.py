@@ -44,6 +44,26 @@ class TestFilter(django_filters.FilterSet):
         lookup_expr='lte',
     )
 
+    quarantine_ward_id = django_filters.CharFilter(
+        field_name='user__quarantine_ward__id',
+        lookup_expr='iexact',
+    )
+
+    quarantine_building_id = django_filters.CharFilter(
+        field_name='user__member_x_custom_user__quarantine_room__quarantine_floor__quarantine_building__id',
+        lookup_expr='iexact',
+    )
+
+    quarantine_floor_id = django_filters.CharFilter(
+        field_name='user__member_x_custom_user__quarantine_room__quarantine_floor__id',
+        lookup_expr='iexact',
+    )
+
+    quarantine_room_id = django_filters.CharFilter(
+        field_name='user__member_x_custom_user__quarantine_room__id',
+        lookup_expr='iexact',
+    )
+
     order_by = django_filters.OrderingFilter(
         fields=(
             ('created_at', 'created_at'),
