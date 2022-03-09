@@ -680,6 +680,10 @@ class TestAPI(AbstractView):
             - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - updated_at_max: String vd:'2000-01-26T01:23:45.123456Z'
             - updated_at_min: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantine_ward_id: String
+            - quarantine_building_id: String
+            - quarantine_floor_id: String
+            - quarantine_room_id: String
             - page: int
             - page_size: int
             - search: String
@@ -690,6 +694,8 @@ class TestAPI(AbstractView):
             'result', 'type',
             'created_at_max', 'created_at_min',
             'updated_at_max', 'updated_at_min',
+            'quarantine_ward_id', 'quarantine_building_id',
+            'quarantine_floor_id', 'quarantine_room_id',
             'page', 'page_size', 'search',
         ]
 
@@ -718,6 +724,15 @@ class TestAPI(AbstractView):
             {'page', 'page_size'}
 
             dict_to_filter_test = validator.get_data(list_to_filter_test)
+
+            # Check ward of sender
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                if hasattr(validator, '_quarantine_ward'):
+                    # Sender want filter with ward, building, floor or room
+                    if validator.get_field('quarantine_ward') != request.user.quarantine_ward:
+                        raise exceptions.AuthenticationException({'quarantine_ward_id': messages.NO_PERMISSION})
+                else:
+                    dict_to_filter_test['quarantine_ward_id'] = request.user.quarantine_ward.id
 
             dict_to_filter_test.setdefault('order_by', '-created_at')
 
