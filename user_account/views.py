@@ -251,6 +251,15 @@ class MemberAPI(AbstractView):
         # new room
         if new_room != None and new_room != old_room:
             if member.label != MemberLabel.F0:
+
+                # set quarantined_finish_expected_at for this member
+                number_of_other_members_in_new_room = new_room.member_x_quarantine_room.all().exclude(id=member.id).count()
+                if number_of_other_members_in_new_room >= 1:
+                    number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
+                    member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)  
+                    member.save()
+
+                # get all members in new room
                 members_in_new_room = list(new_room.member_x_quarantine_room.all())
                 if member not in members_in_new_room:
                     # member.save() have not run
