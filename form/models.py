@@ -6,6 +6,64 @@ from utils.enums import SymptomType, TestStatus, TestResult, TestType, HealthDec
 
 # Create your models here.
 
+class Pandemic(models.Model):
+
+    name = models.CharField(max_length=255, null=False)
+
+    quarantine_time_not_vac = models.IntegerField(default=14, null=False)
+
+    quarantine_time_vac = models.IntegerField(default=10, null=False)
+
+    remain_qt_cc_pos_vac = models.IntegerField(default=10, null=False)
+
+    remain_qt_cc_pos_not_vac = models.IntegerField(default=14, null=False)
+
+    remain_qt_cc_not_pos_vac = models.IntegerField(default=5, null=False)
+
+    remain_qt_cc_not_pos_not_vac = models.IntegerField(default=7, null=False)
+
+    remain_qt_pos_vac = models.IntegerField(default=10, null=False)
+
+    remain_qt_pos_not_vac = models.IntegerField(default=14, null=False)
+
+    test_type_pos_to_neg_vac = models.CharField(
+        max_length=32,
+        choices=TestType.choices,
+        default=TestType.QUICK,
+        null=False,
+    )
+
+    num_test_pos_to_neg_vac = models.IntegerField(default=1, null=False)
+
+    test_type_pos_to_neg_not_vac = models.CharField(
+        max_length=32,
+        choices=TestType.choices,
+        default=TestType.RT_PCR,
+        null=False,
+    )
+
+    num_test_pos_to_neg_not_vac = models.IntegerField(default=1, null=False)
+
+    test_type_none_to_neg_vac = models.CharField(
+        max_length=32,
+        choices=TestType.choices,
+        default=TestType.QUICK,
+        null=False,
+    )
+
+    num_test_none_to_neg_vac = models.IntegerField(default=1, null=False)
+
+    test_type_none_to_neg_not_vac = models.CharField(
+        max_length=32,
+        choices=TestType.choices,
+        default=TestType.QUICK,
+        null=False,
+    )
+
+    num_test_none_to_neg_not_vac = models.IntegerField(default=1, null=False)
+
+    num_day_to_close_room = models.IntegerField(default=1, null=False)
+
 class BackgroundDisease(models.Model):
 
     name = models.CharField(max_length=64, unique=True, null=False)
