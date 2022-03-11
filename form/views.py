@@ -8,11 +8,13 @@ from django.utils import timezone
 from utils.views import paginate_data
 from rest_framework import permissions
 from rest_framework.decorators import action
-from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test, Vaccine, VaccineDose
+from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test, Vaccine, VaccineDose, Pandemic
 from .validators.medical_declaration import MedicalDeclarationValidator
 from .validators.test import TestValidator
 from .validators.vaccine import VaccineValidator, VaccineDoseValidator
+from .validators.pandemic import PandemicValidator
 from .serializers import (
+    PandemicSerializer,
     MedicalDeclarationSerializer,
     FilterMedicalDeclarationSerializer,
     TestSerializer,
@@ -31,6 +33,58 @@ from utils.enums import SymptomType, TestResult, TestType, HealthStatus, MemberL
 from utils.views import AbstractView
 
 # Create your views here.
+
+class PandemicAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_pandemic(self, request):
+        """Create a pandemic
+
+        Args:
+            + name: String
+        """
+
+        accept_fields = [
+            'name',
+        ]
+
+        require_fields = [
+            'name',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = PandemicValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            
+            validator.extra_validate_to_create_pandemic()
+
+            list_to_create_pandemic = [key for key in accepted_fields.keys()]
+
+            dict_to_create_pandemic = validator.get_data(list_to_create_pandemic)
+
+            pandemic = Pandemic(**dict_to_create_pandemic)
+            
+            pandemic.created_by = request.user
+            pandemic.updated_by = request.user
+            
+            pandemic.save()
+
+            serializer = PandemicSerializer(pandemic, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
 
 class BackgroundDiseaseAPI(AbstractView):
 
