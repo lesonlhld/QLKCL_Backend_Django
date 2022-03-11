@@ -1,6 +1,12 @@
 from rest_framework import serializers
-from .models import MedicalDeclaration, Test, BackgroundDisease, Symptom, Vaccine, VaccineDose
+from .models import MedicalDeclaration, Test, BackgroundDisease, Symptom, Vaccine, VaccineDose, Pandemic
 from user_account.serializers import BaseCustomUserSerializer, BaseBaseCustomUserSerializer
+
+class PandemicSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Pandemic
+        fields = '__all__'
 
 class BaseBackgroundDiseaseSerializer(serializers.ModelSerializer):
 
