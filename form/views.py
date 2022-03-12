@@ -95,7 +95,7 @@ class PandemicAPI(AbstractView):
         """Get a pandemic
 
         Args:
-            + id: int     
+            + id: int
         """
 
         accept_fields = [
@@ -221,7 +221,7 @@ class PandemicAPI(AbstractView):
     @csrf_exempt
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_pandemic(self, request):
-        """Filter a pandemic
+        """Get a list of pandemics
 
         Args:
             None    
