@@ -1,6 +1,7 @@
 from django.db import models
 from address.models import Country, City, District, Ward
 from user_account.models import CustomUser
+from form.models import Pandemic
 from utils.enums import QuarantineWardStatus, QuarantineWardType
 
 # Create your models here.
@@ -78,6 +79,14 @@ class QuarantineWard(models.Model):
         to=CustomUser,
         on_delete=models.SET_NULL,
         related_name='quarantine_ward_x_main_manager',
+        null=True,
+        blank=True,
+    )
+
+    pandemic = models.ForeignKey(
+        to=Pandemic,
+        on_delete=models.SET_NULL,
+        related_name='quarantine_ward_x_pandemic',
         null=True,
         blank=True,
     )
