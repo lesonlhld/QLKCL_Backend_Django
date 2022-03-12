@@ -97,6 +97,7 @@ class QuarantineWardAPI (AbstractView):
             - status (str)
             - type (str)
             - quarantine_time (int)
+            - pandemic_id (int)
             - image (str): <filename>,<filename>
             + main_manager (str): code
         """
@@ -105,6 +106,7 @@ class QuarantineWardAPI (AbstractView):
             'email', 'full_name', 'country', 'city',
             'district', 'ward', 'address', 'latitude',
             'longitude', 'status', 'type', 'quarantine_time',
+            'pandemic_id',
             'main_manager', 'phone_number', 'image',
         ]
 
@@ -131,6 +133,8 @@ class QuarantineWardAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
             list_to_create = accepted_fields.keys()
+            list_to_create = set(list_to_create) - {'pandemic_id'}
+            list_to_create = list(list_to_create) + ['pandemic']
             dict_to_create = validator.get_data(list_to_create)
             quarantine_ward = QuarantineWard(**dict_to_create)
             quarantine_ward.created_by = user
@@ -163,13 +167,14 @@ class QuarantineWardAPI (AbstractView):
             - type (str)
             - quarantine_time (int)
             - main_manager (str): code
+            - pandemic_id (int)
         """
 
         accept_fields = [
             'id', 'email', 'full_name', 'image', 'country', 'city',
             'district', 'ward', 'address', 'latitude',
             'longitude', 'status', 'type', 'quarantine_time',
-            'main_manager', 'phone_number',
+            'pandemic_id', 'main_manager', 'phone_number',
         ]
 
         require_fields = [
@@ -198,7 +203,7 @@ class QuarantineWardAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
             quarantine_ward = validator.get_field('id')
-            list_to_update = accepted_fields.keys() - {'id'}
+            list_to_update = accepted_fields.keys() - {'id', 'pandemic_id'}
             
             dict_to_update = validator.get_data(list_to_update)
             quarantine_ward.__dict__.update(**dict_to_update)
@@ -209,6 +214,8 @@ class QuarantineWardAPI (AbstractView):
                 quarantine_ward.ward = validator.get_field('ward')
             if validator.has_field('main_manager'):
                 quarantine_ward.main_manager = validator.get_field('main_manager')
+            if validator.has_field('pandemic'):
+                quarantine_ward.pandemic = validator.get_field('pandemic')
             quarantine_ward.updated_by = user
             quarantine_ward.save()
             serializer = QuarantineWardSerializer(quarantine_ward, many=False)
