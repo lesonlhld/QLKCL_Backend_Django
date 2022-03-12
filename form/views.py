@@ -56,6 +56,9 @@ class PandemicAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -85,6 +88,155 @@ class PandemicAPI(AbstractView):
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get', detail=False)
+    def get_pandemic(self, request):
+        """Get a pandemic
+
+        Args:
+            + id: int     
+        """
+
+        accept_fields = [
+            'id',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = PandemicValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_to_get_pandemic()
+
+            pandemic = validator.get_field('pandemic')
+
+            serializer = PandemicSerializer(pandemic, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='update', detail=False)
+    def update_pandemic(self, request):
+        """Update a pandemic
+
+        Args:
+            + id: int
+            - name: String
+            - quarantine_time_not_vac: int
+            - quarantine_time_vac: int
+            - remain_qt_cc_pos_vac: int
+            - remain_qt_cc_pos_not_vac: int
+            - remain_qt_cc_not_pos_vac: int
+            - remain_qt_cc_not_pos_not_vac: int
+            - remain_qt_pos_vac: int
+            - remain_qt_pos_not_vac: int
+            - test_type_pos_to_neg_vac: String ['QUICK', 'RT-PCR']
+            - num_test_pos_to_neg_vac: int
+            - test_type_pos_to_neg_not_vac: String ['QUICK', 'RT-PCR']
+            - num_test_pos_to_neg_not_vac: int
+            - test_type_none_to_neg_vac: String ['QUICK', 'RT-PCR']
+            - num_test_none_to_neg_vac: int
+            - test_type_none_to_neg_not_vac: String ['QUICK', 'RT-PCR']
+            - num_test_none_to_neg_not_vac: int
+            - num_day_to_close_room: int
+        """
+
+        accept_fields = [
+            'id', 'name', 'quarantine_time_not_vac',
+            'quarantine_time_vac', 'remain_qt_cc_pos_vac',
+            'remain_qt_cc_pos_not_vac', 'remain_qt_cc_not_pos_vac',
+            'remain_qt_cc_not_pos_not_vac', 'remain_qt_pos_vac',
+            'remain_qt_pos_not_vac', 'test_type_pos_to_neg_vac',
+            'num_test_pos_to_neg_vac', 'test_type_pos_to_neg_not_vac',
+            'num_test_pos_to_neg_not_vac', 'test_type_none_to_neg_vac',
+            'num_test_none_to_neg_vac', 'test_type_none_to_neg_not_vac',
+            'num_test_none_to_neg_not_vac', 'num_day_to_close_room',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = PandemicValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_positive_integer([
+                'quarantine_time_not_vac', 'quarantine_time_vac',
+                'remain_qt_cc_pos_vac', 'remain_qt_cc_pos_not_vac',
+                'remain_qt_cc_not_pos_vac', 'remain_qt_cc_not_pos_not_vac',
+                'remain_qt_pos_vac', 'remain_qt_pos_not_vac',
+                'num_test_pos_to_neg_vac', 'num_test_pos_to_neg_not_vac',
+                'num_test_none_to_neg_vac', 'num_test_none_to_neg_not_vac',
+                'num_day_to_close_room',
+            ])
+            validator.extra_validate_test_type([
+                'test_type_pos_to_neg_vac', 'test_type_pos_to_neg_not_vac',
+                'test_type_none_to_neg_vac', 'test_type_none_to_neg_not_vac',
+            ])
+            validator.extra_validate_to_update_pandemic()
+
+            pandemic = validator.get_field('pandemic')
+
+            list_to_update_pandemic = [key for key in accepted_fields.keys()]
+            list_to_update_pandemic = set(list_to_update_pandemic) - {'id'}
+
+            dict_to_update_pandemic = validator.get_data(list_to_update_pandemic)
+
+            for attr, value in dict_to_update_pandemic.items(): 
+                setattr(pandemic, attr, value)
+
+            pandemic.updated_by = request.user
+            pandemic.save()
+
+            serializer = PandemicSerializer(pandemic, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_pandemic(self, request):
+        """Filter a pandemic
+
+        Args:
+            None    
+        """
+
+        try:
+
+            pandemics = Pandemic.objects.all()
+
+            serializer = PandemicSerializer(pandemics, many=True)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
 
 class BackgroundDiseaseAPI(AbstractView):
 
