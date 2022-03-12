@@ -1,4 +1,5 @@
 from ..models import QuarantineWard, Country, City, District, Ward, CustomUser
+from form.models import Pandemic
 from utils import validators, messages, enums, exceptions
 from django.db.models import Q
 from utils.tools import split_input_list
@@ -132,6 +133,16 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
             ),
             message=messages.USER_NOT_FOUND,
         )
+
+    def is_validate_pandemic_id(self):
+        if hasattr(self, '_pandemic_id') and self._pandemic_id:
+            self._pandemic = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=Pandemic,
+                query_expr=Q(
+                    id=self._pandemic_id,
+                ),
+                message={'pandemic_id': messages.NOT_EXIST},
+            )
     
     def is_validate_id(self):
         self._id = validators.ModelInstanceExistenceValidator.valid(

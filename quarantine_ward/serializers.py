@@ -5,10 +5,17 @@ from address.serializers import (
     BaseCountrySerializer, BaseCitySerializer,
     BaseDistrictSerializer, BaseWardSerializer,
 )
+from form.models import Pandemic
 from .models import (
     QuarantineWard, QuarantineBuilding,
     QuarantineFloor, QuarantineRoom,
 )
+
+class PandemicSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Pandemic
+        fields = '__all__'
 
 class BaseCustomUserSerializer(serializers.ModelSerializer):
 
@@ -99,6 +106,7 @@ class QuarantineWardSerializer(serializers.ModelSerializer):
     city = BaseCitySerializer(many=False)
     district = BaseDistrictSerializer(many=False)
     ward = BaseWardSerializer(many=False)
+    pandemic = PandemicSerializer(many=False)
 
     class Meta:
         model = QuarantineWard
