@@ -35,6 +35,21 @@ class PandemicValidator(validators.AbstractRequestValidate):
                 return False
         return False
 
+    def is_new_name_exist(self):
+        if hasattr(self, '_name'):
+            try:
+                this_pandemic = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=Pandemic,
+                    query_expr=Q(name=self._name),
+                )
+                if this_pandemic != self._pandemic:
+                    return True
+                else:
+                    return False
+            except Exception as exception:
+                return False
+        return False
+
     def extra_validate_positive_integer(self, list):
         for item in list:
             if hasattr(self, f'_{item}'):
@@ -73,3 +88,6 @@ class PandemicValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_id') and self._id:
             if not self.is_id_exist():
                 raise exceptions.ValidationException({'id': messages.NOT_EXIST})
+        if hasattr(self, '_name') and self._name:
+            if self.is_new_name_exist():
+                raise exceptions.ValidationException({'name': messages.EXIST})
