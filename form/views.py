@@ -579,8 +579,34 @@ class TestAPI(AbstractView):
             if old_positive_test_now == False or old_positive_test_now == None:
                 return False
             else:
-                number_test_need = int(os.environ.get("NUMBER_TEST_FROM_POSITIVE_TO_NEGATIVE", "3"))
-                tests_to_check = Test.objects.filter(user = test.user, type=TestType.RT_PCR).filter(~Q(result=TestResult.NONE)).order_by('-created_at')[:number_test_need]
+                this_user = test.user
+                quarantine_ward = this_user.quarantine_ward
+                number_of_vaccine_doses = 0
+                if hasattr(this_user, 'member_x_custom_user'):
+                    number_of_vaccine_doses = this_user.member_x_custom_user.number_of_vaccine_doses
+                elif hasattr(this_user, 'staff_x_custom_user'):
+                    number_of_vaccine_doses = this_user.staff_x_custom_user.number_of_vaccine_doses
+                elif hasattr(this_user, 'manager_x_custom_user'):
+                    number_of_vaccine_doses = this_user.manager_x_custom_user.number_of_vaccine_doses
+
+                # get number_test_need and type_test_need
+                if quarantine_ward.pandemic:
+                    if number_of_vaccine_doses < 2:
+                        number_test_need = quarantine_ward.pandemic.num_test_pos_to_neg_not_vac
+                        type_test_need = quarantine_ward.pandemic.test_type_pos_to_neg_not_vac
+                    else:
+                        number_test_need = quarantine_ward.pandemic.num_test_pos_to_neg_vac
+                        type_test_need = quarantine_ward.pandemic.test_type_pos_to_neg_vac
+                else:
+                    if number_of_vaccine_doses < 2:
+                        number_test_need = int(os.environ.get('NUM_TEST_POS_TO_NEG_NOT_VAC', 1))
+                        type_test_need = os.environ.get('TEST_TYPE_POS_TO_NEG_NOT_VAC', TestType.RT_PCR)
+                    else:
+                        number_test_need = int(os.environ.get('NUM_TEST_POS_TO_NEG_VAC', 1))
+                        type_test_need = os.environ.get('TEST_TYPE_POS_TO_NEG_VAC', TestType.QUICK)
+
+                # check there tests
+                tests_to_check = Test.objects.filter(user=this_user, type=type_test_need).filter(~Q(result=TestResult.NONE)).order_by('-created_at')[:number_test_need]
                 tests_to_check = list(tests_to_check)
                 if len(tests_to_check) < number_test_need:
                     return True
@@ -662,8 +688,18 @@ class TestAPI(AbstractView):
 
                         if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
                             if this_member.quarantined_finish_expected_at == None:
-                                number_of_quarantine_days = int(this_member.custom_user.quarantine_ward.quarantine_time)
-                                this_member.quarantined_finish_expected_at = this_member.quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+                                quarantine_ward = this_member.custom_user.quarantine_ward
+                                if quarantine_ward.pandemic:
+                                    if this_member.number_of_vaccine_doses < 2:
+                                        remain_qt = quarantine_ward.pandemic.remain_qt_pos_not_vac
+                                    else:
+                                        remain_qt = quarantine_ward.pandemic.remain_qt_pos_vac
+                                else:
+                                    if this_member.number_of_vaccine_doses < 2:
+                                        remain_qt = int(os.environ.get('REMAIN_QT_POS_NOT_VAC', 14))
+                                    else:
+                                        remain_qt = int(os.environ.get('REMAIN_QT_POS_VAC', 10))
+                                this_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
                             
                             # affect other member in this room
                             this_room = this_member.quarantine_room
@@ -683,10 +719,20 @@ class TestAPI(AbstractView):
                             other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
                             number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
                             if number_of_other_positive_member_in_this_room == 0:
+                                quarantine_ward = this_room.quarantine_floor.quarantine_building.quarantine_ward
                                 for member in list(other_members_in_this_room):
                                     if member.label != MemberLabel.F0:
-                                        number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
-                                        member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+                                        if quarantine_ward.pandemic:
+                                            if member.number_of_vaccine_doses < 2:
+                                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_not_vac
+                                            else:
+                                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_vac
+                                        else:
+                                            if member.number_of_vaccine_doses < 2:
+                                                remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
+                                            else:
+                                                remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
+                                        member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
                                         member.save()
 
                     this_member.last_tested_had_result = test.created_at
@@ -822,8 +868,18 @@ class TestAPI(AbstractView):
 
                             if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
                                 if this_member.quarantined_finish_expected_at == None:
-                                    number_of_quarantine_days = int(this_member.custom_user.quarantine_ward.quarantine_time)
-                                    this_member.quarantined_finish_expected_at = this_member.quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+                                    quarantine_ward = this_member.custom_user.quarantine_ward
+                                    if quarantine_ward.pandemic:
+                                        if this_member.number_of_vaccine_doses < 2:
+                                            remain_qt = quarantine_ward.pandemic.remain_qt_pos_not_vac
+                                        else:
+                                            remain_qt = quarantine_ward.pandemic.remain_qt_pos_vac
+                                    else:
+                                        if this_member.number_of_vaccine_doses < 2:
+                                            remain_qt = int(os.environ.get('REMAIN_QT_POS_NOT_VAC', 14))
+                                        else:
+                                            remain_qt = int(os.environ.get('REMAIN_QT_POS_VAC', 10))
+                                    this_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
                                 
                                 # affect other members in this room
                                 this_room = this_member.quarantine_room
@@ -843,10 +899,20 @@ class TestAPI(AbstractView):
                                 other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
                                 number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
                                 if number_of_other_positive_member_in_this_room == 0:
+                                    quarantine_ward = this_room.quarantine_floor.quarantine_building.quarantine_ward
                                     for member in list(other_members_in_this_room):
                                         if member.label != MemberLabel.F0:
-                                            number_of_quarantine_days = int(member.custom_user.quarantine_ward.quarantine_time)
-                                            member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=number_of_quarantine_days)
+                                            if quarantine_ward.pandemic:
+                                                if member.number_of_vaccine_doses < 2:
+                                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_not_vac
+                                                else:
+                                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_vac
+                                            else:
+                                                if member.number_of_vaccine_doses < 2:
+                                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
+                                                else:
+                                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
+                                            member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
                                             member.save()
 
                         this_member.last_tested_had_result = test.created_at

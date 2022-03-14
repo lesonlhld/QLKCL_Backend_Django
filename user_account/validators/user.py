@@ -651,16 +651,38 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_room_id'):
             if self._quarantine_room_id and not self.is_quarantine_room_id_exist():
                 raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
+        if not hasattr(self, '_number_of_vaccine_doses'):
+            self._number_of_vaccine_doses = 0
         if hasattr(self, '_quarantined_at') and self._quarantined_at:
             ...
         else:
             self._quarantined_at = timezone.now()
 
-        number_of_quarantine_days = int(self._quarantine_ward.quarantine_time)
-        self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+        if self._quarantine_ward.pandemic:
+            if self._number_of_vaccine_doses < 2:
+                remain_qt = self._quarantine_ward.pandemic.quarantine_time_not_vac
+            else:
+                remain_qt = self._quarantine_ward.pandemic.quarantine_time_vac
+        else:
+            if self._number_of_vaccine_doses < 2:
+                remain_qt = int(os.environ.get('QUARANTINE_TIME_NOT_VAC', 14))
+            else:
+                remain_qt = int(os.environ.get('QUARANTINE_TIME_VAC', 10))
+        self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
 
         if hasattr(self, '_label') and self._label == MemberLabel.F0:
             self._positive_test_now = True
+            if self._quarantine_ward.pandemic:
+                if self._number_of_vaccine_doses < 2:
+                    remain_qt = self._quarantine_ward.pandemic.remain_qt_pos_not_vac
+                else:
+                    remain_qt = self._quarantine_ward.pandemic.remain_qt_pos_vac
+            else:
+                if self._number_of_vaccine_doses < 2:
+                    remain_qt = int(os.environ.get('REMAIN_QT_POS_NOT_VAC', 14))
+                else:
+                    remain_qt = int(os.environ.get('REMAIN_QT_POS_VAC', 10))
+            self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
 
         if hasattr(self, '_care_staff_code') and self._care_staff_code:
             if not self.is_care_staff_code_exist():
@@ -888,11 +910,7 @@ class UserValidator(validators.AbstractRequestValidate):
     def check_member_can_finish_quarantine(self, custom_user):
         if custom_user.member_x_custom_user.positive_test_now != False:
             return False
-        if custom_user.member_x_custom_user.health_status != HealthStatus.NORMAL:
-            return False
-        quarantine_day = int(os.environ.get('QUARANTINE_DAY_DEFAULT', 14))
-        quarantined_at_max = timezone.now() - datetime.timedelta(days=quarantine_day)
-        if custom_user.member_x_custom_user.quarantined_at > quarantined_at_max:
+        if custom_user.member_x_custom_user.quarantined_finish_expected_at > timezone.now():
             return False
         return True
 
