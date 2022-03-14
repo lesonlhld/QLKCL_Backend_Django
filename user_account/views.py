@@ -631,6 +631,7 @@ class MemberAPI(AbstractView):
             - quarantine_room_id: int
             - label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantined_finish_expected_at: String vd:'2000-01-26T01:23:45.123456Z'
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
@@ -645,7 +646,8 @@ class MemberAPI(AbstractView):
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
             'quarantine_ward_id', 'quarantine_room_id',
-            'label', 'quarantined_at', 'positive_tested_before',
+            'label', 'quarantined_at', 'quarantined_finish_expected_at',
+            'positive_tested_before',
             'background_disease', 'other_background_disease',
             'number_of_vaccine_doses', 'care_staff_code',
         ]
@@ -660,8 +662,9 @@ class MemberAPI(AbstractView):
         ]
 
         member_fields = [
-            'quarantine_room_id',
-            'label', 'quarantined_at', 'positive_tested_before',
+            'quarantine_room_id', 'label',
+            'quarantined_at', 'quarantined_finish_expected_at',
+            'positive_tested_before',
             'background_disease', 'other_background_disease',
             'number_of_vaccine_doses', 'care_staff_code',
         ]
@@ -682,7 +685,8 @@ class MemberAPI(AbstractView):
             validator.is_valid_fields([
                 'email', 'birthday', 'gender', 'passport_number',
                 'health_insurance_number', 'identity_number',
-                'label', 'quarantined_at', 'positive_tested_before',
+                'label', 'quarantined_at', 'quarantined_finish_expected_at',
+                'positive_tested_before',
                 'number_of_vaccine_doses', 'background_disease',
             ])
             validator.extra_validate_to_update_member()
