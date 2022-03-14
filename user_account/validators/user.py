@@ -130,7 +130,7 @@ class UserValidator(validators.AbstractRequestValidate):
             )
 
     def is_validate_quarantined_at(self):
-        if hasattr(self, '_quarantined_at') and self._quarantined_at:
+        if hasattr(self, '_quarantined_at') and self._quarantined_at != None:
             self._quarantined_at = validators.DateTimeFieldValidator.valid(
                 value=self._quarantined_at,
                 message={'quarantined_at': messages.INVALID_DATETIME},
@@ -148,6 +148,13 @@ class UserValidator(validators.AbstractRequestValidate):
             self._quarantined_at_min = validators.DateTimeFieldValidator.valid(
                 value=self._quarantined_at_min,
                 message={'quarantined_at_min': messages.INVALID_DATETIME},
+            )
+
+    def is_validate_quarantined_finish_expected_at(self):
+        if hasattr(self, '_quarantined_finish_expected_at') and self._quarantined_finish_expected_at != None:
+            self._quarantined_finish_expected_at = validators.DateTimeFieldValidator.valid(
+                value=self._quarantined_finish_expected_at,
+                message={'quarantined_finish_expected_at': messages.INVALID_DATETIME},
             )
 
     def is_validate_quarantined_finish_expected_at_max(self):
@@ -658,6 +665,7 @@ class UserValidator(validators.AbstractRequestValidate):
         else:
             self._quarantined_at = timezone.now()
 
+        # Also set quarantined_finish_expected_at
         if self._quarantine_ward.pandemic:
             if self._number_of_vaccine_doses < 2:
                 remain_qt = self._quarantine_ward.pandemic.quarantine_time_not_vac
@@ -789,10 +797,37 @@ class UserValidator(validators.AbstractRequestValidate):
                     raise exceptions.NotFoundException({'quarantine_room_id': messages.MUST_EMPTY})
         if hasattr(self, '_quarantined_at'):
             if not self._quarantined_at:
-                raise exceptions.ValidationException({'quarantined_at': messages.EMPTY})
+                if self._custom_user.status in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
+                    raise exceptions.ValidationException({'quarantined_at': messages.EMPTY})
             else:
-                number_of_quarantine_days = int(self._custom_user.quarantine_ward.quarantine_time)
-                self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=number_of_quarantine_days)
+                if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
+                    raise exceptions.ValidationException({'quarantined_at': messages.MUST_EMPTY})
+                if self._quarantined_at != self._custom_user.member_x_custom_user.quarantined_at:
+                    if not hasattr(self, '_quarantined_finish_expected_at') or self._quarantined_finish_expected_at == self._custom_user.member_x_custom_user.quarantined_finish_expected_at:
+                        # also update quarantined_finish_expected_at
+                        if hasattr(self, '_quarantine_ward'):
+                            quarantine_ward = self._quarantine_ward
+                        else:
+                            quarantine_ward = self._custom_user.quarantine_ward
+                        if hasattr(self, '_number_of_vaccine_doses'):
+                            number_of_vaccine_doses = self._number_of_vaccine_doses
+                        else:
+                            number_of_vaccine_doses = self._custom_user.member_x_custom_user.number_of_vaccine_doses
+                        if quarantine_ward.pandemic:
+                            if number_of_vaccine_doses < 2:
+                                remain_qt = quarantine_ward.pandemic.quarantine_time_not_vac
+                            else:
+                                remain_qt = quarantine_ward.pandemic.quarantine_time_vac
+                        else:
+                            if number_of_vaccine_doses < 2:
+                                remain_qt = int(os.environ.get('QUARANTINE_TIME_NOT_VAC', 14))
+                            else:
+                                remain_qt = int(os.environ.get('QUARANTINE_TIME_VAC', 10))
+                        self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
+        if hasattr(self, '_quarantined_finish_expected_at'):
+            if self._quarantined_finish_expected_at:
+                if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
+                    raise exceptions.ValidationException({'quarantined_finish_expected_at': messages.MUST_EMPTY})
         if hasattr(self, '_label') and self._label != self._custom_user.member_x_custom_user.label:
             if hasattr(self, '_quarantine_room') and self._quarantine_room != self._custom_user.member_x_custom_user.quarantine_room:
                 raise exceptions.ValidationException({'main': messages.CANNOT_CHANGE_ROOM_LABEL_TOGETHER})
@@ -912,6 +947,8 @@ class UserValidator(validators.AbstractRequestValidate):
             return False
         if custom_user.member_x_custom_user.quarantined_finish_expected_at > timezone.now():
             return False
+        if custom_user.member_x_custom_user.health_status in [HealthStatus.SERIOUS]:
+            return False
         return True
 
     def extra_validate_to_finish_quarantine_member(self):
@@ -954,7 +991,7 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_can_finish_quarantine'):
             if self._can_finish_quarantine:
                 self._positive_test_now = 'false'
-                self._health_status_list = HealthStatus.NORMAL
+                self._health_status_list = f'{HealthStatus.NORMAL},{HealthStatus.UNWELL}'
                 self._quarantined_finish_expected_at_max = timezone.now()
         if hasattr(self, '_is_need_change_room_because_be_positive') and self._is_need_change_room_because_be_positive == True:
             self._status = CustomUserStatus.AVAILABLE
