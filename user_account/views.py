@@ -1366,6 +1366,10 @@ class MemberAPI(AbstractView):
 
             query_set = filter.qs
 
+            if 'SUPER_MANAGER' in validator.get_field('new_role_name_list'):
+                super_manager_query_set = CustomUser.objects.filter(role__name='SUPER_MANAGER', status=CustomUserStatus.AVAILABLE)
+                query_set = (query_set | super_manager_query_set).distinct()
+
             query_set = query_set.select_related()
 
             serializer = FilterNotMemberSerializer(query_set, many=True)

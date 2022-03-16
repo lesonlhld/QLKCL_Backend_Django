@@ -100,9 +100,9 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def is_validate_role_name_list(self):
         if hasattr(self, '_role_name_list'):
-            new_role_name_list = split_input_list(self._role_name_list)
+            self._new_role_name_list = split_input_list(self._role_name_list)
             self._role_name_object_list = []
-            for item in new_role_name_list:
+            for item in self._new_role_name_list:
                 try:
                     object = validators.ModelInstanceExistenceValidator.valid(
                         model_cls=Role,
