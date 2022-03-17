@@ -2307,6 +2307,9 @@ class HomeAPI(AbstractView):
                 'status': TestStatus.WAITING,
             }
 
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_waiting_tests['quarantine_ward_id'] = sender_quarantine_ward_id
+
             filter = TestFilter(dict_to_filter_waiting_tests, queryset=tests_query_set)
 
             number_of_waiting_tests = filter.qs.count()
