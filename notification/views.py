@@ -427,6 +427,7 @@ class UserNotificationAPI (AbstractView):
         """Get a User Notification
 
         Args:
+            - user (int): id
             + notification (int): id
         """
 
@@ -448,7 +449,8 @@ class UserNotificationAPI (AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
-            accepted_fields['user'] = user.id
+            if 'user' not in accepted_fields:
+                accepted_fields['user'] = user.id
 
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
@@ -651,11 +653,12 @@ class UserNotificationAPI (AbstractView):
         """Delete a UserNotification
 
         Args:
+            - user (id)
             + notification_list (list of id seperated by comma)
         """
 
         accept_fields = [
-            'notification_list'
+            'user', 'notification_list'
         ]
 
         require_fields = [
@@ -673,7 +676,8 @@ class UserNotificationAPI (AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
-            accepted_fields['user'] = user.id
+            if 'user' not in accepted_fields:
+                accepted_fields['user'] = user.id
 
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
