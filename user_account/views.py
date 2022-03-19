@@ -2252,7 +2252,6 @@ class HomeAPI(AbstractView):
             dict_to_filter_waiting_members = {
                 'role_name': 'MEMBER',
                 'status': CustomUserStatus.WAITING,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
@@ -2269,7 +2268,6 @@ class HomeAPI(AbstractView):
                 'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
                 'positive_test_now_list': [False, None],
                 'status': CustomUserStatus.AVAILABLE,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
@@ -2285,7 +2283,6 @@ class HomeAPI(AbstractView):
                 'role_name': 'MEMBER',
                 'positive_test_now_list': [True],
                 'status': CustomUserStatus.AVAILABLE,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
@@ -2304,7 +2301,6 @@ class HomeAPI(AbstractView):
                 'role_name': 'MEMBER',
                 'last_tested_max': last_tested_max,
                 'status': CustomUserStatus.AVAILABLE,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
@@ -2322,7 +2318,6 @@ class HomeAPI(AbstractView):
                 'health_status_list': f'{HealthStatus.NORMAL},{HealthStatus.UNWELL}',
                 'quarantined_finish_expected_at_max': timezone.now(),
                 'status': CustomUserStatus.AVAILABLE,
-                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:

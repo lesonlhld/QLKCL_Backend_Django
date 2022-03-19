@@ -1027,8 +1027,10 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
+            self._status_list = CustomUserStatus.AVAILABLE
         if hasattr(self, '_can_finish_quarantine'):
             if self._can_finish_quarantine:
+                self._status_list = CustomUserStatus.AVAILABLE
                 self._positive_test_now_list = [False]
                 self._health_status_list = f'{HealthStatus.NORMAL},{HealthStatus.UNWELL}'
                 self._quarantined_finish_expected_at_max = timezone.now()
