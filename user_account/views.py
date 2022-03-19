@@ -1213,9 +1213,10 @@ class MemberAPI(AbstractView):
         """Get a list of members
 
         Args:
-            - status: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE']
+            - status_list: String <status>,<status> ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE', 'LEAVE']
+            - quarantined_status_list: String <status>,<status> ['COMPLETED', 'QUARANTINING', 'REQUARANTINING', 'HOSPITALIZE', 'MOVED']
             - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS']
-            - positive_test_now: boolean
+            - positive_test_now_list: String <value>,<value> ['True', 'False', 'Null']
             - is_last_tested: boolean - True để lọc những người cách ly đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
             - can_finish_quarantine: boolean - True để lọc những người cách ly có thể hoàn thành cách ly, False hoặc không truyền đồng nghĩa không lọc
             - is_need_change_room_because_be_positive: boolean
@@ -1236,7 +1237,8 @@ class MemberAPI(AbstractView):
         """
 
         accept_fields = [
-            'status', 'health_status_list', 'positive_test_now',
+            'status_list', 'quarantined_status_list',
+            'health_status_list', 'positive_test_now_list',
             'is_last_tested', 'can_finish_quarantine',
             'is_need_change_room_because_be_positive',
             'created_at_max', 'created_at_min',
@@ -1260,7 +1262,8 @@ class MemberAPI(AbstractView):
             validator = UserValidator(**accepted_fields)
 
             validator.is_valid_fields([
-                'status', 'positive_test_now', 'health_status_list', 'is_last_tested',
+                'status_list', 'quarantined_status_list',
+                'positive_test_now_list', 'health_status_list', 'is_last_tested',
                 'can_finish_quarantine', 'is_need_change_room_because_be_positive',
                 'created_at_max', 'created_at_min',
                 'quarantined_at_max', 'quarantined_at_min',
@@ -1275,10 +1278,10 @@ class MemberAPI(AbstractView):
             {'is_last_tested', 'is_need_change_room_because_be_positive', 'page', 'page_size'}
             list_to_filter_user = list(list_to_filter_user) + \
             [
-                'status', 'quarantined_status',
+                'status_list', 'quarantined_status',
                 'last_tested_max', 'role_name', 'quarantined_at_max',
                 'quarantined_finish_expected_at_max',
-                'positive_test_now', 'health_status_list',
+                'positive_test_now_list', 'health_status_list',
             ]
 
             dict_to_filter_user = validator.get_data(list_to_filter_user)
@@ -1604,6 +1607,7 @@ class MemberAPI(AbstractView):
             # hospitalize
             custom_user.status = CustomUserStatus.LEAVE
             member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE
+            member.quarantined_finished_at = timezone.now()
 
             old_room = member.quarantine_room
             member.quarantine_room = None
@@ -2215,19 +2219,33 @@ class HomeAPI(AbstractView):
             users_query_set = CustomUser.objects.all()
             tests_query_set = Test.objects.all()
 
-            # Calculate number of members
+            # Calculate number of all members past and now
 
-            dict_to_filter_members = {
+            dict_to_filter_all_members_past_and_now = {
+                'role_name': 'MEMBER',
+                'status_list': f'{CustomUserStatus.AVAILABLE},{CustomUserStatus.LEAVE}',
+            }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_all_members_past_and_now['quarantine_ward_id'] = sender_quarantine_ward_id
+
+            filter = MemberFilter(dict_to_filter_all_members_past_and_now, queryset=users_query_set)
+
+            number_of_all_members_past_and_now = filter.qs.count()
+
+            # Calculate number of quarantining members
+
+            dict_to_filter_quarantining_members = {
                 'role_name': 'MEMBER',
                 'status': CustomUserStatus.AVAILABLE,
             }
 
             if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_members['quarantine_ward_id'] = sender_quarantine_ward_id
+                dict_to_filter_quarantining_members['quarantine_ward_id'] = sender_quarantine_ward_id
 
-            filter = MemberFilter(dict_to_filter_members, queryset=users_query_set)
+            filter = MemberFilter(dict_to_filter_quarantining_members, queryset=users_query_set)
 
-            number_of_members = filter.qs.count()
+            number_of_quarantining_members = filter.qs.count()
 
             # Calculate number of waiting members
 
@@ -2249,6 +2267,7 @@ class HomeAPI(AbstractView):
             dict_to_filter_suspected_members = {
                 'role_name': 'MEMBER',
                 'health_status_list': f'{HealthStatus.UNWELL},{HealthStatus.SERIOUS}',
+                'positive_test_now_list': [False, None],
                 'status': CustomUserStatus.AVAILABLE,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
@@ -2259,6 +2278,22 @@ class HomeAPI(AbstractView):
             filter = MemberFilter(dict_to_filter_suspected_members, queryset=users_query_set)
 
             number_of_suspected_members = filter.qs.count()
+
+            # Calculate number of positive members
+
+            dict_to_filter_positive_members = {
+                'role_name': 'MEMBER',
+                'positive_test_now_list': [True],
+                'status': CustomUserStatus.AVAILABLE,
+                'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
+            }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_positive_members['quarantine_ward_id'] = sender_quarantine_ward_id
+
+            filter = MemberFilter(dict_to_filter_positive_members, queryset=users_query_set)
+
+            number_of_positive_members = filter.qs.count()
 
             # Calculate number of need test members
 
@@ -2281,15 +2316,11 @@ class HomeAPI(AbstractView):
 
             # Calculate number of can finish members
 
-            positive_test_now = 'false'
-            health_status_list = HealthStatus.NORMAL
-            quarantined_finish_expected_at_max = timezone.now()
-
             dict_to_filter_can_finish_members = {
                 'role_name': 'MEMBER',
-                'positive_test_now': positive_test_now,
-                'health_status_list': health_status_list,
-                'quarantined_finish_expected_at_max': quarantined_finish_expected_at_max,
+                'positive_test_now_list': [False],
+                'health_status_list': f'{HealthStatus.NORMAL},{HealthStatus.UNWELL}',
+                'quarantined_finish_expected_at_max': timezone.now(),
                 'status': CustomUserStatus.AVAILABLE,
                 'quarantined_status': MemberQuarantinedStatus.QUARANTINING,
             }
@@ -2300,6 +2331,36 @@ class HomeAPI(AbstractView):
             filter = MemberFilter(dict_to_filter_can_finish_members, queryset=users_query_set)
 
             number_of_can_finish_members = filter.qs.count()
+
+            # Calculate number of completed members
+
+            dict_to_filter_completed_members = {
+                'role_name': 'MEMBER',
+                'status': CustomUserStatus.LEAVE,
+                'quarantined_status': MemberQuarantinedStatus.COMPLETED,
+            }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_completed_members['quarantine_ward_id'] = sender_quarantine_ward_id
+
+            filter = MemberFilter(dict_to_filter_completed_members, queryset=users_query_set)
+
+            number_of_completed_members = filter.qs.count()
+
+            # Calculate number of hospitalized members
+
+            dict_to_filter_hospitalized_members = {
+                'role_name': 'MEMBER',
+                'status': CustomUserStatus.LEAVE,
+                'quarantined_status': MemberQuarantinedStatus.HOSPITALIZE,
+            }
+
+            if sender_role_name in ['MANAGER', 'STAFF']:
+                dict_to_filter_hospitalized_members['quarantine_ward_id'] = sender_quarantine_ward_id
+
+            filter = MemberFilter(dict_to_filter_hospitalized_members, queryset=users_query_set)
+
+            number_of_hospitalized_members = filter.qs.count()
 
             # Calculate number of waiting tests
 
@@ -2364,15 +2425,47 @@ class HomeAPI(AbstractView):
 
                 dict_of_out_members[f'{day}'[:10]] = filter.qs.count()
 
+            # Calculate number of member 'hospitalize'
+
+            dict_of_hospitalize_members = dict()
+
+            for day_sub in range(number_of_days_in_out - 1, -1, -1):
+                day = timezone.now() - datetime.timedelta(days=day_sub)
+                day = day.astimezone(pytz.timezone('Asia/Saigon'))
+                start_of_day = datetime.datetime(day.year, day.month, day.day)
+                start_of_day = start_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+                end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
+                end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
+
+                dict_to_filter_hospitalize_members = {
+                    'role_name': 'MEMBER',
+                    'status': CustomUserStatus.LEAVE,
+                    'quarantined_status': MemberQuarantinedStatus.HOSPITALIZE,
+                    'quarantined_finished_at_max': end_of_day,
+                    'quarantined_finished_at_min': start_of_day,
+                }
+
+                if sender_role_name in ['MANAGER', 'STAFF']:
+                    dict_to_filter_hospitalize_members['quarantine_ward_id'] = sender_quarantine_ward_id
+
+                filter = MemberFilter(dict_to_filter_hospitalize_members, queryset=users_query_set)
+
+                dict_of_hospitalize_members[f'{day}'[:10]] = filter.qs.count()
+
             response_data = {
-                'number_of_members': number_of_members,
+                'number_of_all_members_past_and_now': number_of_all_members_past_and_now,
+                'number_of_quarantining_members': number_of_quarantining_members,
                 'number_of_waiting_members': number_of_waiting_members,
                 'number_of_suspected_members': number_of_suspected_members,
+                'number_of_positive_members': number_of_positive_members,
                 'number_of_need_test_members': number_of_need_test_members,
                 'number_of_can_finish_members': number_of_can_finish_members,
+                'number_of_completed_members': number_of_completed_members,
+                'number_of_hospitalized_members': number_of_hospitalized_members,
                 'number_of_waiting_tests': number_of_waiting_tests,
                 'in': dict_of_in_members,
                 'out': dict_of_out_members,
+                'hospitalize': dict_of_hospitalize_members,
             }
 
             return self.response_handler.handle(data=response_data)
