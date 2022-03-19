@@ -1278,7 +1278,7 @@ class MemberAPI(AbstractView):
             {'is_last_tested', 'is_need_change_room_because_be_positive', 'page', 'page_size'}
             list_to_filter_user = list(list_to_filter_user) + \
             [
-                'status_list', 'quarantined_status',
+                'status_list',
                 'last_tested_max', 'role_name', 'quarantined_at_max',
                 'quarantined_finish_expected_at_max',
                 'positive_test_now_list', 'health_status_list',
