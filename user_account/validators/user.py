@@ -81,12 +81,56 @@ class UserValidator(validators.AbstractRequestValidate):
                 message={'status': messages.INVALID},
             )
 
+    def is_validate_status_list(self):
+        if hasattr(self, '_status_list'):
+            self._status_list = split_input_list(self._status_list)
+            new_status_list = ''
+            for item in self._status_list:
+                new_status_list += ',' + validators.EnumValidator.valid(
+                    value=item,
+                    enum_cls=CustomUserStatus,
+                    message={'status_list': messages.INVALID},
+                )
+            if new_status_list:
+                new_status_list = new_status_list[1:]
+            self._status_list = new_status_list
+
+    def is_validate_quarantined_status_list(self):
+        if hasattr(self, '_quarantined_status_list'):
+            self._quarantined_status_list = split_input_list(self._quarantined_status_list)
+            new_quarantined_status_list = ''
+            for item in self._quarantined_status_list:
+                new_quarantined_status_list += ',' + validators.EnumValidator.valid(
+                    value=item,
+                    enum_cls=MemberQuarantinedStatus,
+                    message={'quarantined_status_list': messages.INVALID},
+                )
+            if new_quarantined_status_list:
+                new_quarantined_status_list = new_quarantined_status_list[1:]
+            self._quarantined_status_list = new_quarantined_status_list
+
     def is_validate_positive_test_now(self):
         if hasattr(self, '_positive_test_now') and self._positive_test_now != None:
             self._positive_test_now = validators.BooleanValidator.valid(
                 value=self._positive_test_now,
                 message={'positive_test_now': messages.INVALID},
             )
+
+    def is_validate_positive_test_now_list(self):
+        if hasattr(self, '_positive_test_now_list'):
+            self._positive_test_now_list = split_input_list(self._positive_test_now_list)
+            new_positive_test_now_list = []
+            for item in self._positive_test_now_list:
+                try:
+                    new_positive_test_now_list += [validators.BooleanValidator.valid(
+                        value=item,
+                    )]
+                except Exception as exception:
+                    if item == 'Null':
+                        new_positive_test_now_list += [None]
+                    else:
+                        raise exceptions.ValidationException({'positive_test_now_list': messages.INVALID})
+            self._positive_test_now_list = new_positive_test_now_list
 
     def is_validate_health_status_list(self):
         if hasattr(self, '_health_status_list'):
@@ -100,9 +144,9 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def is_validate_role_name_list(self):
         if hasattr(self, '_role_name_list'):
-            new_role_name_list = split_input_list(self._role_name_list)
+            self._new_role_name_list = split_input_list(self._role_name_list)
             self._role_name_object_list = []
-            for item in new_role_name_list:
+            for item in self._new_role_name_list:
                 try:
                     object = validators.ModelInstanceExistenceValidator.valid(
                         model_cls=Role,
@@ -967,8 +1011,8 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def extra_validate_to_filter_member(self):
         self._role_name = 'MEMBER'
-        if not hasattr(self, '_status'):
-            self._status = CustomUserStatus.AVAILABLE
+        if not hasattr(self, '_status_list'):
+            self._status_list = CustomUserStatus.AVAILABLE
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_quarantine_building_id') and not self.is_quarantine_building_id_exist():
@@ -980,22 +1024,19 @@ class UserValidator(validators.AbstractRequestValidate):
         self.check_quarantine_ward_room_relationship()
         if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
             raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
-        if hasattr(self, '_positive_test_now'):
-            if (self._positive_test_now):
-                self._positive_test_now = 'true'
-            else:
-                self._positive_test_now = 'false'
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
+            self._status_list = CustomUserStatus.AVAILABLE
         if hasattr(self, '_can_finish_quarantine'):
             if self._can_finish_quarantine:
-                self._positive_test_now = 'false'
+                self._status_list = CustomUserStatus.AVAILABLE
+                self._positive_test_now_list = [False]
                 self._health_status_list = f'{HealthStatus.NORMAL},{HealthStatus.UNWELL}'
                 self._quarantined_finish_expected_at_max = timezone.now()
         if hasattr(self, '_is_need_change_room_because_be_positive') and self._is_need_change_room_because_be_positive == True:
-            self._status = CustomUserStatus.AVAILABLE
-            self._positive_test_now = 'true'
+            self._status_list = CustomUserStatus.AVAILABLE
+            self._positive_test_now_list = [True]
 
     def extra_validate_to_filter_staff(self):
         self._role_name = 'STAFF'

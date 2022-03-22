@@ -66,6 +66,8 @@ class BaseCustomUserSerializer(serializers.ModelSerializer):
 
 class FilterMemberSerializer(serializers.ModelSerializer):
 
+    quarantined_status = serializers.SerializerMethodField('get_quarantined_status')
+
     quarantine_room = serializers.SerializerMethodField('get_quarantine_room')
     quarantine_floor = serializers.SerializerMethodField('get_quarantine_floor')
     quarantine_building = serializers.SerializerMethodField('get_quarantine_building')
@@ -83,6 +85,12 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     label = serializers.SerializerMethodField('get_label')
 
     number_of_vaccine_doses = serializers.SerializerMethodField('get_number_of_vaccine_doses')
+
+    def get_quarantined_status(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.quarantined_status
+        else:
+            return None
 
     def get_quarantine_room(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_room:
@@ -157,7 +165,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = [
-            'code', 'status',
+            'code', 'status', 'quarantined_status',
             'full_name', 'gender', 'birthday', 'quarantine_room',
             'phone_number', 'created_at', 'quarantined_at', 'quarantined_finish_expected_at',
             'quarantine_floor', 'quarantine_building', 'quarantine_ward',
