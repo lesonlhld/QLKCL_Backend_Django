@@ -27,6 +27,7 @@ NAME_EMPTY = 'Name must not be empty'
 ADDRESS_EMPTY = 'Address must not be empty'
 PHONE_EMPTY = 'Phone must not be empty'
 QUARANTINE_ROOM_EMPTY = 'Quarantine room must not empty'
+FILE_IMPORT_EMPTY = 'File import must not be empty'
 
 CODE_NOT_FOUND = 'Code is not exist'
 USER_NOT_FOUND = 'User is not exist'
