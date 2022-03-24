@@ -1,8 +1,9 @@
+import random
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action, permission_classes
 from rest_framework import permissions
-from utils import messages
+from utils import messages, exceptions
 from utils.views import AbstractView
 from utils.tools import generateOTP
 from utils.services import send_mail
@@ -16,6 +17,11 @@ from .serializers import ResetPasswordSerializer
 # Create your views here.
 
 class ResetPasswordAPI(AbstractView):
+
+    def get_permissions(self):
+        if self.action == 'manager_reset_member':
+            self.permission_classes = [permissions.IsAuthenticated]
+        return super().get_permissions()
 
     @csrf_exempt
     @action(methods=['POST'], url_path='set', detail=False)
@@ -175,6 +181,59 @@ class ResetPasswordAPI(AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
+    @csrf_exempt
+    @action(methods=['POST'], url_path='manager_reset_member', detail=False)
+    def manager_reset_member(self, request):
+        """For manager to reset a member password 
+        Args:
+            + code (str)
+        """
+
+        accept_fields = [
+            'code',
+        ]
+
+        required_fields = [
+            'code',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields:
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = OauthValidator(**accepted_fields)
+            validator.is_missing_fields(required_fields)
+            validator.extra_validation_to_manager_reset_member()
+
+            user = validator.get_field('custom_user')
+
+            if user.role.name != 'MEMBER':
+                raise exceptions.AuthenticationException()
+
+            sender = request.user
+            sender_role_name = sender.role.name
+            if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException()
+            elif sender_role_name == 'MANAGER':
+                if sender.quarantine_ward != user.quarantine_ward:
+                    raise exceptions.AuthenticationException()
+
+            new_password = ''.join([str(random.randint(0, 9)) for i in range(6)])
+            user.set_password(new_password)
+            user.save()
+            
+            response_data = dict()
+            response_data['new_password'] = new_password
+
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
 class ChangePasswordAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
