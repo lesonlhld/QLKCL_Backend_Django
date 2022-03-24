@@ -3,7 +3,7 @@ import datetime, pytz
 import openpyxl, csv, codecs
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Count, Avg, Q
+from django.db.models import Count, Avg, Sum, Q
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
@@ -2382,10 +2382,12 @@ class HomeAPI(AbstractView):
 
         Args:
             + number_of_days_in_out: int
+            - quarantine_ward_id: int
         """
 
         accept_fields = [
-            'number_of_days_in_out'
+            'number_of_days_in_out',
+            'quarantine_ward_id',
         ]
 
         require_fields = [
@@ -2393,6 +2395,10 @@ class HomeAPI(AbstractView):
         ]
 
         try:
+            sender_role_name = request.user.role.name
+            if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
+                raise exceptions.AuthenticationException()
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -2401,20 +2407,22 @@ class HomeAPI(AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
+            if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                if 'quarantine_ward_id' not in accepted_fields.keys():
+                    accepted_fields['quarantine_ward_id'] = request.user.quarantine_ward.id
+            
             validator = HomeValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(['number_of_days_in_out'])
+            validator.extra_validate_to_get_manager_home()
 
             number_of_days_in_out = validator.get_field('number_of_days_in_out')
+            quarantine_ward_id = validator.get_field('quarantine_ward_id')
+            quarantine_ward = validator.get_field('quarantine_ward')
 
-            sender_role_name = request.user.role.name
-            if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF',]:
-                raise exceptions.AuthenticationException()
-            
-            if sender_role_name != 'ADMINISTRATOR':
-                sender_quarantine_ward_id = request.user.quarantine_ward.id
-            else:
-                sender_quarantine_ward_id = 'All'
+            if sender_role_name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                if int(quarantine_ward_id) != request.user.quarantine_ward.id:
+                    raise exceptions.ValidationException({'quarantine_ward_id': messages.NO_PERMISSION})
 
             users_query_set = CustomUser.objects.all()
             tests_query_set = Test.objects.all()
@@ -2426,8 +2434,8 @@ class HomeAPI(AbstractView):
                 'status_list': f'{CustomUserStatus.AVAILABLE},{CustomUserStatus.LEAVE}',
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_all_members_past_and_now['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_all_members_past_and_now['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_all_members_past_and_now, queryset=users_query_set)
 
@@ -2440,12 +2448,23 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_quarantining_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_quarantining_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_quarantining_members, queryset=users_query_set)
 
             number_of_quarantining_members = filter.qs.count()
+
+            # Calculate number of available slots
+
+            if quarantine_ward_id:
+                total_capacity = QuarantineRoom.objects.filter(
+                    quarantine_floor__quarantine_building__quarantine_ward__id=quarantine_ward_id
+                ).aggregate(Sum('capacity'))['capacity__sum']
+            else:
+                total_capacity = QuarantineRoom.objects.all().aggregate(Sum('capacity'))['capacity__sum']
+
+            number_of_available_slots = total_capacity - number_of_quarantining_members
 
             # Calculate number of waiting members
 
@@ -2454,8 +2473,8 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.WAITING,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_waiting_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_waiting_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_waiting_members, queryset=users_query_set)
 
@@ -2470,8 +2489,8 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_suspected_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_suspected_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_suspected_members, queryset=users_query_set)
 
@@ -2485,8 +2504,8 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_positive_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_positive_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_positive_members, queryset=users_query_set)
 
@@ -2503,8 +2522,8 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_need_test_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_need_test_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_need_test_members, queryset=users_query_set)
 
@@ -2520,8 +2539,8 @@ class HomeAPI(AbstractView):
                 'status': CustomUserStatus.AVAILABLE,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_can_finish_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_can_finish_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_can_finish_members, queryset=users_query_set)
 
@@ -2535,8 +2554,8 @@ class HomeAPI(AbstractView):
                 'quarantined_status': MemberQuarantinedStatus.COMPLETED,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_completed_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_completed_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_completed_members, queryset=users_query_set)
 
@@ -2550,8 +2569,8 @@ class HomeAPI(AbstractView):
                 'quarantined_status': MemberQuarantinedStatus.HOSPITALIZE,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_hospitalized_members['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_hospitalized_members['quarantine_ward_id'] = quarantine_ward_id
 
             filter = MemberFilter(dict_to_filter_hospitalized_members, queryset=users_query_set)
 
@@ -2563,8 +2582,8 @@ class HomeAPI(AbstractView):
                 'status': TestStatus.WAITING,
             }
 
-            if sender_role_name in ['MANAGER', 'STAFF']:
-                dict_to_filter_waiting_tests['quarantine_ward_id'] = sender_quarantine_ward_id
+            if quarantine_ward_id:
+                dict_to_filter_waiting_tests['quarantine_ward_id'] = quarantine_ward_id
 
             filter = TestFilter(dict_to_filter_waiting_tests, queryset=tests_query_set)
 
@@ -2588,8 +2607,8 @@ class HomeAPI(AbstractView):
                     'quarantined_at_min': start_of_day,
                 }
 
-                if sender_role_name in ['MANAGER', 'STAFF']:
-                    dict_to_filter_in_members['quarantine_ward_id'] = sender_quarantine_ward_id
+                if quarantine_ward_id:
+                    dict_to_filter_in_members['quarantine_ward_id'] = quarantine_ward_id
 
                 filter = MemberFilter(dict_to_filter_in_members, queryset=users_query_set)
 
@@ -2613,8 +2632,8 @@ class HomeAPI(AbstractView):
                     'quarantined_finished_at_min': start_of_day,
                 }
 
-                if sender_role_name in ['MANAGER', 'STAFF']:
-                    dict_to_filter_out_members['quarantine_ward_id'] = sender_quarantine_ward_id
+                if quarantine_ward_id:
+                    dict_to_filter_out_members['quarantine_ward_id'] = quarantine_ward_id
 
                 filter = MemberFilter(dict_to_filter_out_members, queryset=users_query_set)
 
@@ -2640,16 +2659,24 @@ class HomeAPI(AbstractView):
                     'quarantined_finished_at_min': start_of_day,
                 }
 
-                if sender_role_name in ['MANAGER', 'STAFF']:
-                    dict_to_filter_hospitalize_members['quarantine_ward_id'] = sender_quarantine_ward_id
+                if quarantine_ward_id:
+                    dict_to_filter_hospitalize_members['quarantine_ward_id'] = quarantine_ward_id
 
                 filter = MemberFilter(dict_to_filter_hospitalize_members, queryset=users_query_set)
 
                 dict_of_hospitalize_members[f'{day}'[:10]] = filter.qs.count()
 
+            if quarantine_ward:
+                serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
+                quarantine_ward_data = serializer.data
+            else:
+                quarantine_ward_data = 'All'
+
             response_data = {
+                'quarantine_ward': quarantine_ward_data,
                 'number_of_all_members_past_and_now': number_of_all_members_past_and_now,
                 'number_of_quarantining_members': number_of_quarantining_members,
+                'number_of_available_slots': number_of_available_slots,
                 'number_of_waiting_members': number_of_waiting_members,
                 'number_of_suspected_members': number_of_suspected_members,
                 'number_of_positive_members': number_of_positive_members,
