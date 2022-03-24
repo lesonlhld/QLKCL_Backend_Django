@@ -29,7 +29,19 @@ class OauthValidator(validators.AbstractRequestValidate):
             except Exception as exception:
                 raise exceptions.NotFoundException(message=messages.USER_NOT_FOUND)
         return False
-    
+
+    def is_code_exist(self):
+        if hasattr(self, '_code'):
+            try:
+                self._custom_user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(code=self._code),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
     def is_validate_otp(self):
         if hasattr(self, '_otp'):
             try:
@@ -91,3 +103,7 @@ class OauthValidator(validators.AbstractRequestValidate):
             except Exception as exception:
                 raise exceptions.ValidationException(messages.INVALID_OTP)
         return False
+
+    def extra_validation_to_manager_reset_member(self):
+        if hasattr(self, '_code') and not self.is_code_exist():
+            raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
