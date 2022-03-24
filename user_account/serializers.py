@@ -175,6 +175,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
             'code', 'status', 'quarantined_status',
             'full_name', 'gender', 'birthday', 'quarantine_room',
             'phone_number', 'created_at', 'quarantined_at', 'quarantined_finish_expected_at',
+            'quarantined_finished_at',
             'quarantine_floor', 'quarantine_building', 'quarantine_ward',
             'health_status', 'positive_test_now', 'last_tested',
             'last_tested_had_result', 'label', 'number_of_vaccine_doses',
