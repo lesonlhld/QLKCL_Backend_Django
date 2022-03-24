@@ -81,6 +81,7 @@ class FilterMemberSerializer(serializers.ModelSerializer):
     created_at = serializers.SerializerMethodField('get_created_at')
     quarantined_at = serializers.SerializerMethodField('get_quarantined_at')
     quarantined_finish_expected_at = serializers.SerializerMethodField('get_quarantined_finish_expected_at')
+    quarantined_finished_at = serializers.SerializerMethodField('get_quarantined_finished_at')
 
     label = serializers.SerializerMethodField('get_label')
 
@@ -149,6 +150,12 @@ class FilterMemberSerializer(serializers.ModelSerializer):
             return custom_user.member_x_custom_user.quarantined_finish_expected_at
         else:
             return None
+    
+    def get_quarantined_finished_at(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.quarantined_finished_at
+        else:
+            return None
 
     def get_label(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
@@ -207,6 +214,7 @@ class MemberHomeSerializer(serializers.ModelSerializer):
     created_at = serializers.SerializerMethodField('get_created_at')
     quarantined_at = serializers.SerializerMethodField('get_quarantined_at')
     quarantined_finish_expected_at = serializers.SerializerMethodField('get_quarantined_finish_expected_at')
+    quarantined_finished_at = serializers.SerializerMethodField('get_quarantined_finished_at')
     care_staff = serializers.SerializerMethodField('get_care_staff')
 
     def get_custom_user(self, custom_user):
@@ -276,6 +284,12 @@ class MemberHomeSerializer(serializers.ModelSerializer):
     def get_quarantined_finish_expected_at(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
             return custom_user.member_x_custom_user.quarantined_finish_expected_at
+        else:
+            return None
+    
+    def get_quarantined_finished_at(self, custom_user):
+        if hasattr(custom_user, 'member_x_custom_user'):
+            return custom_user.member_x_custom_user.quarantined_finished_at
         else:
             return None
     
