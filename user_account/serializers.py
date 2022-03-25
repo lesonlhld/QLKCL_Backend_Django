@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Member, Manager, Staff
+from .models import CustomUser, Member, Manager, Staff, DestinationHistory
 from address.serializers import (
     BaseCountrySerializer, BaseCitySerializer,
     BaseDistrictSerializer, BaseWardSerializer,
@@ -344,3 +344,15 @@ class FilterStaffSerializer(serializers.ModelSerializer):
             'phone_number', 'created_at',
             'quarantine_ward', 'care_area',
         ]
+
+class DestinationHistorySerializer(serializers.ModelSerializer):
+
+    user = BaseBaseCustomUserSerializer(many=False)
+    country = BaseCountrySerializer(many=False)
+    city = BaseCitySerializer(many=False)
+    district = BaseDistrictSerializer(many=False)
+    ward = BaseWardSerializer(many=False)
+
+    class Meta:
+        model = DestinationHistory
+        fields = '__all__'

@@ -8,8 +8,10 @@ from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
 from .validators.home import HomeValidator
-from .models import CustomUser, Member, Manager, Staff
+from .validators.destination_history import DestinationHistoryValidator
+from .models import CustomUser, Member, Manager, Staff, DestinationHistory
 from .serializers import (
+    DestinationHistorySerializer,
     CustomUserSerializer, MemberSerializer,
     FilterMemberSerializer, FilterNotMemberSerializer,
     MemberHomeSerializer, ManagerSerializer,
@@ -32,6 +34,74 @@ from utils.views import AbstractView, paginate_data
 from utils.tools import custom_user_code_generator, LabelTool
 
 # Create your views here.
+
+class DestinationHistoryAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create', detail=False)
+    def create_destination_history(self, request):
+        """Create a destination history
+
+        Args:
+            + user_code: String
+            + country_code: String
+            + city_id: int
+            - district_id: int
+            - ward_id: int
+            - detail_address: String
+            - start_time: String vd:'2000-01-26T01:23:45.123456Z'
+            - end_time: String vd:'2000-01-26T01:23:45.123456Z'
+            - note: String
+        """
+
+        accept_fields = [
+            'user_code',
+            'country_code', 'city_id', 'district_id', 'ward_id',
+            'detail_address', 'start_time', 'end_time',
+            'note',
+        ]
+
+        require_fields = [
+            'user_code',
+            'country_code', 'city_id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = DestinationHistoryValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields([
+                'start_time', 'end_time',
+            ])
+            validator.extra_validate_to_create_destination_history()
+
+            list_to_create_destination_history = [key for key in accepted_fields.keys()]
+            list_to_create_destination_history = set(list_to_create_destination_history) - \
+            {'user_code', 'country_code', 'city_id', 'district_id', 'ward_id',}
+            list_to_create_destination_history = list(list_to_create_destination_history) + \
+            [
+                'user', 'country', 'city', 'district', 'ward',
+            ]
+
+            dict_to_create_destination_history = validator.get_data(list_to_create_destination_history)
+
+            destination_history = DestinationHistory(**dict_to_create_destination_history)
+            destination_history.save()
+
+            serializer = DestinationHistorySerializer(destination_history, many=False)
+            
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
 
 class MemberAPI(AbstractView):
 
