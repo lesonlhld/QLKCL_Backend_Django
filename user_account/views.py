@@ -2464,6 +2464,8 @@ class HomeAPI(AbstractView):
             else:
                 total_capacity = QuarantineRoom.objects.all().aggregate(Sum('capacity'))['capacity__sum']
 
+            if not total_capacity:
+                total_capacity = 0
             number_of_available_slots = total_capacity - number_of_quarantining_members
 
             # Calculate number of waiting members
