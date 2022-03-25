@@ -337,3 +337,52 @@ class Staff(models.Model):
     number_of_vaccine_doses = models.DecimalField(max_digits=2, decimal_places=0, default=0)
 
     care_area = models.TextField(null=True, blank=True)
+
+class DestinationHistory(models.Model):
+
+    user = models.ForeignKey(
+        to=CustomUser,
+        on_delete=models.CASCADE,
+        related_name='destination_history_x_user',
+        null=False,
+    )
+
+    country = models.ForeignKey(
+        to=Country,
+        on_delete=models.SET_NULL,
+        related_name='destination_history_x_country',
+        null=True,
+        blank=True,
+    )
+
+    city = models.ForeignKey(
+        to=City,
+        on_delete=models.SET_NULL,
+        related_name='destination_history_x_city',
+        null=True,
+        blank=True,
+    )
+
+    district = models.ForeignKey(
+        to=District,
+        on_delete=models.SET_NULL,
+        related_name='destination_history_x_district',
+        null=True,
+        blank=True,
+    )
+
+    ward = models.ForeignKey(
+        to=Ward,
+        on_delete=models.SET_NULL,
+        related_name='destination_history_x_ward',
+        null=True,
+        blank=True,
+    )
+
+    detail_address = models.TextField(null=True, blank=True)
+
+    start_time = models.DateTimeField(null=True, blank=True)
+
+    end_time = models.DateTimeField(null=True, blank=True)
+
+    note = models.TextField(null=True, blank=True)
