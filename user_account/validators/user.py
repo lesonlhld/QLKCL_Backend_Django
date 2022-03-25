@@ -847,7 +847,8 @@ class UserValidator(validators.AbstractRequestValidate):
                 if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
                     raise exceptions.ValidationException({'quarantined_at': messages.MUST_EMPTY})
                 if self._quarantined_at != self._custom_user.member_x_custom_user.quarantined_at:
-                    if not hasattr(self, '_quarantined_finish_expected_at') or self._quarantined_finish_expected_at == self._custom_user.member_x_custom_user.quarantined_finish_expected_at:
+                    old_quarantined_finish_expected_at = self._custom_user.member_x_custom_user.quarantined_finish_expected_at
+                    if not hasattr(self, '_quarantined_finish_expected_at') or self._quarantined_finish_expected_at == old_quarantined_finish_expected_at:
                         # also update quarantined_finish_expected_at
                         if hasattr(self, '_quarantine_ward'):
                             quarantine_ward = self._quarantine_ward
@@ -867,7 +868,10 @@ class UserValidator(validators.AbstractRequestValidate):
                                 remain_qt = int(os.environ.get('QUARANTINE_TIME_NOT_VAC', 14))
                             else:
                                 remain_qt = int(os.environ.get('QUARANTINE_TIME_VAC', 10))
-                        self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
+
+                        new_quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
+                        if old_quarantined_finish_expected_at and old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                            self._quarantined_finish_expected_at = new_quarantined_finish_expected_at
         if hasattr(self, '_quarantined_finish_expected_at'):
             if self._quarantined_finish_expected_at:
                 if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:

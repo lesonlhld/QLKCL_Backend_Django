@@ -129,6 +129,9 @@ class DebugAPI(AbstractView):
             # members = Member.objects.filter(quarantined_status=MemberQuarantinedStatus.COMPLETED, quarantine_room__isnull=True)
             # print('haha')
             # print(list(members))
+            time1 = timezone.now()
+            print(None > time1)
+            print(None < time1)
 
 
             return self.response_handler.handle(data="fSuccess")
