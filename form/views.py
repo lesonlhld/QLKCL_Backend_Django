@@ -732,8 +732,11 @@ class TestAPI(AbstractView):
                                                 remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
                                             else:
                                                 remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
-                                        member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
-                                        member.save()
+                                        old_quarantined_finish_expected_at = member.quarantined_finish_expected_at
+                                        new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                                        if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                            member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                            member.save()
 
                     this_member.last_tested_had_result = test.created_at
                 this_member.save()
@@ -912,8 +915,11 @@ class TestAPI(AbstractView):
                                                     remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
                                                 else:
                                                     remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
-                                            member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
-                                            member.save()
+                                            old_quarantined_finish_expected_at = member.quarantined_finish_expected_at
+                                            new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                                            if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                                member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                                member.save()
 
                         this_member.last_tested_had_result = test.created_at
                         this_member.save()
