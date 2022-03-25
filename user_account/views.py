@@ -264,8 +264,11 @@ class MemberAPI(AbstractView):
                                     remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
                                 else:
                                     remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
-                            each_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)  
-                            each_member.save()
+                            old_quarantined_finish_expected_at = each_member.quarantined_finish_expected_at
+                            new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                            if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                each_member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                each_member.save()
         
         # new room
         if new_room != None and new_room != old_room:
@@ -288,8 +291,11 @@ class MemberAPI(AbstractView):
                                 remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_NOT_VAC', 7))
                             else:
                                 remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_VAC', 5))
-                        each_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
-                        each_member.save()
+                        old_quarantined_finish_expected_at = each_member.quarantined_finish_expected_at
+                        new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                        if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                            each_member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                            each_member.save()
 
                 # set label
                 label_tool = LabelTool()
@@ -776,18 +782,19 @@ class MemberAPI(AbstractView):
                                 other_members_in_this_room = list(this_room.member_x_quarantine_room.all().exclude(id=member.id))
                                 for each_member in other_members_in_this_room:
                                     if each_member.label != MemberLabel.F0:
-                                        if quarantine_ward.pandemic:
-                                            if each_member.number_of_vaccine_doses < 2:
-                                                remain_qt = quarantine_ward.pandemic.quarantine_time_not_vac
+                                        if not each_member.quarantined_finish_expected_at:
+                                            if quarantine_ward.pandemic:
+                                                if each_member.number_of_vaccine_doses < 2:
+                                                    remain_qt = quarantine_ward.pandemic.quarantine_time_not_vac
+                                                else:
+                                                    remain_qt = quarantine_ward.pandemic.quarantine_time_vac
                                             else:
-                                                remain_qt = quarantine_ward.pandemic.quarantine_time_vac
-                                        else:
-                                            if each_member.number_of_vaccine_doses < 2:
-                                                remain_qt = int(os.environ.get('QUARANTINE_TIME_NOT_VAC', 14))
-                                            else:
-                                                remain_qt = int(os.environ.get('QUARANTINE_TIME_VAC', 10))
-                                        each_member.quarantined_finish_expected_at = each_member.quarantined_at + datetime.timedelta(days=remain_qt)
-                                        each_member.save()
+                                                if each_member.number_of_vaccine_doses < 2:
+                                                    remain_qt = int(os.environ.get('QUARANTINE_TIME_NOT_VAC', 14))
+                                                else:
+                                                    remain_qt = int(os.environ.get('QUARANTINE_TIME_VAC', 10))
+                                            each_member.quarantined_finish_expected_at = each_member.quarantined_at + datetime.timedelta(days=remain_qt)
+                                            each_member.save()
 
             # check room
             old_room = member.quarantine_room
@@ -963,7 +970,7 @@ class MemberAPI(AbstractView):
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
             return self.exception_handler.handle(exception)
-    
+
     @csrf_exempt
     @action(methods=['POST'], url_path='accept_many', detail=False)
     def accept_many_members(self, request):
