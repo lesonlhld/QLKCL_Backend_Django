@@ -1,4 +1,3 @@
-from lib2to3.pytree import Base
 from rest_framework import serializers
 from .models import CustomUser, Member, Manager, Staff, DestinationHistory
 from address.serializers import (
