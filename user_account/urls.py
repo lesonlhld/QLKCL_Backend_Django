@@ -1,4 +1,3 @@
-from posixpath import basename
 from rest_framework import routers
 from . import views
 
