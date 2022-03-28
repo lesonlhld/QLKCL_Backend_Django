@@ -35,3 +35,10 @@ class HomeValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_ward_id'):
             if not self.is_quarantine_ward_id_exist():
                 raise exceptions.ValidationException({'quarantine_ward_id': messages.NOT_EXIST})
+
+    def extra_validate_to_filter_city_with_destination_history(self):
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.ValidationException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_order_by'):
+            if self._order_by not in ['name', '-name', 'num_of_members_pass_by', '-num_of_members_pass_by']:
+                raise exceptions.ValidationException({'order_by': messages.INVALID})
