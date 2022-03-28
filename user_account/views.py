@@ -23,6 +23,7 @@ from .filters.destination_history import DestinationHistoryFilter
 from form.models import Test, VaccineDose
 from form.filters.test import TestFilter
 from role.models import Role
+from address.models import City, District
 from quarantine_ward.models import QuarantineRoom
 from quarantine_ward.serializers import (
     QuarantineRoomSerializer, QuarantineFloorSerializer,
@@ -2763,6 +2764,85 @@ class HomeAPI(AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
     
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter_city_with_num_of_members_pass_by', detail=False)
+    def filter_city_with_num_of_members_pass_by(self, request):
+        """Get a list of cities and number of members pass by it
+
+        Args:
+            - quarantine_ward_id: int
+            - page: int
+            - page_size: int
+            - search: String
+            - order_by: String ['name', 'num_of_members_pass_by'], mặc định sắp thứ tự theo num_of_members_pass_by giảm dần
+        """
+
+        accept_fields = [
+            'quarantine_ward_id',
+            'page', 'page_size', 'search', 'order_by',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = HomeValidator(**accepted_fields)
+
+            validator.extra_validate_to_filter_city_with_destination_history()
+
+            quarantine_ward = validator.get_field('quarantine_ward')
+            search_value = validator.get_field('search')
+            order_by = validator.get_field('order_by')
+
+            response_list = []
+
+            all_cities = City.objects.filter(country__code='VNM')
+            if search_value:
+                all_cities = all_cities.filter(name__unaccent__icontains=search_value)
+
+            for city in list(all_cities):
+                query_set = DestinationHistory.objects.filter(city=city, user__status=CustomUserStatus.AVAILABLE, user__role__name='MEMBER')
+                if quarantine_ward:
+                    query_set = query_set.filter(user__quarantine_ward=quarantine_ward)
+                num_of_members_pass_by = query_set.values('user').annotate(num_user=Count('user')).count()
+                response_list += [{
+                    'city': {
+                        'id': city.id,
+                        'name': city.name,
+                    },
+                    'num_of_members_pass_by': num_of_members_pass_by,
+                }]
+
+            if order_by:
+                if order_by == 'name':
+                    key_to_sort = lambda d: d['city']['name']
+                    reverse_to_sort = False
+                elif order_by == '-name':
+                    key_to_sort = lambda d: d['city']['name']
+                    reverse_to_sort = True
+                elif order_by == 'num_of_members_pass_by':
+                    key_to_sort = lambda d: d['num_of_members_pass_by']
+                    reverse_to_sort = False
+                elif order_by == '-num_of_members_pass_by':
+                    key_to_sort = lambda d: d['num_of_members_pass_by']
+                    reverse_to_sort = True
+            else:
+                key_to_sort = lambda d: d['num_of_members_pass_by']
+                reverse_to_sort = True
+
+            response_list = sorted(response_list, key=key_to_sort, reverse=reverse_to_sort)
+
+            paginated_data = paginate_data(request, response_list)
+
+            return self.response_handler.handle(data=paginated_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
     @csrf_exempt
     @action(methods=['POST'], url_path='member', detail=False)
     def member_home(self, request):
