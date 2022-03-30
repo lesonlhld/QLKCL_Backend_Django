@@ -31,6 +31,20 @@ class HomeValidator(validators.AbstractRequestValidate):
         else:
             return False
 
+    def is_validate_start_time_max(self):
+        if hasattr(self, '_start_time_max') and self._start_time_max != None:
+            self._start_time_max = validators.DateTimeFieldValidator.valid(
+                value=self._start_time_max,
+                message={'start_time_max': messages.INVALID_DATETIME},
+            )
+    
+    def is_validate_start_time_min(self):
+        if hasattr(self, '_start_time_min') and self._start_time_min != None:
+            self._start_time_min = validators.DateTimeFieldValidator.valid(
+                value=self._start_time_min,
+                message={'start_time_min': messages.INVALID_DATETIME},
+            )
+
     def extra_validate_to_get_manager_home(self):
         if hasattr(self, '_quarantine_ward_id'):
             if not self.is_quarantine_ward_id_exist():
@@ -42,3 +56,11 @@ class HomeValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_order_by'):
             if self._order_by not in ['name', '-name', 'num_of_members_pass_by', '-num_of_members_pass_by']:
                 raise exceptions.ValidationException({'order_by': messages.INVALID})
+        if hasattr(self, '_start_time_max') and not self._start_time_max:
+            raise exceptions.ValidationException({'start_time_max': messages.EMPTY})
+        if hasattr(self, '_start_time_min') and not self._start_time_min:
+            raise exceptions.ValidationException({'start_time_min': messages.EMPTY})
+        if hasattr(self, '_start_time_max') and self._start_time_max \
+            and hasattr(self, '_start_time_min') and self._start_time_min:
+            if self._start_time_min > self._start_time_max:
+                raise exceptions.ValidationException({'start_time_max': messages.INVALID})
