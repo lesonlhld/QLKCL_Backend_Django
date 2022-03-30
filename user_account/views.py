@@ -53,7 +53,7 @@ class DestinationHistoryAPI(AbstractView):
             - district_id: int
             - ward_id: int
             - detail_address: String
-            - start_time: String vd:'2000-01-26T01:23:45.123456Z'
+            + start_time: String vd:'2000-01-26T01:23:45.123456Z'
             - end_time: String vd:'2000-01-26T01:23:45.123456Z'
             - note: String
         """
@@ -68,6 +68,7 @@ class DestinationHistoryAPI(AbstractView):
         require_fields = [
             'user_code',
             'country_code', 'city_id',
+            'start_time',
         ]
 
         try:
@@ -2971,6 +2972,8 @@ class HomeAPI(AbstractView):
 
         Args:
             - quarantine_ward_id: int
+            - start_time_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - start_time_min: String vd:'2000-01-26T01:23:45.123456Z'
             - page: int
             - page_size: int
             - search: String
@@ -2978,7 +2981,7 @@ class HomeAPI(AbstractView):
         """
 
         accept_fields = [
-            'quarantine_ward_id',
+            'quarantine_ward_id', 'start_time_max', 'start_time_min',
             'page', 'page_size', 'search', 'order_by',
         ]
 
@@ -2992,10 +2995,12 @@ class HomeAPI(AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = HomeValidator(**accepted_fields)
-
+            validator.is_valid_fields(['start_time_max', 'start_time_min'])
             validator.extra_validate_to_filter_city_with_destination_history()
 
             quarantine_ward = validator.get_field('quarantine_ward')
+            start_time_max = validator.get_field('start_time_max')
+            start_time_min = validator.get_field('start_time_min')
             search_value = validator.get_field('search')
             order_by = validator.get_field('order_by')
 
@@ -3006,9 +3011,17 @@ class HomeAPI(AbstractView):
                 all_cities = all_cities.filter(name__unaccent__icontains=search_value)
 
             for city in list(all_cities):
-                query_set = DestinationHistory.objects.filter(city=city, user__status=CustomUserStatus.AVAILABLE, user__role__name='MEMBER')
+                query_set = DestinationHistory.objects.filter(
+                    city=city,
+                    user__status=CustomUserStatus.AVAILABLE,
+                    user__role__name='MEMBER',
+                )
                 if quarantine_ward:
                     query_set = query_set.filter(user__quarantine_ward=quarantine_ward)
+                if start_time_max:
+                    query_set = query_set.filter(start_time__lte=start_time_max)
+                if start_time_min:
+                    query_set = query_set.filter(start_time__gte=start_time_min)
                 num_of_members_pass_by = query_set.values('user').annotate(num_user=Count('user')).count()
                 response_list += [{
                     'city': {

@@ -171,7 +171,10 @@ class DestinationHistoryValidator(validators.AbstractRequestValidate):
             else:
                 self._ward = None
         self.check_country_ward_relationship()
-        if not hasattr(self, '_start_time'):
+        if hasattr(self, '_start_time'):
+            if not self._start_time:
+                raise exceptions.ValidationException({'start_time': messages.EMPTY})
+        else:
             self._start_time = self._destination_history.start_time
         if not hasattr(self, '_end_time'):
             self._end_time = self._destination_history.end_time
