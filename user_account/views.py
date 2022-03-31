@@ -24,7 +24,7 @@ from .filters.destination_history import DestinationHistoryFilter
 from form.models import Test, VaccineDose
 from form.filters.test import TestFilter
 from role.models import Role
-from address.models import City, District
+from address.models import City, District, Ward
 from quarantine_ward.models import QuarantineRoom
 from quarantine_ward.serializers import (
     QuarantineRoomSerializer, QuarantineFloorSerializer,
@@ -2966,11 +2966,13 @@ class HomeAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
-    @action(methods=['POST'], url_path='filter_city_with_num_of_members_pass_by', detail=False)
-    def filter_city_with_num_of_members_pass_by(self, request):
-        """Get a list of cities and number of members pass by it
+    @action(methods=['POST'], url_path='filter_address_with_num_of_members_pass_by', detail=False)
+    def filter_address_with_num_of_members_pass_by(self, request):
+        """Get a list of cities/districts/wards and number of members pass by it
 
         Args:
+            + address_type: String ['city', 'district', 'ward']
+            - father_address_id: int
             - quarantine_ward_id: int
             - start_time_max: String vd:'2000-01-26T01:23:45.123456Z'
             - start_time_min: String vd:'2000-01-26T01:23:45.123456Z'
@@ -2981,6 +2983,7 @@ class HomeAPI(AbstractView):
         """
 
         accept_fields = [
+            'address_type', 'father_address_id',
             'quarantine_ward_id', 'start_time_max', 'start_time_min',
             'page', 'page_size', 'search', 'order_by',
         ]
@@ -2995,9 +2998,12 @@ class HomeAPI(AbstractView):
                     accepted_fields[key] = receive_fields[key]
 
             validator = HomeValidator(**accepted_fields)
-            validator.is_valid_fields(['start_time_max', 'start_time_min'])
-            validator.extra_validate_to_filter_city_with_destination_history()
+            validator.is_missing_fields(['address_type'])
+            validator.is_valid_fields(['address_type', 'start_time_max', 'start_time_min'])
+            validator.extra_validate_to_filter_address_with_num_of_members_pass_by()
 
+            address_type = validator.get_field('address_type')
+            father_address_id = validator.get_field('father_address_id')
             quarantine_ward = validator.get_field('quarantine_ward')
             start_time_max = validator.get_field('start_time_max')
             start_time_min = validator.get_field('start_time_min')
@@ -3006,16 +3012,26 @@ class HomeAPI(AbstractView):
 
             response_list = []
 
-            all_cities = City.objects.filter(country__code='VNM')
+            if address_type == 'city':
+                all_addresses = City.objects.filter(country__code='VNM')
+            elif address_type == 'district':
+                all_addresses = District.objects.filter(city__id=father_address_id)
+            else:
+                all_addresses = Ward.objects.filter(district__id=father_address_id)
             if search_value:
-                all_cities = all_cities.filter(name__unaccent__icontains=search_value)
+                all_addresses = all_addresses.filter(name__unaccent__icontains=search_value)
 
-            for city in list(all_cities):
+            for address in list(all_addresses):
                 query_set = DestinationHistory.objects.filter(
-                    city=city,
-                    user__status=CustomUserStatus.AVAILABLE,
+                    user__status__in=[CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE],
                     user__role__name='MEMBER',
                 )
+                if address_type == 'city':
+                    query_set = query_set.filter(city=address)
+                elif address_type == 'district':
+                    query_set = query_set.filter(district=address)
+                else:
+                    query_set = query_set.filter(ward=address)
                 if quarantine_ward:
                     query_set = query_set.filter(user__quarantine_ward=quarantine_ward)
                 if start_time_max:
@@ -3024,19 +3040,19 @@ class HomeAPI(AbstractView):
                     query_set = query_set.filter(start_time__gte=start_time_min)
                 num_of_members_pass_by = query_set.values('user').annotate(num_user=Count('user')).count()
                 response_list += [{
-                    'city': {
-                        'id': city.id,
-                        'name': city.name,
+                    address_type: {
+                        'id': address.id,
+                        'name': address.name,
                     },
                     'num_of_members_pass_by': num_of_members_pass_by,
                 }]
 
             if order_by:
                 if order_by == 'name':
-                    key_to_sort = lambda d: d['city']['name']
+                    key_to_sort = lambda d: d[address_type]['name']
                     reverse_to_sort = False
                 elif order_by == '-name':
-                    key_to_sort = lambda d: d['city']['name']
+                    key_to_sort = lambda d: d[address_type]['name']
                     reverse_to_sort = True
                 elif order_by == 'num_of_members_pass_by':
                     key_to_sort = lambda d: d['num_of_members_pass_by']
