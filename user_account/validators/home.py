@@ -1,4 +1,5 @@
 from django.db.models import Q
+from address.models import City, District, Ward
 from quarantine_ward.models import QuarantineWard
 from utils import validators, messages, exceptions
 
@@ -18,6 +19,36 @@ class HomeValidator(validators.AbstractRequestValidate):
                 message1={'number_of_days_in_out': messages.INVALID},
             )
 
+    def is_city_id_exist(self, id):
+        try:
+            validators.ModelInstanceExistenceValidator.valid(
+                model_cls=City,
+                query_expr=Q(id=id),
+            )
+            return True
+        except Exception as exception:
+            return False
+
+    def is_district_id_exist(self, id):
+        try:
+            validators.ModelInstanceExistenceValidator.valid(
+                model_cls=District,
+                query_expr=Q(id=id),
+            )
+            return True
+        except Exception as exception:
+            return False
+
+    def is_ward_id_exist(self, id):
+        try:
+            validators.ModelInstanceExistenceValidator.valid(
+                model_cls=Ward,
+                query_expr=Q(id=id),
+            )
+            return True
+        except Exception as exception:
+            return False
+
     def is_quarantine_ward_id_exist(self):
         if hasattr(self, '_quarantine_ward_id'):
             try:
@@ -30,6 +61,11 @@ class HomeValidator(validators.AbstractRequestValidate):
                 return False
         else:
             return False
+
+    def is_validate_address_type(self):
+        if hasattr(self, '_address_type'):
+            if self._address_type not in ['city', 'district', 'ward']:
+                raise exceptions.ValidationException({'address_type': messages.INVALID})
 
     def is_validate_start_time_max(self):
         if hasattr(self, '_start_time_max') and self._start_time_max != None:
@@ -50,7 +86,22 @@ class HomeValidator(validators.AbstractRequestValidate):
             if not self.is_quarantine_ward_id_exist():
                 raise exceptions.ValidationException({'quarantine_ward_id': messages.NOT_EXIST})
 
-    def extra_validate_to_filter_city_with_destination_history(self):
+    def extra_validate_to_filter_address_with_num_of_members_pass_by(self):
+        if self._address_type == 'city':
+            # dont care about father_address_id
+            ...
+        elif self._address_type == 'district':
+            if hasattr(self, '_father_address_id') and self._father_address_id:
+                if not self.is_city_id_exist(self._father_address_id):
+                    raise exceptions.ValidationException({'father_address_id': messages.NOT_EXIST})
+            else:
+                raise exceptions.ValidationException({'father_address_id': messages.EMPTY})
+        else:
+            if hasattr(self, '_father_address_id') and self._father_address_id:
+                if not self.is_district_id_exist(self._father_address_id):
+                    raise exceptions.ValidationException({'father_address_id': messages.NOT_EXIST})
+            else:
+                raise exceptions.ValidationException({'father_address_id': messages.EMPTY})
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.ValidationException({'quarantine_ward_id': messages.NOT_EXIST})
         if hasattr(self, '_order_by'):
