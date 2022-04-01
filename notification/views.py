@@ -1,4 +1,3 @@
-import re
 import requests
 import json
 from django.conf import settings
@@ -96,7 +95,7 @@ class NotificationAPI (AbstractView):
             list_to_create = accepted_fields.keys()
             dict_to_create = validator.get_data(list_to_create)
             notification = Notification(**dict_to_create)
-            notification.created_by = request.user
+            notification.created_by = user
             notification.save()
 
             serializer = NotificationSerializer(notification, many=False)
@@ -153,7 +152,6 @@ class NotificationAPI (AbstractView):
 
         try:
             user = request.user
-            
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -173,7 +171,7 @@ class NotificationAPI (AbstractView):
             list_to_create = accepted_fields_for_notification.keys()
             dict_to_create = validator.get_data(list_to_create)
             notification = Notification(**dict_to_create)
-            notification.created_by = request.user
+            notification.created_by = user
             notification.save()
             
             if 'receiver_type' in accepted_fields_for_user_notification:
