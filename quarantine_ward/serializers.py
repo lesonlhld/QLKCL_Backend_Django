@@ -136,9 +136,10 @@ class QuarantineWardWithBuildingSerializer(serializers.ModelSerializer):
 
 class QuarantineWardForRegisterSerializer(serializers.ModelSerializer):
 
+    pandemic = PandemicSerializer(many=False)
     class Meta:
         model = QuarantineWard
-        fields = ['id', 'full_name']
+        fields = ['id', 'full_name', 'pandemic', 'latitude', 'longitude']
 
     def to_representation(self, instance):
         data =  super().to_representation(instance)
@@ -175,10 +176,14 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
     city = BaseCitySerializer(many=False)
     district = BaseDistrictSerializer(many=False)
     ward = BaseWardSerializer(many=False)
+    pandemic = PandemicSerializer(many=False)
 
     class Meta:
         model = QuarantineWard
-        fields = ['id', 'main_manager', 'full_name', 'image', 'city', 'country', 'district', 'ward', 'address', 'created_at', 'updated_at']
+        fields = ['id', 'main_manager', 'full_name', 'image', 'pandemic',
+                  'city', 'country', 'district', 'ward', 'address',
+                  'latitude', 'longitude',
+                  'created_at', 'updated_at']
     
     def to_representation(self, instance):
         data =  super().to_representation(instance)
@@ -198,15 +203,11 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
         if self.context == 'set_full':
             if data['num_current_member'] >= data['total_capacity']:
                 return data
-            else:
-                return None
         elif self.context == 'set_not_full':
             if data['num_current_member'] < data['total_capacity']:
                 return data
-            else:
-                return None
-
-        return data
+        else:
+            return data
 
 class FilterQuarantineBuildingSerializer(serializers.ModelSerializer):
 
