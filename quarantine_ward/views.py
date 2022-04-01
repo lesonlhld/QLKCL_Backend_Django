@@ -281,6 +281,7 @@ class QuarantineWardAPI (AbstractView):
             - district (id): int
             - ward (id): int
             - main_manager (code): int
+            - pandemic_id (id): int
             - is_full: bool
         """
 
@@ -288,7 +289,7 @@ class QuarantineWardAPI (AbstractView):
             'page', 'page_size', 'search',
             'created_at_max', 'created_at_min',
             'country', 'city', 'district', 'ward',
-            'main_manager', 'is_full',
+            'main_manager', 'is_full', 'pandemic_id'
         ]
 
         try:
