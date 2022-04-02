@@ -134,13 +134,22 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def is_validate_health_status_list(self):
         if hasattr(self, '_health_status_list'):
-            self._new_health_status_list = split_input_list(self._health_status_list)
-            for item in self._new_health_status_list:
-                item = validators.EnumValidator.valid(
-                    value=item,
-                    enum_cls=HealthStatus,
-                    message={'health_status': messages.INVALID},
-                )
+            self._health_status_list = split_input_list(self._health_status_list)
+            new_health_status_list = ''
+            for item in self._health_status_list:
+                try:
+                    new_health_status_list += validators.EnumValidator.valid(
+                        value=item,
+                        enum_cls=HealthStatus,
+                    ) + ','
+                except Exception as exception:
+                    if item == 'Null':
+                        new_health_status_list += item + ','
+                    else:
+                        raise exceptions.ValidationException({'health_status_list': messages.INVALID})
+            if new_health_status_list:
+                new_health_status_list = new_health_status_list[:-1]
+            self._health_status_list = new_health_status_list
 
     def is_validate_role_name_list(self):
         if hasattr(self, '_role_name_list'):
