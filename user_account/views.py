@@ -1484,7 +1484,7 @@ class MemberAPI(AbstractView):
         Args:
             - status_list: String <status>,<status> ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE', 'LEAVE']
             - quarantined_status_list: String <status>,<status> ['COMPLETED', 'QUARANTINING', 'REQUARANTINING', 'HOSPITALIZE', 'MOVED']
-            - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS']
+            - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS', 'Null']
             - positive_test_now_list: String <value>,<value> ['True', 'False', 'Null']
             - is_last_tested: boolean - True để lọc những người cách ly đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
             - can_finish_quarantine: boolean - True để lọc những người cách ly có thể hoàn thành cách ly, False hoặc không truyền đồng nghĩa không lọc

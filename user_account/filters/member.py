@@ -80,10 +80,17 @@ class MemberFilter(django_filters.FilterSet):
 
     def health_status_in_list(self, queryset, name, value):
         # value in String, not list, so need to convert String to list
+        # value is VD: 'NORMAL,UNWELL,SERIOUS,Null'
         value = split_input_list(value)
-        query = (
-            Q(member_x_custom_user__health_status__in=value)
-        )
+        if 'Null' in value:
+            query = (
+                Q(member_x_custom_user__health_status__in=value) |
+                Q(member_x_custom_user__health_status__isnull=True)
+            )
+        else:
+            query = (
+                Q(member_x_custom_user__health_status__in=value)
+            )
         qs = queryset.filter(query)
         return qs
 
