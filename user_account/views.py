@@ -1,6 +1,7 @@
 import os
 import datetime, pytz
 import locale
+import openpyxl, csv, codecs
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Count, Avg, Sum, Q
@@ -809,6 +810,205 @@ class MemberAPI(AbstractView):
             response_data['custom_user'] = custom_user_serializer.data
             response_data['member'] = member_serializer.data
             
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+    
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create_by_file', detail=False)
+    def create_member_by_file(self, request):
+        """Create a member by file (csv, xlsx)
+
+        Args:
+            + file: .csv, .xlsx
+        """
+
+        gender_switcher = {
+            "Nam": 'MALE',
+            "Nữ": 'FEMALE',
+        }
+
+        boolean_switcher = {
+            "Có": True,
+            "Không": False
+        }
+
+        custom_user_fields = [
+            'full_name', 'email', 'phone_number',
+            'birthday', 'nationality_code', 'gender',
+            'country_code', 'city_id', 'district_id', 'ward_id', 'detail_address', 
+            'identity_number', 'health_insurance_number', 'passport_number',
+            'quarantine_ward_id',
+        ]
+
+        member_fields = [
+            'quarantine_room_id',
+            'label', 'quarantined_at', 'positive_tested_before',
+            'background_disease', 'other_background_disease',
+            'number_of_vaccine_doses', 'care_staff_code',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            file_name = request.FILES.get('file', False)
+            if file_name:
+                extension = os.path.splitext(str(file_name))[1]
+                iter_rows = None
+                error = dict()
+                custom_user_ids = list()
+                is_csv_file = False
+
+                if (extension == ".xlsx"):
+                    wb = openpyxl.load_workbook(file_name)
+                    ws = wb["Sheet1"]
+                    iter_rows = ws.iter_rows(min_row=2, min_col=2, max_col=25)
+                elif (extension == ".csv"):
+                    iter_rows = csv.DictReader(codecs.iterdecode(file_name, encoding='utf-8'))
+                    is_csv_file = True
+
+                for row_index, row in enumerate(iter_rows):
+                    try:
+                        dict_custom_user_data = dict()
+                        dict_member_data = dict()
+                        is_available = False
+                        if is_csv_file: 
+                            row = list(row.values())[1:]
+
+                        for index, data in enumerate(row):
+                            value = data.value if not is_csv_file else data
+
+                            if (index < 15):
+                                
+                                if index == 3:
+                                    if not is_csv_file: 
+                                        value = value.strftime('%d/%m/%Y')
+                                    else:
+                                        value = str(value)
+                                        value = str(datetime.datetime.strptime(value, '%d/%m/%Y').strftime('%d/%m/%Y'))
+                                elif index == 5:
+                                    value = str(value)
+                                    value = gender_switcher[value]
+                                elif index in [7, 8, 9, 14]:
+                                    value = int(value)
+                                else:
+                                    value = str(value)
+                                dict_custom_user_data[custom_user_fields[index]] = value
+
+                            elif (index == 15):
+
+                                if str(value) == "Có":
+                                    is_available = True
+
+                            else:
+                                if (index == 18):
+                                    if not is_csv_file:
+                                        value = value.strftime('%Y-%m-%dT%H:%M:%S.%f%zZ')
+                                    else:
+                                        value = str(value)
+                                        value = str(datetime.datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%dT%H:%M:%S.%f%zZ'))
+                                    
+                                if value in ["Có", "Không"]:
+                                    value = str(value)
+                                    value = boolean_switcher[value]
+                                if value != None or value != "":
+                                    dict_member_data[member_fields[index - 16]] = value
+                            
+                        user_validator = UserValidator(**dict_custom_user_data)
+                        user_validator.is_valid_fields([
+                            'phone_number', 'email', 'birthday', 'gender',
+                            'passport_number', 'health_insurance_number', 'identity_number',
+                        ])
+                        user_validator.extra_validate_to_create_member()
+
+                        # create CustomUser
+                        custom_user_field = set(custom_user_fields) - \
+                        {'nationality_code', 'country_code', 'city_id', 'district_id', 'ward_id', 'quarantine_ward_id'}
+                        custom_user_field = list(custom_user_field) + \
+                        [
+                            'nationality', 'country', 'city', 'district', 'ward',
+                            'quarantine_ward',
+                        ]
+
+                        dict_to_create_custom_user = user_validator.get_data(custom_user_field)
+
+                        custom_user = CustomUser(**dict_to_create_custom_user)
+                        custom_user.set_password('123456')
+                        custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
+                        while (user_validator.is_code_exist(custom_user.code)):
+                            custom_user.code = custom_user_code_generator(custom_user.quarantine_ward.id)
+                        custom_user.created_by = request.user
+                        custom_user.updated_by = request.user
+                        custom_user.role = Role.objects.get(name='MEMBER')
+                        if not is_available:
+                            custom_user.status = CustomUserStatus.WAITING
+                        
+                        # create Member
+                        dict_member_data["quarantine_ward"] = custom_user.quarantine_ward
+                        
+                        member_validator = UserValidator(**dict_member_data)
+                        member_validator.is_valid_fields([
+                            'label', 'quarantined_at', 'positive_tested_before',
+                            'background_disease', 'number_of_vaccine_doses',
+                        ])
+                        member_validator.extra_validate_to_create_member()
+                
+                        member_field = set(member_fields) - \
+                        {'quarantine_room_id', 'care_staff_code'}
+                        member_field = list(member_field) + \
+                        ['quarantined_at', 'quarantined_finish_expected_at', 'positive_test_now', 'care_staff',]
+
+                        dict_to_create_member = member_validator.get_data(member_field)
+
+                        member = Member(**dict_to_create_member)
+                        member.custom_user = custom_user
+
+                        # extra set room for this member
+                        if hasattr(member_validator, '_quarantine_room'):
+                            # this field is received and not None
+                            quarantine_room = member_validator.get_field('quarantine_room')
+                            check_room_result = self.check_room_for_member(custom_user, quarantine_room)
+                            if check_room_result != messages.SUCCESS:
+                                raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
+                        else:
+                            input_dict_for_get_suitable_room = dict()
+                            input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
+                            input_dict_for_get_suitable_room['gender'] = custom_user.gender
+                            input_dict_for_get_suitable_room['label'] = member.label
+                            input_dict_for_get_suitable_room['positive_test_now'] = member.positive_test_now
+                            input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
+                            input_dict_for_get_suitable_room['old_quarantine_room'] = None
+                            input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
+
+                            suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
+                            quarantine_room = suitable_room_dict['room']
+                            warning = suitable_room_dict['warning']
+                            if not quarantine_room:
+                                raise exceptions.ValidationException({'main': warning})
+
+                        member.quarantine_room = quarantine_room
+
+                        custom_user.save()
+                        member.save()
+
+                        self.do_after_change_room_of_member_work(member, None)
+
+                        custom_user_ids += [custom_user.id]
+                    except Exception as e:
+                        error[str(row_index + 1)] = str(e)
+                        pass
+                
+                
+                custom_user_data = CustomUser.objects.filter(id__in=custom_user_ids)
+                member_serializer = FilterMemberSerializer(custom_user_data, many=True)
+                response_data = dict()
+                response_data["user_success"] = member_serializer.data
+                response_data["user_fail"] = error
+                
+            else:
+                raise exceptions.InvalidArgumentException({'main': messages.FILE_IMPORT_EMPTY})
+
             return self.response_handler.handle(data=response_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)

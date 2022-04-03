@@ -13,3 +13,4 @@ djangorestframework_simplejwt
 python-dotenv==0.15.0
 django-cors-headers
 requests
+openpyxl

@@ -1,4 +1,3 @@
-import re
 import requests
 import json
 from django.conf import settings
@@ -80,8 +79,6 @@ class NotificationAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -98,7 +95,7 @@ class NotificationAPI (AbstractView):
             list_to_create = accepted_fields.keys()
             dict_to_create = validator.get_data(list_to_create)
             notification = Notification(**dict_to_create)
-            notification.created_by = request.user
+            notification.created_by = user
             notification.save()
 
             serializer = NotificationSerializer(notification, many=False)
@@ -155,8 +152,6 @@ class NotificationAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -176,7 +171,7 @@ class NotificationAPI (AbstractView):
             list_to_create = accepted_fields_for_notification.keys()
             dict_to_create = validator.get_data(list_to_create)
             notification = Notification(**dict_to_create)
-            notification.created_by = request.user
+            notification.created_by = user
             notification.save()
             
             if 'receiver_type' in accepted_fields_for_user_notification:
@@ -193,6 +188,8 @@ class NotificationAPI (AbstractView):
             if notification.image != None:
                 payload["big_picture"] = notification.image
             if get_type == 0:
+                if user.role.name == RoleName.MEMBER:
+                    raise exceptions.AuthenticationException()
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
                 list_user_notification = []
                 for user_item in all_users:
@@ -214,6 +211,8 @@ class NotificationAPI (AbstractView):
                     })
 
             elif get_type == 1:
+                if user.role.name == RoleName.MEMBER:
+                    raise exceptions.AuthenticationException()
                 validator.is_missing_fields(['quarantine_ward'])
                 get_quarantine_ward = validator.is_validate_quarantine_ward()
                 all_users = CustomUser.objects.filter(
@@ -298,8 +297,6 @@ class NotificationAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -342,8 +339,6 @@ class NotificationAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -503,8 +498,6 @@ class UserNotificationAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -526,6 +519,8 @@ class UserNotificationAPI (AbstractView):
             if get_notification.image != None:
                 payload["big_picture"] = get_notification.image
             if get_type == 0:
+                if user.role.name == RoleName.MEMBER:
+                    raise exceptions.AuthenticationException()
                 all_users = CustomUser.objects.filter(role__id=get_role) if get_role > 0 else CustomUser.objects.all()
                 list_user_notification = []
                 for user_item in all_users:
@@ -547,6 +542,8 @@ class UserNotificationAPI (AbstractView):
                     })
 
             elif get_type == 1:
+                if user.role.name == RoleName.MEMBER:
+                    raise exceptions.AuthenticationException()
                 validator.is_missing_fields(['quarantine_ward'])
                 get_quarantine_ward = validator.is_validate_quarantine_ward()
                 all_users = CustomUser.objects.filter(
@@ -613,12 +610,11 @@ class UserNotificationAPI (AbstractView):
         """Change is_read field in UserNotification 
 
         Args:
-            - user (id)
             + notification (id)
         """
 
         accept_fields = [
-            'user', 'notification'
+            'notification'
         ]
 
         require_fields = [
@@ -636,8 +632,7 @@ class UserNotificationAPI (AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
             
-            if 'user' not in accepted_fields:
-                accepted_fields['user'] = user.id
+            accepted_fields['user'] = user.id
 
             validator = UserNotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
@@ -670,8 +665,6 @@ class UserNotificationAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data

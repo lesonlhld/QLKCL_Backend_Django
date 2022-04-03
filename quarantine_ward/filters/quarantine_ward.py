@@ -49,6 +49,11 @@ class QuarantineWardFilter(django_filters.FilterSet):
         lookup_expr='lte',
     )
 
+    pandemic_id = django_filters.CharFilter(
+        field_name='pandemic__id',
+        lookup_expr='iexact',
+    )
+
     order_by = django_filters.OrderingFilter(
         fields=(
             ('created_at', 'created_at'),
