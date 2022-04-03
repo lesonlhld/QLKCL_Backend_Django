@@ -1,5 +1,6 @@
 import os
 import datetime, pytz
+import locale
 import openpyxl, csv, codecs
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -3048,11 +3049,12 @@ class HomeAPI(AbstractView):
                 }]
 
             if order_by:
+                locale.setlocale(locale.LC_COLLATE, '')
                 if order_by == 'name':
-                    key_to_sort = lambda d: d[address_type]['name']
+                    key_to_sort = lambda d: locale.strxfrm(d[address_type]['name'])
                     reverse_to_sort = False
                 elif order_by == '-name':
-                    key_to_sort = lambda d: d[address_type]['name']
+                    key_to_sort = lambda d: locale.strxfrm(d[address_type]['name'])
                     reverse_to_sort = True
                 elif order_by == 'num_of_members_pass_by':
                     key_to_sort = lambda d: d['num_of_members_pass_by']
