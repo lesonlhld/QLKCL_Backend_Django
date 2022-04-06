@@ -44,6 +44,15 @@ class MemberQuarantinedStatus(models.TextChoices):
     HOSPITALIZE = 'HOSPITALIZE'
     MOVED = 'MOVED'
 
+class QuarantineHistoryStatus(models.TextChoices):
+    PRESENT = 'PRESENT'
+    ENDED = 'ENDED'
+
+class QuarantineHistoryEndType(models.TextChoices):
+    HOSPITALIZE = 'HOSPITALIZE'
+    COMPLETED = 'COMPLETED'
+    CHANGE_ROOM = 'CHANGE_ROOM'
+
 class HealthStatus(models.TextChoices):
     NORMAL = 'NORMAL'
     UNWELL = 'UNWELL'
