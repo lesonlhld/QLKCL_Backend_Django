@@ -8,11 +8,11 @@ from role.models import Role
 from utils.enums import (
     Gender,
     CustomUserStatus,
-    RoleName,
     MemberLabel,
     MemberQuarantinedStatus,
     HealthStatus,
-    Disease,
+    QuarantineHistoryStatus,
+    QuarantineHistoryEndType,
 )
 from utils import validators
 
@@ -386,3 +386,76 @@ class DestinationHistory(models.Model):
     end_time = models.DateTimeField(null=True, blank=True)
 
     note = models.TextField(null=True, blank=True)
+
+class QuarantineHistory(models.Model):
+
+    user = models.ForeignKey(
+        to=CustomUser,
+        on_delete=models.CASCADE,
+        related_name='quarantine_history_x_user',
+        null=False,
+    )
+
+    pandemic = models.ForeignKey(
+        to='form.Pandemic',
+        on_delete=models.SET_NULL,
+        related_name='quarantine_history_x_pandemic',
+        null=True,
+        blank=True,
+    )
+
+    quarantine_ward = models.ForeignKey(
+        to='quarantine_ward.QuarantineWard',
+        on_delete=models.SET_NULL,
+        related_name='quarantine_history_x_quanrantine_ward',
+        null=True,
+        blank=True,
+    )
+
+    quarantine_room = models.ForeignKey(
+        to='quarantine_ward.QuarantineRoom',
+        on_delete=models.SET_NULL,
+        related_name='quarantine_history_x_quarantine_room',
+        null=True,
+        blank=True,
+    )
+
+    status = models.CharField(
+        max_length=32,
+        choices=QuarantineHistoryStatus.choices,
+        default=QuarantineHistoryStatus.PRESENT,
+        null=False,
+    )
+
+    start_date = models.DateTimeField(null=True, blank=True)
+
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    end_type = models.CharField(
+        max_length=32,
+        choices=QuarantineHistoryEndType.choices,
+        null=True,
+        blank=True,
+    )
+
+    note = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True, auto_now=False)
+
+    created_by = models.ForeignKey(
+        to='user_account.CustomUser',
+        on_delete=models.SET_NULL,
+        related_name='quarantine_history_x_created_by',
+        null=True,
+        blank=True,
+    )
+
+    updated_at = models.DateTimeField(auto_now_add=False, auto_now=True)
+
+    updated_by = models.ForeignKey(
+        to='user_account.CustomUser',
+        on_delete=models.SET_NULL,
+        related_name='quarantine_history_x_updated_by',
+        null=True,
+        blank=True,
+    )
