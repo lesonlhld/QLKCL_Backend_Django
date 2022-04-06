@@ -10,9 +10,10 @@ from rest_framework.decorators import action, permission_classes
 from .validators.user import UserValidator
 from .validators.home import HomeValidator
 from .validators.destination_history import DestinationHistoryValidator
-from .models import CustomUser, Member, Manager, Staff, DestinationHistory
+from .validators.quarantine_history import QuarantineHistoryValidator
+from .models import CustomUser, Member, Manager, Staff, DestinationHistory, QuarantineHistory
 from .serializers import (
-    DestinationHistorySerializer,
+    DestinationHistorySerializer, QuarantineHistorySerializer,
     CustomUserSerializer, MemberSerializer,
     FilterMemberSerializer, FilterNotMemberSerializer,
     MemberHomeSerializer, ManagerSerializer,
@@ -22,6 +23,7 @@ from .filters.member import MemberFilter
 from .filters.user import UserFilter
 from .filters.staff import StaffFilter
 from .filters.destination_history import DestinationHistoryFilter
+from .filters.quarantine_history import QuarantineHistoryFilter
 from form.models import Test, VaccineDose
 from form.filters.test import TestFilter
 from role.models import Role
@@ -291,6 +293,95 @@ class DestinationHistoryAPI(AbstractView):
             query_set = query_set.select_related()
 
             serializer = DestinationHistorySerializer(query_set, many=True)
+            
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+class QuarantineHistoryAPI(AbstractView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='get', detail=False)
+    def get_quarantine_history(self, request):
+        """Get a quarantine history
+
+        Args:
+            + id: int
+        """
+
+        accept_fields = [
+            'id',
+        ]
+
+        require_fields = [
+            'id',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = QuarantineHistoryValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_to_get_quarantine_history()
+
+            quarantine_history = validator.get_field('quarantine_history')
+            
+            serializer = QuarantineHistorySerializer(quarantine_history, many=False)
+
+            return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_quarantine_history(self, request):
+        """Get a list of quarantine history
+
+        Args:
+            + user_code: String
+        """
+
+        accept_fields = [
+            'user_code',
+        ]
+
+        require_fields = [
+            'user_code',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = QuarantineHistoryValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_to_filter_quarantine_history()
+
+            list_to_filter_quarantine_history = [key for key in accepted_fields.keys()]
+
+            dict_to_filter_quarantine_history = validator.get_data(list_to_filter_quarantine_history)
+
+            dict_to_filter_quarantine_history.setdefault('order_by', 'start_date')
+
+            filter = QuarantineHistoryFilter(dict_to_filter_quarantine_history, queryset=QuarantineHistory.objects.all())
+
+            query_set = filter.qs
+            query_set = query_set.select_related()
+
+            serializer = QuarantineHistorySerializer(query_set, many=True)
             
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
