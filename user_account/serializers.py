@@ -1,9 +1,10 @@
 from rest_framework import serializers
-from .models import CustomUser, Member, Manager, Staff, DestinationHistory
+from .models import CustomUser, Member, Manager, Staff, DestinationHistory, QuarantineHistory
 from address.serializers import (
     BaseCountrySerializer, BaseCitySerializer,
     BaseDistrictSerializer, BaseWardSerializer,
 )
+from form.models import Pandemic
 from quarantine_ward.serializers import (
     BaseQuarantineWardSerializer,
     BaseQuarantineRoomSerializer, BaseQuarantineFloorSerializer,
@@ -325,7 +326,6 @@ class StaffSerializer(serializers.ModelSerializer):
 
 class FilterStaffSerializer(serializers.ModelSerializer):
 
-    
     quarantine_ward = BaseQuarantineWardSerializer(many=False)
 
     care_area = serializers.SerializerMethodField('get_care_area')
@@ -355,4 +355,37 @@ class DestinationHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DestinationHistory
+        fields = '__all__'
+
+class BasePandemicSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Pandemic
+        fields = ['id', 'name']
+
+class QuarantineHistorySerializer(serializers.ModelSerializer):
+
+    user = BaseBaseCustomUserSerializer(many=False)
+    pandemic = BasePandemicSerializer(many=False)
+    quarantine_ward = BaseQuarantineWardSerializer(many=False)
+    quarantine_floor = serializers.SerializerMethodField('get_quarantine_floor')
+    quarantine_building = serializers.SerializerMethodField('get_quarantine_building')
+    quarantine_room = BaseQuarantineRoomSerializer(many=False)
+    created_by = BaseBaseCustomUserSerializer(many=False)
+    updated_by = BaseBaseCustomUserSerializer(many=False)
+
+    def get_quarantine_floor(self, quarantine_history):
+        if hasattr(quarantine_history.user, 'member_x_custom_user') and quarantine_history.user.member_x_custom_user.quarantine_floor:
+            return BaseQuarantineFloorSerializer(quarantine_history.user.member_x_custom_user.quarantine_floor, many=False).data
+        else:
+            return None
+    
+    def get_quarantine_building(self, quarantine_history):
+        if hasattr(quarantine_history.user, 'member_x_custom_user') and quarantine_history.user.member_x_custom_user.quarantine_building:
+            return BaseQuarantineBuildingSerializer(quarantine_history.user.member_x_custom_user.quarantine_building, many=False).data
+        else:
+            return None
+
+    class Meta:
+        model = QuarantineHistory
         fields = '__all__'
