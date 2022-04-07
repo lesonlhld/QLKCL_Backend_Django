@@ -375,14 +375,14 @@ class QuarantineHistorySerializer(serializers.ModelSerializer):
     updated_by = BaseBaseCustomUserSerializer(many=False)
 
     def get_quarantine_floor(self, quarantine_history):
-        if hasattr(quarantine_history.user, 'member_x_custom_user') and quarantine_history.user.member_x_custom_user.quarantine_floor:
-            return BaseQuarantineFloorSerializer(quarantine_history.user.member_x_custom_user.quarantine_floor, many=False).data
+        if quarantine_history.quarantine_room:
+            return BaseQuarantineFloorSerializer(quarantine_history.quarantine_room.quarantine_floor, many=False).data
         else:
             return None
     
     def get_quarantine_building(self, quarantine_history):
-        if hasattr(quarantine_history.user, 'member_x_custom_user') and quarantine_history.user.member_x_custom_user.quarantine_building:
-            return BaseQuarantineBuildingSerializer(quarantine_history.user.member_x_custom_user.quarantine_building, many=False).data
+        if quarantine_history.quarantine_room:
+            return BaseQuarantineBuildingSerializer(quarantine_history.quarantine_room.quarantine_floor.quarantine_building, many=False).data
         else:
             return None
 
