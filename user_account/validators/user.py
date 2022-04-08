@@ -1049,15 +1049,10 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def extra_validate_to_filter_staff(self):
         self._role_name = 'STAFF'
-        if not hasattr(self, '_status'):
-            self._status = CustomUserStatus.AVAILABLE
+        if not hasattr(self, '_status_list'):
+            self._status_list = CustomUserStatus.AVAILABLE
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
-        if hasattr(self, '_positive_test_now'):
-            if (self._positive_test_now):
-                self._positive_test_now = 'true'
-            else:
-                self._positive_test_now = 'false'
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
