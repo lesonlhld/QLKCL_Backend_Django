@@ -88,3 +88,8 @@ CANNOT_FINISH_QUARANTINE = 'This member cannot finish quarantine'
 NOT_IN_QUARANTINE_WARD_OF_MEMBER = r"""Not in the quarantine ward of this member"""
 
 CANNOT_CHANGE_ROOM_LABEL_TOGETHER = 'Cannot change room and label together'
+
+# quarantine history
+PRESENT_QUARANTINE_HISTORY_EXIST = 'PRESENT quarantine history exist'
+PRESENT_QUARANTINE_HISTORY_NOT_EXIST = 'PRESENT quarantine history not exist'
+MANY_PRESENT_QUARANTINE_HISTORY_EXIST = 'Many PRESENT quarantine history exist'
