@@ -34,7 +34,11 @@ from quarantine_ward.serializers import (
     QuarantineBuildingSerializer, BaseQuarantineWardSerializer,
 )
 from utils import exceptions, messages
-from utils.enums import CustomUserStatus, HealthStatus, TestStatus, MemberQuarantinedStatus, MemberLabel
+from utils.enums import (
+    CustomUserStatus, HealthStatus, TestStatus,
+    MemberQuarantinedStatus, MemberLabel,
+    QuarantineHistoryStatus, QuarantineHistoryEndType,
+)
 from utils.views import AbstractView, paginate_data
 from utils.tools import custom_user_code_generator, LabelTool
 
@@ -887,8 +891,22 @@ class MemberAPI(AbstractView):
             member.quarantine_room = quarantine_room
             member.number_of_vaccine_doses = 0
 
+            # create QuarantineHistory
+            quarantine_history = QuarantineHistory(
+                user=custom_user,
+                pandemic=custom_user.quarantine_ward.pandemic,
+                quarantine_ward=custom_user.quarantine_ward,
+                quarantine_room=member.quarantine_room,
+                status=QuarantineHistoryStatus.PRESENT,
+                start_date=member.quarantined_at,
+                created_by=request.user,
+                updated_by=request.user,
+            )
+
             custom_user.save()
             member.save()
+
+            quarantine_history.save()
 
             self.do_after_change_room_of_member_work(member, None)
 
@@ -1360,6 +1378,34 @@ class MemberAPI(AbstractView):
                         raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
                     member.quarantine_room = new_room
 
+                    # update QuarantineHistory
+                    old_present_quarantine_history = list(QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT))
+                    if len(old_present_quarantine_history) == 0:
+                        raise exceptions.ValidationException({messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                    elif len(old_present_quarantine_history) >= 2:
+                        raise exceptions.ValidationException({messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                    else:
+                        now_time = timezone.now()
+                        old_present_quarantine_history = old_present_quarantine_history[0]
+                        old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
+                        old_present_quarantine_history.end_date = now_time
+                        old_present_quarantine_history.end_type = QuarantineHistoryEndType.CHANGE_ROOM
+                        old_present_quarantine_history.updated_by = request.user
+
+                        new_quarantine_history = QuarantineHistory(
+                            user=custom_user,
+                            pandemic=custom_user.quarantine_ward.pandemic,
+                            quarantine_ward=custom_user.quarantine_ward,
+                            quarantine_room=member.quarantine_room,
+                            status=QuarantineHistoryStatus.PRESENT,
+                            start_date=now_time,
+                            created_by=request.user,
+                            updated_by=request.user,
+                        )
+
+                        old_present_quarantine_history.save()
+                        new_quarantine_history.save()
+
             custom_user.save()
             member.save()
 
@@ -1516,6 +1562,24 @@ class MemberAPI(AbstractView):
             custom_user.updated_by = request.user
             member.number_of_vaccine_doses = VaccineDose.objects.filter(custom_user=custom_user).count()
 
+            # create QuarantineHistory
+            old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
+            if len(list(old_present_quarantine_history)) > 0:
+                raise exceptions.ValidationException({messages.PRESENT_QUARANTINE_HISTORY_EXIST})
+
+            quarantine_history = QuarantineHistory(
+                user=custom_user,
+                pandemic=custom_user.quarantine_ward.pandemic,
+                quarantine_ward=custom_user.quarantine_ward,
+                quarantine_room=member.quarantine_room,
+                status=QuarantineHistoryStatus.PRESENT,
+                start_date=member.quarantined_at,
+                created_by=request.user,
+                updated_by=request.user,
+            )
+
+            quarantine_history.save()
+
             custom_user.save()
             member.save()
 
@@ -1652,6 +1716,25 @@ class MemberAPI(AbstractView):
                 custom_user.created_by = request.user
                 custom_user.updated_by = request.user
 
+                # create QuarantineHistory
+                old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
+                if len(list(old_present_quarantine_history)) > 0:
+                    return_data[custom_user.code] = messages.PRESENT_QUARANTINE_HISTORY_EXIST
+                    continue
+
+                quarantine_history = QuarantineHistory(
+                    user=custom_user,
+                    pandemic=custom_user.quarantine_ward.pandemic,
+                    quarantine_ward=custom_user.quarantine_ward,
+                    quarantine_room=member.quarantine_room,
+                    status=QuarantineHistoryStatus.PRESENT,
+                    start_date=member.quarantined_at,
+                    created_by=request.user,
+                    updated_by=request.user,
+                )
+
+                quarantine_history.save()
+
                 custom_user.save()
                 member.save()
 
@@ -1746,25 +1829,59 @@ class MemberAPI(AbstractView):
 
             # finish quarantine members
 
+            return_data = dict()
+
             custom_users = validator.get_field('members')
 
             for custom_user in custom_users:
-                if hasattr(custom_user, 'member_x_custom_user'):
-                    custom_user.status = CustomUserStatus.LEAVE
-                    custom_user.updated_by = request.user
-                    member = custom_user.member_x_custom_user
-                    member.quarantined_status = MemberQuarantinedStatus.COMPLETED
-                    member.quarantined_finished_at = timezone.now()
+                if custom_user.role.name != 'MEMBER' or not hasattr(custom_user, 'member_x_custom_user'):
+                    return_data[custom_user.code] = messages.ISNOTMEMBER
+                    continue
 
-                    old_room = member.quarantine_room
-                    member.quarantine_room = None
+                if custom_user.status != CustomUserStatus.AVAILABLE:
+                    return_data[custom_user.code] = messages.ISNOTAVAILABLE
+                    continue
 
-                    custom_user.save()
-                    member.save()
+                if not validator.check_member_can_finish_quarantine(custom_user):
+                    return_data[custom_user.code] = messages.CANNOT_FINISH_QUARANTINE
+                    continue
 
-                    self.do_after_change_room_of_member_work(member, old_room)
+                custom_user.status = CustomUserStatus.LEAVE
+                custom_user.updated_by = request.user
+                member = custom_user.member_x_custom_user
+                member.quarantined_status = MemberQuarantinedStatus.COMPLETED
+                member.quarantined_finished_at = timezone.now()
+
+                old_room = member.quarantine_room
+                member.quarantine_room = None
+
+                # update QuarantineHistory
+                old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
+                if len(old_present_quarantine_history) == 0:
+                    return_data[custom_user.code] = messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST
+                    continue
+                elif len(old_present_quarantine_history) >= 2:
+                    return_data[custom_user.code] = messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST
+                    continue
+                else:
+                    old_present_quarantine_history = old_present_quarantine_history[0]
+                    old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
+                    old_present_quarantine_history.end_date = member.quarantined_finished_at
+                    old_present_quarantine_history.end_type = QuarantineHistoryEndType.COMPLETED
+                    old_present_quarantine_history.updated_by = request.user
+
+                    old_present_quarantine_history.save()
+
+                custom_user.save()
+                member.save()
+
+                self.do_after_change_room_of_member_work(member, old_room)
             
-            return self.response_handler.handle(data=messages.SUCCESS)
+            return_message = messages.SUCCESS
+            if return_data:
+                return_message = messages.WARNING
+            
+            return self.response_handler.handle(data=return_data, message=return_message)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
@@ -2093,14 +2210,16 @@ class MemberAPI(AbstractView):
                 if not quarantine_room:
                     raise exceptions.ValidationException({'main': warning})
                 else:
-                    member.quarantine_room = quarantine_room
+                    new_room = quarantine_room
             else:
                 # check room received
                 result = self.check_room_for_member(custom_user, quarantine_room)
                 if result == messages.SUCCESS:
-                    member.quarantine_room = quarantine_room
+                    new_room = quarantine_room
                 else:
                     raise exceptions.ValidationException({'quarantine_room_id': result})
+            if new_room != old_room:
+                member.quarantine_room = new_room
 
             # care_staff
             if not care_staff:
@@ -2121,10 +2240,40 @@ class MemberAPI(AbstractView):
             
             custom_user.updated_by = request.user
 
+            if new_room != old_room:
+                # update QuarantineHistory
+                old_present_quarantine_history = list(QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT))
+                if len(old_present_quarantine_history) == 0:
+                    raise exceptions.ValidationException({messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                elif len(old_present_quarantine_history) >= 2:
+                    raise exceptions.ValidationException({messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                else:
+                    now_time = timezone.now()
+                    old_present_quarantine_history = old_present_quarantine_history[0]
+                    old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
+                    old_present_quarantine_history.end_date = now_time
+                    old_present_quarantine_history.end_type = QuarantineHistoryEndType.CHANGE_ROOM
+                    old_present_quarantine_history.updated_by = request.user
+
+                    new_quarantine_history = QuarantineHistory(
+                        user=custom_user,
+                        pandemic=custom_user.quarantine_ward.pandemic,
+                        quarantine_ward=custom_user.quarantine_ward,
+                        quarantine_room=member.quarantine_room,
+                        status=QuarantineHistoryStatus.PRESENT,
+                        start_date=now_time,
+                        created_by=request.user,
+                        updated_by=request.user,
+                    )
+
+                    old_present_quarantine_history.save()
+                    new_quarantine_history.save()
+
             custom_user.save()
             member.save()
 
-            self.do_after_change_room_of_member_work(member, old_room)
+            if new_room != old_room:
+                self.do_after_change_room_of_member_work(member, old_room)
 
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
@@ -2137,11 +2286,12 @@ class MemberAPI(AbstractView):
 
         Args:
             + code: String
+            - note: String
         """
 
         
         accept_fields = [
-            'code'
+            'code', 'note',
         ]
 
         require_fields = [
@@ -2164,6 +2314,7 @@ class MemberAPI(AbstractView):
 
             custom_user = validator.get_field('custom_user')
             member = custom_user.member_x_custom_user
+            note = validator.get_field('note')
 
             # hospitalize
             custom_user.status = CustomUserStatus.LEAVE
@@ -2172,6 +2323,26 @@ class MemberAPI(AbstractView):
 
             old_room = member.quarantine_room
             member.quarantine_room = None
+
+            # update QuarantineHistory
+            old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
+            if len(old_present_quarantine_history) == 0:
+                raise exceptions.ValidationException({'code': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+            elif len(old_present_quarantine_history) >= 2:
+                raise exceptions.ValidationException({'code': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+            else:
+                old_present_quarantine_history = old_present_quarantine_history[0]
+                old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
+                old_present_quarantine_history.end_date = member.quarantined_finished_at
+                old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
+                if note:
+                    if old_present_quarantine_history.note:
+                        old_present_quarantine_history.note += ';' + note
+                    else:
+                        old_present_quarantine_history.note = note
+                old_present_quarantine_history.updated_by = request.user
+
+                old_present_quarantine_history.save()
             
             custom_user.save()
             member.save()
