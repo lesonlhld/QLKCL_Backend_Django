@@ -2832,9 +2832,9 @@ class StaffAPI(AbstractView):
         """Get a list of staffs
 
         Args:
-            - status: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE']
-            - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS']
-            - positive_test_now: boolean
+            - status_list: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE', 'LEAVE']
+            - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS', 'Null']
+            - positive_test_now_list: String <value>,<value> ['True', 'False', 'Null']
             - is_last_tested: boolean - True để lọc những người cán bộ đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
             - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
             - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
@@ -2847,7 +2847,7 @@ class StaffAPI(AbstractView):
         """
 
         accept_fields = [
-            'status', 'health_status_list', 'positive_test_now',
+            'status_list', 'health_status_list', 'positive_test_now_list',
             'is_last_tested',
             'created_at_max', 'created_at_min',
             'quarantine_ward_id',
@@ -2867,7 +2867,7 @@ class StaffAPI(AbstractView):
             validator = UserValidator(**accepted_fields)
 
             validator.is_valid_fields([
-                'status', 'health_status_list', 'positive_test_now',
+                'status_list', 'health_status_list', 'positive_test_now_list',
                 'is_last_tested', 'care_area',
                 'created_at_max', 'created_at_min',
             ])
@@ -2880,12 +2880,21 @@ class StaffAPI(AbstractView):
             {'is_last_tested', 'page', 'page_size'}
             list_to_filter_staff = list(list_to_filter_staff) + \
             [
-                'status',
+                'status_list',
                 'last_tested_max', 'role_name',
             ]
 
             dict_to_filter_staff = validator.get_data(list_to_filter_staff)
 
+            # Check ward of sender
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                if hasattr(validator, '_quarantine_ward'):
+                    # Sender want filter with ward, building, floor or room
+                    if validator.get_field('quarantine_ward') != request.user.quarantine_ward:
+                        raise exceptions.AuthenticationException({'quarantine_ward_id': messages.NO_PERMISSION})
+                else:
+                    dict_to_filter_staff['quarantine_ward_id'] = request.user.quarantine_ward.id
+            
             filter = StaffFilter(dict_to_filter_staff, queryset=query_set)
 
             query_set = filter.qs
