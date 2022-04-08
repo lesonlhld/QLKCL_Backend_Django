@@ -336,6 +336,14 @@ class FilterStaffSerializer(serializers.ModelSerializer):
         else:
             return None
 
+    num_care_member = serializers.SerializerMethodField('get_num_care_member')
+
+    def get_num_care_member(self, custom_user):
+        if hasattr(custom_user, 'num_care_member'):
+            return custom_user.num_care_member
+        else:
+            return None
+
     class Meta:
         model = CustomUser
         fields = [
@@ -343,6 +351,7 @@ class FilterStaffSerializer(serializers.ModelSerializer):
             'full_name', 'gender', 'birthday',
             'phone_number', 'created_at',
             'quarantine_ward', 'care_area',
+            'num_care_member',
         ]
 
 class DestinationHistorySerializer(serializers.ModelSerializer):
