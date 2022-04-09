@@ -1057,6 +1057,16 @@ class UserValidator(validators.AbstractRequestValidate):
             test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
             self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
 
+    def extra_validate_to_filter_manager(self):
+        self._role_name_list = 'MANAGER,SUPER_MANAGER'
+        if not hasattr(self, '_status_list'):
+            self._status_list = CustomUserStatus.AVAILABLE
+        if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
+            raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_is_last_tested') and self._is_last_tested:
+            test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
+            self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
+
     def extra_validate_to_filter_not_member(self):
         if not hasattr(self, '_status'):
             self._status = CustomUserStatus.AVAILABLE
