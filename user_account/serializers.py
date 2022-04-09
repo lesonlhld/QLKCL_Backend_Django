@@ -354,6 +354,20 @@ class FilterStaffSerializer(serializers.ModelSerializer):
             'num_care_member',
         ]
 
+class FilterManagerSerializer(serializers.ModelSerializer):
+
+    quarantine_ward = BaseQuarantineWardSerializer(many=False)
+    role = BaseRoleSerializer(many=False)
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            'code', 'status',
+            'full_name', 'gender', 'birthday',
+            'phone_number', 'created_at',
+            'quarantine_ward', 'role',
+        ]
+
 class DestinationHistorySerializer(serializers.ModelSerializer):
 
     user = BaseBaseCustomUserSerializer(many=False)

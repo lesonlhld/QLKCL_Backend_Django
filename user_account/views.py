@@ -17,11 +17,12 @@ from .serializers import (
     CustomUserSerializer, MemberSerializer,
     FilterMemberSerializer, FilterNotMemberSerializer,
     MemberHomeSerializer, ManagerSerializer,
-    StaffSerializer, FilterStaffSerializer,
+    StaffSerializer, FilterStaffSerializer, FilterManagerSerializer,
 )
 from .filters.member import MemberFilter
 from .filters.user import UserFilter
 from .filters.staff import StaffFilter
+from .filters.manager import ManagerFilter
 from .filters.destination_history import DestinationHistoryFilter
 from .filters.quarantine_history import QuarantineHistoryFilter
 from form.models import Test, VaccineDose
@@ -2608,6 +2609,90 @@ class ManagerAPI(AbstractView):
                 response_data['manager'] = manager_serializer.data
 
             return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_manager(self, request):
+        """Get a list of manager and super managers
+
+        Args:
+            - status_list: String ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE', 'LEAVE']
+            - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS', 'Null']
+            - positive_test_now_list: String <value>,<value> ['True', 'False', 'Null']
+            - is_last_tested: boolean - True để lọc những người quản lý đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
+            - created_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - created_at_min: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantine_ward_id: int
+            - page: int
+            - page_size: int
+            - search: String
+            - order_by: String ['full_name', 'created_at']
+        """
+
+        accept_fields = [
+            'status_list', 'health_status_list', 'positive_test_now_list',
+            'is_last_tested',
+            'created_at_max', 'created_at_min',
+            'quarantine_ward_id',
+            'page', 'page_size', 'search', 'order_by',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+
+            validator.is_valid_fields([
+                'status_list', 'health_status_list', 'positive_test_now_list',
+                'is_last_tested',
+                'created_at_max', 'created_at_min',
+            ])
+            validator.extra_validate_to_filter_manager()
+
+            query_set = CustomUser.objects.all()
+
+            list_to_filter_manager = [key for key in accepted_fields.keys()]
+            list_to_filter_manager = set(list_to_filter_manager) - \
+            {'is_last_tested', 'page', 'page_size'}
+            list_to_filter_manager = list(list_to_filter_manager) + \
+            [
+                'status_list',
+                'last_tested_max', 'role_name_list',
+            ]
+
+            dict_to_filter_manager = validator.get_data(list_to_filter_manager)
+
+            # Check ward of sender
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
+                if hasattr(validator, '_quarantine_ward'):
+                    # Sender want filter with ward, building, floor or room
+                    if validator.get_field('quarantine_ward') != request.user.quarantine_ward:
+                        raise exceptions.AuthenticationException({'quarantine_ward_id': messages.NO_PERMISSION})
+                else:
+                    dict_to_filter_manager['quarantine_ward_id'] = request.user.quarantine_ward.id
+            
+            filter = ManagerFilter(dict_to_filter_manager, queryset=query_set)
+
+            query_set = filter.qs
+
+            super_manager_query_set = CustomUser.objects.filter(role__name='SUPER_MANAGER', status=CustomUserStatus.AVAILABLE)
+            query_set = (query_set | super_manager_query_set).distinct()
+
+            query_set = query_set.select_related()
+
+            serializer = FilterManagerSerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
+
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
