@@ -1466,9 +1466,9 @@ class MemberAPI(AbstractView):
                     # update QuarantineHistory
                     old_present_quarantine_history = list(QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT))
                     if len(old_present_quarantine_history) == 0:
-                        raise exceptions.ValidationException({messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                        raise exceptions.ValidationException({'quarantine_room_id': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
                     elif len(old_present_quarantine_history) >= 2:
-                        raise exceptions.ValidationException({messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                        raise exceptions.ValidationException({'quarantine_room_id': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
                     else:
                         now_time = timezone.now()
                         old_present_quarantine_history = old_present_quarantine_history[0]
@@ -1650,7 +1650,7 @@ class MemberAPI(AbstractView):
             # create QuarantineHistory
             old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
             if len(list(old_present_quarantine_history)) > 0:
-                raise exceptions.ValidationException({messages.PRESENT_QUARANTINE_HISTORY_EXIST})
+                raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_EXIST})
 
             quarantine_history = QuarantineHistory(
                 user=custom_user,
@@ -2329,9 +2329,9 @@ class MemberAPI(AbstractView):
                 # update QuarantineHistory
                 old_present_quarantine_history = list(QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT))
                 if len(old_present_quarantine_history) == 0:
-                    raise exceptions.ValidationException({messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                    raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
                 elif len(old_present_quarantine_history) >= 2:
-                    raise exceptions.ValidationException({messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                    raise exceptions.ValidationException({'main': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
                 else:
                     now_time = timezone.now()
                     old_present_quarantine_history = old_present_quarantine_history[0]
@@ -2412,9 +2412,9 @@ class MemberAPI(AbstractView):
             # update QuarantineHistory
             old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
             if len(old_present_quarantine_history) == 0:
-                raise exceptions.ValidationException({'code': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
             elif len(old_present_quarantine_history) >= 2:
-                raise exceptions.ValidationException({'code': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                raise exceptions.ValidationException({'main': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
             else:
                 old_present_quarantine_history = old_present_quarantine_history[0]
                 old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
