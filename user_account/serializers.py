@@ -5,6 +5,7 @@ from address.serializers import (
     BaseDistrictSerializer, BaseWardSerializer,
 )
 from form.models import Pandemic
+from quarantine_ward.models import QuarantineFloor
 from quarantine_ward.serializers import (
     BaseQuarantineWardSerializer,
     BaseQuarantineRoomSerializer, BaseQuarantineFloorSerializer,
@@ -14,7 +15,8 @@ from quarantine_ward.serializers import (
 
 from role.serializers import RoleSerializer, BaseRoleSerializer
 
-from utils.tools import timestamp_string_to_date_string
+from utils import messages
+from utils.tools import timestamp_string_to_date_string, split_input_list
 
 class CustomUserSerializer(serializers.ModelSerializer):
 
@@ -319,6 +321,22 @@ class ManagerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class StaffSerializer(serializers.ModelSerializer):
+
+    care_area = serializers.SerializerMethodField('get_care_area')
+
+    def get_care_area(self, staff):
+        list_of_floor_id = split_input_list(staff.care_area)
+        return_list = []
+        list_of_floor = list(QuarantineFloor.objects.filter(id__in=list_of_floor_id))
+        for floor in list_of_floor:
+            building = floor.quarantine_building
+            ward = building.quarantine_ward
+            return_list += [{
+                'quarantine_floor': BaseQuarantineFloorSerializer(floor, many=False).data,
+                'quarantine_building': BaseQuarantineBuildingSerializer(building, many=False).data,
+                'quarantine_ward': BaseQuarantineWardSerializer(ward, many=False).data,
+            }]
+        return return_list
 
     class Meta:
         model = Staff
