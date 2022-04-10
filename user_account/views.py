@@ -392,6 +392,90 @@ class QuarantineHistoryAPI(AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
+    @csrf_exempt
+    @action(methods=['POST'], url_path='fix_invalid', detail=False)
+    def fix_invalid_quarantine_history(self, request):
+        """
+        If this member is AVAILABLE:
+            If this member does not have any PRESENT quarantine history of pandemic of quarantine ward of this CustomUser, create a quarantine history
+        If this member is LEAVE:
+            If this member does not have any quarantine history, create a quarantine history
+
+        Args:
+            + user_code: String
+        """
+
+        accept_fields = [
+            'user_code',
+        ]
+
+        require_fields = [
+            'user_code',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = QuarantineHistoryValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_to_fix_empty_quarantine_history()
+
+            user = validator.get_field('user')
+            pandemic = user.quarantine_ward.pandemic
+
+            if pandemic:
+                if user.status == CustomUserStatus.AVAILABLE:
+                    list_of_quarantine_history = list(QuarantineHistory.objects.filter(
+                        user=user,
+                        status=QuarantineHistoryStatus.PRESENT,
+                        pandemic=pandemic,
+                    ))
+                    if len(list_of_quarantine_history) == 0:
+                        quarantine_history = QuarantineHistory(
+                            user=user,
+                            pandemic=pandemic,
+                            quarantine_ward=user.quarantine_ward,
+                            quarantine_room=user.member_x_custom_user.quarantine_room,
+                            status=QuarantineHistoryStatus.PRESENT,
+                            start_date=user.member_x_custom_user.quarantined_at,
+                            created_by=request.user,
+                            updated_by=request.user,
+                        )
+                        quarantine_history.save()
+
+                elif user.status == CustomUserStatus.LEAVE:
+                    list_of_quarantine_history = list(QuarantineHistory.objects.filter(
+                        user=user,
+                    ))
+                    if len(list_of_quarantine_history) == 0:
+                        end_type = user.member_x_custom_user.quarantined_status if user.member_x_custom_user.quarantined_status in [MemberQuarantinedStatus.COMPLETED, MemberQuarantinedStatus.HOSPITALIZE] else None
+                        quarantine_history = QuarantineHistory(
+                            user=user,
+                            pandemic=pandemic,
+                            quarantine_ward=user.quarantine_ward,
+                            quarantine_room=user.member_x_custom_user.quarantine_room,
+                            status=QuarantineHistoryStatus.ENDED,
+                            start_date=user.member_x_custom_user.quarantined_at,
+                            end_date=user.member_x_custom_user.quarantined_finished_at,
+                            end_type=end_type,
+                            created_by=request.user,
+                            updated_by=request.user,
+                        )
+                        quarantine_history.save()
+
+            return self.response_handler.handle(message=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
 class MemberAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
