@@ -703,12 +703,13 @@ class TestAPI(AbstractView):
                             
                             # affect other member in this room
                             this_room = this_member.quarantine_room
-                            members_in_this_room = this_room.member_x_quarantine_room.all()
-                            for member in list(members_in_this_room):
-                                if member.label != MemberLabel.F0:
-                                    member.label = MemberLabel.F1
-                                    member.quarantined_finish_expected_at = None
-                                    member.save()
+                            if this_room:
+                                members_in_this_room = this_room.member_x_quarantine_room.all()
+                                for member in list(members_in_this_room):
+                                    if member.label != MemberLabel.F0:
+                                        member.label = MemberLabel.F1
+                                        member.quarantined_finish_expected_at = None
+                                        member.save()
 
                     elif old_positive_test_now == True and new_positive_test_now == False:
                         this_member.positive_tested_before = True
@@ -716,27 +717,28 @@ class TestAPI(AbstractView):
                         if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
                             # affect other member in this room
                             this_room = this_member.quarantine_room
-                            other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
-                            number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
-                            if number_of_other_positive_member_in_this_room == 0:
-                                quarantine_ward = this_room.quarantine_floor.quarantine_building.quarantine_ward
-                                for member in list(other_members_in_this_room):
-                                    if member.label != MemberLabel.F0:
-                                        if quarantine_ward.pandemic:
-                                            if member.number_of_vaccine_doses < 2:
-                                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_not_vac
+                            if this_room:
+                                other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
+                                number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
+                                if number_of_other_positive_member_in_this_room == 0:
+                                    quarantine_ward = this_room.quarantine_floor.quarantine_building.quarantine_ward
+                                    for member in list(other_members_in_this_room):
+                                        if member.label != MemberLabel.F0:
+                                            if quarantine_ward.pandemic:
+                                                if member.number_of_vaccine_doses < 2:
+                                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_not_vac
+                                                else:
+                                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_vac
                                             else:
-                                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_vac
-                                        else:
-                                            if member.number_of_vaccine_doses < 2:
-                                                remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
-                                            else:
-                                                remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
-                                        old_quarantined_finish_expected_at = member.quarantined_finish_expected_at
-                                        new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
-                                        if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
-                                            member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
-                                            member.save()
+                                                if member.number_of_vaccine_doses < 2:
+                                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
+                                                else:
+                                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
+                                            old_quarantined_finish_expected_at = member.quarantined_finish_expected_at
+                                            new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                                            if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                                member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                                member.save()
 
                     this_member.last_tested_had_result = test.created_at
                 this_member.save()
@@ -886,12 +888,13 @@ class TestAPI(AbstractView):
                                 
                                 # affect other members in this room
                                 this_room = this_member.quarantine_room
-                                other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
-                                for member in list(other_members_in_this_room):
-                                    if member.label != MemberLabel.F0:
-                                        member.label = MemberLabel.F1
-                                        member.quarantined_finish_expected_at = None
-                                        member.save()
+                                if this_room:
+                                    other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
+                                    for member in list(other_members_in_this_room):
+                                        if member.label != MemberLabel.F0:
+                                            member.label = MemberLabel.F1
+                                            member.quarantined_finish_expected_at = None
+                                            member.save()
                         
                         elif old_positive_test_now == True and new_positive_test_now == False:
                             this_member.positive_tested_before = True
@@ -899,27 +902,28 @@ class TestAPI(AbstractView):
                             if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
                                 # affect other members in this room
                                 this_room = this_member.quarantine_room
-                                other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
-                                number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
-                                if number_of_other_positive_member_in_this_room == 0:
-                                    quarantine_ward = this_room.quarantine_floor.quarantine_building.quarantine_ward
-                                    for member in list(other_members_in_this_room):
-                                        if member.label != MemberLabel.F0:
-                                            if quarantine_ward.pandemic:
-                                                if member.number_of_vaccine_doses < 2:
-                                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_not_vac
+                                if this_room:
+                                    other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
+                                    number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
+                                    if number_of_other_positive_member_in_this_room == 0:
+                                        quarantine_ward = this_room.quarantine_floor.quarantine_building.quarantine_ward
+                                        for member in list(other_members_in_this_room):
+                                            if member.label != MemberLabel.F0:
+                                                if quarantine_ward.pandemic:
+                                                    if member.number_of_vaccine_doses < 2:
+                                                        remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_not_vac
+                                                    else:
+                                                        remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_vac
                                                 else:
-                                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_vac
-                                            else:
-                                                if member.number_of_vaccine_doses < 2:
-                                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
-                                                else:
-                                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
-                                            old_quarantined_finish_expected_at = member.quarantined_finish_expected_at
-                                            new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
-                                            if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
-                                                member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
-                                                member.save()
+                                                    if member.number_of_vaccine_doses < 2:
+                                                        remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
+                                                    else:
+                                                        remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
+                                                old_quarantined_finish_expected_at = member.quarantined_finish_expected_at
+                                                new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                                                if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                                    member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                                    member.save()
 
                         this_member.last_tested_had_result = test.created_at
                         this_member.save()
