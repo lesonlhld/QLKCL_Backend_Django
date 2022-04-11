@@ -1051,6 +1051,7 @@ class MemberAPI(AbstractView):
                         custom_user.updated_by = request.user
                         custom_user.role = Role.objects.get(name='MEMBER')
                         if not is_available:
+                            dict_member_data.pop("quarantine_room")
                             custom_user.status = CustomUserStatus.WAITING
                         
                         # create Member
@@ -1074,34 +1075,49 @@ class MemberAPI(AbstractView):
                         member.custom_user = custom_user
 
                         # extra set room for this member
-                        if hasattr(member_validator, '_quarantine_room'):
-                            # this field is received and not None
-                            quarantine_room = member_validator.get_field('quarantine_room')
-                            check_room_result = self.check_room_for_member(custom_user, quarantine_room)
-                            if check_room_result != messages.SUCCESS:
-                                raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
-                        else:
-                            input_dict_for_get_suitable_room = dict()
-                            input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
-                            input_dict_for_get_suitable_room['gender'] = custom_user.gender
-                            input_dict_for_get_suitable_room['label'] = member.label
-                            input_dict_for_get_suitable_room['positive_test_now'] = member.positive_test_now
-                            input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
-                            input_dict_for_get_suitable_room['old_quarantine_room'] = None
-                            input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
+                        if is_available:
+                            if hasattr(member_validator, '_quarantine_room'):
+                                # this field is received and not None
+                                quarantine_room = member_validator.get_field('quarantine_room')
+                                check_room_result = self.check_room_for_member(custom_user, quarantine_room)
+                                if check_room_result != messages.SUCCESS:
+                                    raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
+                            else:
+                                input_dict_for_get_suitable_room = dict()
+                                input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
+                                input_dict_for_get_suitable_room['gender'] = custom_user.gender
+                                input_dict_for_get_suitable_room['label'] = member.label
+                                input_dict_for_get_suitable_room['positive_test_now'] = member.positive_test_now
+                                input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
+                                input_dict_for_get_suitable_room['old_quarantine_room'] = None
+                                input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
 
-                            suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
-                            quarantine_room = suitable_room_dict['room']
-                            warning = suitable_room_dict['warning']
-                            if not quarantine_room:
-                                raise exceptions.ValidationException({'main': warning})
+                                suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
+                                quarantine_room = suitable_room_dict['room']
+                                warning = suitable_room_dict['warning']
+                                if not quarantine_room:
+                                    raise exceptions.ValidationException({'main': warning})
 
-                        member.quarantine_room = quarantine_room
+                            member.quarantine_room = quarantine_room
+
+                            # create QuarantineHistory
+                            quarantine_history = QuarantineHistory(
+                                user=custom_user,
+                                pandemic=custom_user.quarantine_ward.pandemic,
+                                quarantine_ward=custom_user.quarantine_ward,
+                                quarantine_room=member.quarantine_room,
+                                status=QuarantineHistoryStatus.PRESENT,
+                                start_date=member.quarantined_at,
+                                created_by=request.user,
+                                updated_by=request.user,
+                            )
+                            quarantine_history.save()
 
                         custom_user.save()
                         member.save()
 
-                        self.do_after_change_room_of_member_work(member, None)
+                        if is_available:
+                            self.do_after_change_room_of_member_work(member, None)
 
                         custom_user_ids += [custom_user.id]
                     except Exception as e:
