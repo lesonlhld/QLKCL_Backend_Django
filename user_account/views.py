@@ -397,7 +397,7 @@ class QuarantineHistoryAPI(AbstractView):
     def fix_invalid_quarantine_history(self, request):
         """
         If this member is AVAILABLE:
-            If this member does not have any PRESENT quarantine history of pandemic of quarantine ward of this CustomUser, create a quarantine history
+            If this member does not have any quarantine history of pandemic of quarantine ward of this CustomUser, create a quarantine history
         If this member is LEAVE:
             If this member does not have any quarantine history, create a quarantine history
 
@@ -436,7 +436,6 @@ class QuarantineHistoryAPI(AbstractView):
                 if user.status == CustomUserStatus.AVAILABLE:
                     list_of_quarantine_history = list(QuarantineHistory.objects.filter(
                         user=user,
-                        status=QuarantineHistoryStatus.PRESENT,
                         pandemic=pandemic,
                     ))
                     if len(list_of_quarantine_history) == 0:
