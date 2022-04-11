@@ -17,6 +17,9 @@ def split_input_list(str_list):
     returns a list of separated values
     """
 
+    if str_list == None:
+        return []
+
     new_list = re.split(r'[\n\r,]', str_list)
 
     new_list = [s.strip() for s in new_list]
