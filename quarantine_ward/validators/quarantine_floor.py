@@ -1,7 +1,7 @@
 from ..models import QuarantineBuilding, QuarantineFloor
 from utils import validators, messages, exceptions
 from django.db.models import Q
-from utils.tools import date_string_to_timestamp
+from utils.tools import date_string_to_timestamp, split_input_list
 
 class QuarantineFloorValidator(validators.AbstractRequestValidate):
 
@@ -59,6 +59,20 @@ class QuarantineFloorValidator(validators.AbstractRequestValidate):
             return True
         except Exception as exception:
             return False
+    
+    def is_validate_quarantine_building_id_list(self):
+        quarantine_building_list = split_input_list(self._quarantine_building_id_list)
+        quarantine_building_id_list = []
+        for quarantine_building_id in quarantine_building_list:
+            try:
+                quarantine_building = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineBuilding,
+                    query_expr=Q(id=quarantine_building_id),
+                )
+                quarantine_building_id_list += [quarantine_building.id]
+            except Exception as exception:
+                raise exceptions.NotFoundException({f'Quarantine building {quarantine_building_id}': messages.NOT_EXIST})
+        return quarantine_building_id_list
     
     def filter_validate(self):
         if hasattr(self, '_created_at_max'):
