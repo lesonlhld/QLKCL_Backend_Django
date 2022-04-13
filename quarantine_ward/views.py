@@ -842,17 +842,17 @@ class QuarantineFloorAPI (AbstractView):
             - page: int
             - page_size: int
             - search: String
-            - quarantine_building: int (id)
+            - quarantine_building_id_list: list of id separate by comma
             - is_full: boolean
         """
 
         accept_fields = [
             'page', 'page_size', 'search',
-            'quarantine_building', 'is_full',
+            'quarantine_building_id_list', 'is_full',
         ]
 
         required_fields = [
-            'quarantine_building',
+            'quarantine_building_id_list',
         ]
 
         try:
@@ -867,6 +867,7 @@ class QuarantineFloorAPI (AbstractView):
             validator = QuarantineFloorValidator(**accepted_fields)
             validator.is_missing_fields(required_fields)
             validator.filter_validate()
+            quarantine_building_id_list = validator.is_validate_quarantine_building_id_list()
 
             context = ''
             if validator.has_field('is_full'):
@@ -875,7 +876,7 @@ class QuarantineFloorAPI (AbstractView):
                 else:
                     context = 'set_not_full'
 
-            query_set = QuarantineFloor.objects.all()
+            query_set = QuarantineFloor.objects.filter(quarantine_building__in=quarantine_building_id_list)
 
             list_to_filter = [key for key in accepted_fields.keys()]
             list_to_filter = set(list_to_filter) - {'page', 'page_size'}
