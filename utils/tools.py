@@ -2,7 +2,6 @@ import re
 import datetime
 import os
 from random import randint
-from datetime import time, timezone
 import pytz
 import math, random
 from .enums import MemberLabel
@@ -70,6 +69,25 @@ def compare_date_string(date1, date2):
                 return 1
             else:
                 return 0
+
+def is_change_date_in_time_zone_vn(datetime1, datetime2):
+    """
+    input must be datetime with timezone
+    """
+
+    if datetime1 and not datetime2:
+        return True
+    elif not datetime1 and datetime2:
+        return True
+    elif not datetime1 and not datetime2:
+        return False
+    else:
+        vntz = pytz.timezone('Asia/Saigon')
+
+        datetime1_vntz = datetime1.astimezone(vntz)
+        datetime2_vntz = datetime2.astimezone(vntz)
+
+        return not (datetime1_vntz.year == datetime2_vntz.year and datetime1_vntz.month == datetime2_vntz.month and datetime1_vntz.day == datetime2_vntz.day)
 
 def room_to_quarantine_ward(room):
     """
