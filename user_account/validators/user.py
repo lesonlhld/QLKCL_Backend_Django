@@ -805,7 +805,7 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_quarantine_ward_id') and not self.is_quarantine_ward_id_exist():
             raise exceptions.NotFoundException({'quarantine_ward_id': messages.NOT_EXIST})
 
-    def extra_validate_to_update_member(self):
+    def extra_validate_to_update_member(self, sender):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.NotFoundException({'code': messages.NOT_EXIST})
         if hasattr(self, '_custom_user'):
@@ -855,7 +855,11 @@ class UserValidator(validators.AbstractRequestValidate):
             else:
                 if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
                     raise exceptions.ValidationException({'quarantined_at': messages.MUST_EMPTY})
+
                 if self._quarantined_at != self._custom_user.member_x_custom_user.quarantined_at:
+                    if sender.role.name == 'MEMBER':
+                        raise exceptions.AuthenticationException({'quarantined_at': messages.NO_PERMISSION})
+
                     old_quarantined_finish_expected_at = self._custom_user.member_x_custom_user.quarantined_finish_expected_at
                     if not hasattr(self, '_quarantined_finish_expected_at') or self._quarantined_finish_expected_at == old_quarantined_finish_expected_at:
                         # also update quarantined_finish_expected_at
@@ -882,9 +886,13 @@ class UserValidator(validators.AbstractRequestValidate):
                         if old_quarantined_finish_expected_at and old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
                             self._quarantined_finish_expected_at = new_quarantined_finish_expected_at
         if hasattr(self, '_quarantined_finish_expected_at'):
-            if self._quarantined_finish_expected_at:
-                if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
-                    raise exceptions.ValidationException({'quarantined_finish_expected_at': messages.MUST_EMPTY})
+            if self._quarantined_finish_expected_at != self._custom_user.member_x_custom_user.quarantined_finish_expected_at:
+                if sender.role.name == 'MEMBER':
+                    raise exceptions.AuthenticationException({'quarantined_finish_expected_at': messages.NO_PERMISSION})
+                if self._quarantined_finish_expected_at:
+                    if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
+                        raise exceptions.ValidationException({'quarantined_finish_expected_at': messages.MUST_EMPTY})
+
         if hasattr(self, '_label') and self._label != self._custom_user.member_x_custom_user.label:
             if hasattr(self, '_quarantine_room') and self._quarantine_room != self._custom_user.member_x_custom_user.quarantine_room:
                 raise exceptions.ValidationException({'main': messages.CANNOT_CHANGE_ROOM_LABEL_TOGETHER})
