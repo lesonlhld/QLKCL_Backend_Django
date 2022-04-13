@@ -9,7 +9,7 @@ from quarantine_ward.models import QuarantineWard, QuarantineRoom, QuarantineBui
 from form.models import BackgroundDisease
 from utils import validators, messages, exceptions
 from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus, MemberQuarantinedStatus
-from utils.tools import split_input_list, date_string_to_timestamp, timestamp_string_to_date_string, compare_date_string
+from utils.tools import split_input_list, is_change_date_in_time_zone_vn
 
 class UserValidator(validators.AbstractRequestValidate):
 
@@ -856,12 +856,12 @@ class UserValidator(validators.AbstractRequestValidate):
                 if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
                     raise exceptions.ValidationException({'quarantined_at': messages.MUST_EMPTY})
 
-                if self._quarantined_at != self._custom_user.member_x_custom_user.quarantined_at:
+                if is_change_date_in_time_zone_vn(self._quarantined_at, self._custom_user.member_x_custom_user.quarantined_at):
                     if sender.role.name == 'MEMBER':
                         raise exceptions.AuthenticationException({'quarantined_at': messages.NO_PERMISSION})
 
                     old_quarantined_finish_expected_at = self._custom_user.member_x_custom_user.quarantined_finish_expected_at
-                    if not hasattr(self, '_quarantined_finish_expected_at') or self._quarantined_finish_expected_at == old_quarantined_finish_expected_at:
+                    if not hasattr(self, '_quarantined_finish_expected_at') or not is_change_date_in_time_zone_vn(self._quarantined_finish_expected_at, old_quarantined_finish_expected_at):
                         # also update quarantined_finish_expected_at
                         if hasattr(self, '_quarantine_ward'):
                             quarantine_ward = self._quarantine_ward
@@ -886,7 +886,7 @@ class UserValidator(validators.AbstractRequestValidate):
                         if old_quarantined_finish_expected_at and old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
                             self._quarantined_finish_expected_at = new_quarantined_finish_expected_at
         if hasattr(self, '_quarantined_finish_expected_at'):
-            if self._quarantined_finish_expected_at != self._custom_user.member_x_custom_user.quarantined_finish_expected_at:
+            if is_change_date_in_time_zone_vn(self._quarantined_finish_expected_at, self._custom_user.member_x_custom_user.quarantined_finish_expected_at):
                 if sender.role.name == 'MEMBER':
                     raise exceptions.AuthenticationException({'quarantined_finish_expected_at': messages.NO_PERMISSION})
                 if self._quarantined_finish_expected_at:
