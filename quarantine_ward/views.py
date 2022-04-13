@@ -842,7 +842,7 @@ class QuarantineFloorAPI (AbstractView):
             - page: int
             - page_size: int
             - search: String
-            - quarantine_building_list: list of id separate by comma
+            - quarantine_building_id_list: list of id separate by comma
             - is_full: boolean
         """
 
