@@ -103,7 +103,7 @@ class PassportValidator(AbstractValidator):
         raise exceptions.ValidationException(message)
 
 class HealthInsuranceNumberValidator(AbstractValidator):
-    HEALTH_INSURANCE_NUMBER_PATTERN = '^[A-Z0-9]{12,18}$'
+    HEALTH_INSURANCE_NUMBER_PATTERN = '^[A-Z0-9]{10,15}$'
     default_message = {'health_insurance_number': messages.INVALID}
 
     @classmethod

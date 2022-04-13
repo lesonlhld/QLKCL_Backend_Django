@@ -1351,7 +1351,7 @@ class MemberAPI(AbstractView):
                 'positive_tested_before',
                 'number_of_vaccine_doses', 'background_disease',
             ])
-            validator.extra_validate_to_update_member()
+            validator.extra_validate_to_update_member(sender=request.user)
 
             # update CustomUser
 
@@ -1393,6 +1393,9 @@ class MemberAPI(AbstractView):
             new_label = validator.get_field('label')
             if new_label:
                 if new_label != old_label:
+                    if request.user.role.name == 'MEMBER' and custom_user.status == CustomUserStatus.AVAILABLE:
+                        raise exceptions.AuthenticationException({'label': messages.NO_PERMISSION})
+
                     member.label = new_label
 
                     if old_label != MemberLabel.F0 and new_label == MemberLabel.F0:
@@ -1457,6 +1460,9 @@ class MemberAPI(AbstractView):
             new_room = validator.get_field('quarantine_room')
             if new_room:
                 if new_room != old_room:
+                    if request.user.role.name == 'MEMBER':
+                        raise exceptions.AuthenticationException({'quarantine_room_id': messages.NO_PERMISSION})
+
                     check_room_result = self.check_room_for_member(user=custom_user, room=new_room)
                     if check_room_result != messages.SUCCESS:
                         raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
@@ -1487,8 +1493,8 @@ class MemberAPI(AbstractView):
                             updated_by=request.user,
                         )
 
-                        old_present_quarantine_history.save()
                         new_quarantine_history.save()
+                        old_present_quarantine_history.save()
 
             custom_user.save()
             member.save()
@@ -2350,8 +2356,8 @@ class MemberAPI(AbstractView):
                         updated_by=request.user,
                     )
 
-                    old_present_quarantine_history.save()
                     new_quarantine_history.save()
+                    old_present_quarantine_history.save()
 
             custom_user.save()
             member.save()
