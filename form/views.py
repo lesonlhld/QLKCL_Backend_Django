@@ -1267,9 +1267,6 @@ class VaccineDoseAPI(AbstractView):
         ]
 
         try:
-            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
-                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
-
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -1284,6 +1281,10 @@ class VaccineDoseAPI(AbstractView):
             
             validator.extra_validate_to_create_vaccine_dose()
 
+            custom_user = validator.get_field('custom_user')
+            if request.user.role.name == 'MEMBER' and request.user != custom_user:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             list_to_create_vaccine_dose = [key for key in accepted_fields.keys()]
 
             list_to_create_vaccine_dose = set(list_to_create_vaccine_dose) - \
@@ -1297,8 +1298,6 @@ class VaccineDoseAPI(AbstractView):
             vaccine_dose.save()
 
             # Update member/manager/staff.number_of_vaccine_doses
-
-            custom_user = vaccine_dose.custom_user
 
             if hasattr(custom_user, 'member_x_custom_user'):
                 member = custom_user.member_x_custom_user
