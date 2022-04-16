@@ -187,6 +187,11 @@ class TestValidator(validators.AbstractRequestValidate):
     def extra_validate_to_create_test(self):
         if hasattr(self, '_user_code') and not self.is_user_code_exist():
             raise exceptions.ValidationException({'user_code': messages.NOT_EXIST})
+        if hasattr(self, '_status') and hasattr(self, '_result'):
+            if self._status == TestStatus.WAITING and self._result in [TestResult.POSITIVE, TestResult.NEGATIVE]:
+                raise exceptions.ValidationException({'status': messages.INVALID})
+            elif self._status == TestStatus.DONE and self._result == TestResult.NONE:
+                raise exceptions.ValidationException({'status': messages.INVALID})
 
     def extra_validate_to_get_test(self):
         if hasattr(self, '_code') and not self.is_code_exist():
@@ -196,6 +201,13 @@ class TestValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_code') and not self.is_code_exist():
             raise exceptions.ValidationException({'main': messages.TEST_NOT_FOUND})
 
+        status = self._status if hasattr(self, '_status') else self._test.status
+        result = self._result if hasattr(self, '_result') else self._test.result
+        if status == TestStatus.WAITING and result in [TestResult.POSITIVE, TestResult.NEGATIVE]:
+            raise exceptions.ValidationException({'status': messages.INVALID})
+        elif status == TestStatus.DONE and result == TestResult.NONE:
+            raise exceptions.ValidationException({'status': messages.INVALID})
+            
     def extra_validate_to_filter_test(self):
         if hasattr(self, '_user_code') and not self.is_user_code_exist():
             raise exceptions.ValidationException({'main': messages.USER_NOT_FOUND})
