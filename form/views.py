@@ -625,10 +625,10 @@ class TestAPI(AbstractView):
         """Create a test
 
         Args:
-            - user_code: String
-            - status: String ['WAITING', 'DONE']
-            - type: String ['QUICK', 'RT-PCR']
-            - result: String ['NONE', 'NEGATIVE', 'POSITIVE']
+            + user_code: String
+            + status: String ['WAITING', 'DONE']
+            + type: String ['QUICK', 'RT-PCR']
+            + result: String ['NONE', 'NEGATIVE', 'POSITIVE']
         """
 
         accept_fields = [
