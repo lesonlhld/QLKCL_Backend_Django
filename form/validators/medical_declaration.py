@@ -49,6 +49,8 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
                 message={'spo2': messages.INVALID_POSITIVE_FLOAT},
                 message1={'spo2': messages.CANNOT_CONVERT_STRING_TO_FLOAT},
             )
+            if self._spo2 > 100:
+                self._spo2 = 100
 
     def is_validate_blood_pressure(self):
         if hasattr(self, '_blood_pressure'):
@@ -161,6 +163,31 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
     def set_conclude_when_create_medical_declaration(self):
         self._conclude = HealthDeclarationConclude.NORMAL
 
+        if hasattr(self, '_temperature') and self._temperature:
+            if self._temperature >= 35 and self._temperature < 36:
+                self._conclude = HealthDeclarationConclude.UNWELL
+            elif self._temperature > 37.5 and self._temperature <= 38.5:
+                self._conclude = HealthDeclarationConclude.UNWELL
+            elif self._temperature < 35 or self._temperature > 38.5:
+                self._conclude = HealthDeclarationConclude.SERIOUS
+                return
+
+        if hasattr(self, '_spo2') and self._spo2:
+            if self._spo2 >= 94 and self._spo2 < 97:
+                self._conclude = HealthDeclarationConclude.UNWELL
+            elif self._spo2 < 94:
+                self._conclude = HealthDeclarationConclude.SERIOUS
+                return
+
+        if hasattr(self, '_breathing') and self._breathing:
+            if self._breathing >= 12 and self._breathing < 16:
+                self._conclude = HealthDeclarationConclude.UNWELL
+            elif self._breathing > 20 and self._breathing <= 28:
+                self._conclude = HealthDeclarationConclude.UNWELL
+            elif self._breathing < 12 or self._breathing > 28:
+                self._conclude = HealthDeclarationConclude.SERIOUS
+                return
+
         if hasattr(self, '_list_extra_symptoms_objects'):
             if len(self._list_extra_symptoms_objects) > 0:
                 self._conclude = HealthDeclarationConclude.UNWELL
@@ -168,12 +195,12 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_list_main_symptoms_objects'):
             if len(self._list_main_symptoms_objects) > 0:
                 self._conclude = HealthDeclarationConclude.SERIOUS
+                return
 
     def extra_validate_to_create_medical_declaration(self):
         if hasattr(self, '_phone_number') and not self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.NOT_EXIST})
         self.set_conclude_when_create_medical_declaration()
-        
         
     def extra_validate_to_get_medical_declaration(self):
         if hasattr(self, '_id') and not self.is_id_exist():
