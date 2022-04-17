@@ -298,8 +298,10 @@ class DestinationHistoryAPI(AbstractView):
             query_set = query_set.select_related()
 
             serializer = DestinationHistorySerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
             
-            return self.response_handler.handle(data=serializer.data)
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
@@ -387,8 +389,10 @@ class QuarantineHistoryAPI(AbstractView):
             query_set = query_set.select_related()
 
             serializer = QuarantineHistorySerializer(query_set, many=True)
+
+            paginated_data = paginate_data(request, serializer.data)
             
-            return self.response_handler.handle(data=serializer.data)
+            return self.response_handler.handle(data=paginated_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
