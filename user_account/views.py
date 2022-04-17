@@ -2503,7 +2503,7 @@ class MemberAPI(AbstractView):
             member.quarantined_at = None
             member.quarantined_finish_expected_at = None
             member.quarantined_finished_at = None
-            member.quarantined_status = MemberQuarantinedStatus.REQUARANTINING
+            member.quarantined_status = MemberQuarantinedStatus.QUARANTINING
             member.positive_test_now = None
             member.care_staff_id = None
             

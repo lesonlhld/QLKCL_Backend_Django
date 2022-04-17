@@ -40,7 +40,6 @@ class MemberLabel(models.TextChoices):
 class MemberQuarantinedStatus(models.TextChoices):
     COMPLETED = 'COMPLETED'
     QUARANTINING = 'QUARANTINING'
-    REQUARANTINING = 'REQUARANTINING'
     HOSPITALIZE = 'HOSPITALIZE'
     MOVED = 'MOVED'
 
