@@ -668,9 +668,15 @@ class MemberAPI(AbstractView):
             custom_user__status=CustomUserStatus.AVAILABLE,
             custom_user__quarantine_ward=input_dict['quarantine_floor'].quarantine_building.quarantine_ward,
         )
+        if query_set.count() == 0:
+            query_set = Staff.objects.filter(
+                custom_user__status=CustomUserStatus.AVAILABLE,
+                custom_user__quarantine_ward=input_dict['quarantine_floor'].quarantine_building.quarantine_ward,
+            )
         try:
             return_dict['care_staff'] = query_set.annotate(num_care_member=Count('custom_user__member_x_care_staff')).order_by('num_care_member')[:1].get().custom_user
         except Exception as exception:
+            return_dict['care_staff'] = None
             return_dict['warning'] = 'Cannot set care_staff for this member'
         return return_dict
 
@@ -2448,21 +2454,23 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
-    @action(methods=['POST'], url_path='requarantine', detail=False)
-    def requarantine(self, request):
-        """Requarantine a 'LEAVE' member. This member will be added to waiting member list
+    @action(methods=['POST'], url_path='member_call_requarantine', detail=False)
+    def member_call_requarantine(self, request):
+        """Requarantine a 'LEAVE' member. This member will be added to waiting member list. This member call api for themselve.
 
         Args:
-            + code: String
+            + quarantine_ward_id: int
+            + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            - positive_tested_before: boolean
         """
 
         
         accept_fields = [
-            'code'
+            'quarantine_ward_id', 'label', 'positive_tested_before',
         ]
 
         require_fields = [
-            'code'
+            'quarantine_ward_id', 'label',
         ]
 
         try:
@@ -2476,25 +2484,175 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(['label', 'positive_tested_before'])
 
-            validator.extra_validate_to_requarantine()
+            custom_user = request.user
+            validator.extra_validate_to_member_call_requarantine(custom_user)
 
-            custom_user = validator.get_field('custom_user')
             member = custom_user.member_x_custom_user
+
+            quarantine_ward = validator.get_field('quarantine_ward')
+            label = validator.get_field('label')
+            positive_tested_before = validator.get_field('positive_tested_before')
 
             # requarantine
             custom_user.status = CustomUserStatus.WAITING
+            custom_user.quarantine_ward = quarantine_ward
             member.quarantined_at = None
             member.quarantined_finish_expected_at = None
             member.quarantined_finished_at = None
             member.quarantined_status = MemberQuarantinedStatus.QUARANTINING
             member.positive_test_now = None
-            member.care_staff_id = None
+            member.care_staff = None
+            member.quarantine_room = None
+            member.label = label
+            if positive_tested_before != None:
+                member.positive_tested_before = positive_tested_before
             
             custom_user.save()
             member.save()
 
             return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @action(methods=['POST'], url_path='manager_call_requarantine', detail=False)
+    def manager_call_requarantine(self, request):
+        """Requarantine a 'LEAVE' member. This member will be AVAILABLE and have a room. Manager, Super Manager, Administrator can call this api.
+
+        Args:
+            + code: String
+            + quarantine_ward_id: int
+            + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            - positive_tested_before: boolean
+            - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantine_room_id: int
+            - care_staff_code: String
+        """
+
+        accept_fields = [
+            'code',
+            'quarantine_ward_id', 'label', 'positive_tested_before',
+            'quarantined_at',
+            'quarantine_room_id', 'care_staff_code',
+        ]
+
+        require_fields = [
+            'code', 'quarantine_ward_id', 'label',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields(['label', 'positive_tested_before', 'quarantined_at'])
+            
+            validator.extra_validate_to_manager_call_requarantine()
+
+            # update CustomUser
+            custom_user = validator.get_field('custom_user')
+            quarantine_ward = validator.get_field('quarantine_ward')
+            custom_user.status = CustomUserStatus.AVAILABLE
+            custom_user.quarantine_ward = quarantine_ward
+            custom_user.updated_by = request.user
+
+            # update Member
+            member = custom_user.member_x_custom_user
+
+            list_to_update_member = [key for key in accepted_fields.keys()]
+            list_to_update_member = set(list_to_update_member) - \
+            {'code', 'quarantine_ward_id', 'quarantine_room_id', 'care_staff_code',}
+            list_to_update_member = list(list_to_update_member) + [
+                'positive_test_now', 'quarantined_finish_expected_at',
+                'quarantined_at',
+                'quarantined_finished_at', 'quarantined_status',
+            ]
+
+            dict_to_update_member = validator.get_data(list_to_update_member)
+
+            for attr, value in dict_to_update_member.items(): 
+                setattr(member, attr, value)
+            
+            # extra set room for this member
+            if hasattr(validator, '_quarantine_room'):
+                # this field is received and not None
+                quarantine_room = validator.get_field('quarantine_room')
+                check_room_result = self.check_room_for_member(custom_user, quarantine_room)
+                if check_room_result != messages.SUCCESS:
+                    raise exceptions.ValidationException({'quarantine_room_id': check_room_result})
+            else:
+                input_dict_for_get_suitable_room = dict()
+                input_dict_for_get_suitable_room['quarantine_ward'] = custom_user.quarantine_ward
+                input_dict_for_get_suitable_room['gender'] = custom_user.gender
+                input_dict_for_get_suitable_room['label'] = member.label
+                input_dict_for_get_suitable_room['positive_test_now'] = member.positive_test_now
+                input_dict_for_get_suitable_room['number_of_vaccine_doses'] = member.number_of_vaccine_doses
+                input_dict_for_get_suitable_room['old_quarantine_room'] = None
+                input_dict_for_get_suitable_room['not_quarantine_room_ids'] = []
+
+                suitable_room_dict = self.get_suitable_room_for_member(input_dict=input_dict_for_get_suitable_room)
+                quarantine_room = suitable_room_dict['room']
+                warning = suitable_room_dict['warning']
+                if not quarantine_room:
+                    raise exceptions.ValidationException({'main': warning})
+
+            member.quarantine_room = quarantine_room
+
+            # care_staff
+            if hasattr(validator, '_care_staff'):
+                # care_staff received
+                member.care_staff = validator.get_field('care_staff')
+            else:
+                if not member.care_staff or member.care_staff.quarantine_ward != custom_user.quarantine_ward:
+                    # auto set care_staff
+                    input_dict_for_get_care_staff = dict()
+                    input_dict_for_get_care_staff['quarantine_floor'] = member.quarantine_room.quarantine_floor
+
+                    suitable_care_staff_dict = self.get_suitable_care_staff_for_member(input_dict=input_dict_for_get_care_staff)
+                    care_staff = suitable_care_staff_dict['care_staff']
+
+                    member.care_staff = care_staff
+
+            # create QuarantineHistory
+            quarantine_history = QuarantineHistory(
+                user=custom_user,
+                pandemic=custom_user.quarantine_ward.pandemic,
+                quarantine_ward=custom_user.quarantine_ward,
+                quarantine_room=member.quarantine_room,
+                status=QuarantineHistoryStatus.PRESENT,
+                start_date=member.quarantined_at,
+                created_by=request.user,
+                updated_by=request.user,
+            )
+
+            custom_user.save()
+            member.save()
+
+            quarantine_history.save()
+
+            self.do_after_change_room_of_member_work(member, None)
+
+            member = Member.objects.get(id=member.id)
+
+            custom_user_serializer = CustomUserSerializer(custom_user, many=False)
+            member_serializer = MemberSerializer(member, many=False)
+            
+            response_data = dict()
+            response_data['custom_user'] = custom_user_serializer.data
+            response_data['member'] = member_serializer.data
+
+            return self.response_handler.handle(data=response_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
