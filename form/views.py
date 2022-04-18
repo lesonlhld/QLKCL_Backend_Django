@@ -642,6 +642,9 @@ class TestAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -827,6 +830,9 @@ class TestAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -1345,9 +1351,6 @@ class VaccineDoseAPI(AbstractView):
         ]
 
         try:
-            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
-                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
-
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()

@@ -867,10 +867,7 @@ class UserValidator(validators.AbstractRequestValidate):
                             quarantine_ward = self._quarantine_ward
                         else:
                             quarantine_ward = self._custom_user.quarantine_ward
-                        if hasattr(self, '_number_of_vaccine_doses'):
-                            number_of_vaccine_doses = self._number_of_vaccine_doses
-                        else:
-                            number_of_vaccine_doses = self._custom_user.member_x_custom_user.number_of_vaccine_doses
+                        number_of_vaccine_doses = self._custom_user.member_x_custom_user.number_of_vaccine_doses
                         if quarantine_ward.pandemic:
                             if number_of_vaccine_doses < 2:
                                 remain_qt = quarantine_ward.pandemic.quarantine_time_not_vac
@@ -896,10 +893,6 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_label') and self._label != self._custom_user.member_x_custom_user.label:
             if hasattr(self, '_quarantine_room') and self._quarantine_room != self._custom_user.member_x_custom_user.quarantine_room:
                 raise exceptions.ValidationException({'main': messages.CANNOT_CHANGE_ROOM_LABEL_TOGETHER})
-        if hasattr(self, '_number_of_vaccine_doses'):
-            if self._custom_user.status not in [CustomUserStatus.REFUSED, CustomUserStatus.WAITING]:
-                if self._number_of_vaccine_doses != self._custom_user.member_x_custom_user.number_of_vaccine_doses:
-                    raise exceptions.NotFoundException({'number_of_vaccine_doses': messages.CANNOT_CHANGE})
         if hasattr(self, '_care_staff_code'):
             if self._care_staff_code:
                 if not self.is_care_staff_code_exist():
@@ -1125,11 +1118,7 @@ class UserValidator(validators.AbstractRequestValidate):
             if self._custom_user.status != CustomUserStatus.AVAILABLE:
                 raise exceptions.ValidationException({'code': messages.ISNOTAVAILABLE})
 
-    def extra_validate_to_member_call_requarantine(self, user):
-        if user.role.name != 'MEMBER' or not hasattr(user, 'member_x_custom_user'):
-            raise exceptions.ValidationException({'sender': messages.ISNOTMEMBER})
-        if user.status != CustomUserStatus.LEAVE:
-            raise exceptions.ValidationException({'sender': messages.ISNOTLEAVE})
+    def extra_validate_to_member_call_requarantine(self):
         if hasattr(self, '_quarantine_ward_id') and self._quarantine_ward_id:
             if not self.is_quarantine_ward_id_exist():
                 raise exceptions.ValidationException({'quarantine_ward_id': messages.NOT_EXIST})
