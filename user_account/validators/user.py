@@ -867,7 +867,7 @@ class UserValidator(validators.AbstractRequestValidate):
                             quarantine_ward = self._quarantine_ward
                         else:
                             quarantine_ward = self._custom_user.quarantine_ward
-                            number_of_vaccine_doses = self._custom_user.member_x_custom_user.number_of_vaccine_doses
+                        number_of_vaccine_doses = self._custom_user.member_x_custom_user.number_of_vaccine_doses
                         if quarantine_ward.pandemic:
                             if number_of_vaccine_doses < 2:
                                 remain_qt = quarantine_ward.pandemic.quarantine_time_not_vac
