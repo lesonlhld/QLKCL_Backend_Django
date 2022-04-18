@@ -1323,7 +1323,6 @@ class MemberAPI(AbstractView):
             - positive_tested_before: boolean
             - background_disease: String '<id>,<id>,<id>'
             - other_background_disease: String
-            - number_of_vaccine_doses: int
             - care_staff_code: String
         """
 
@@ -1337,7 +1336,7 @@ class MemberAPI(AbstractView):
             'label', 'quarantined_at', 'quarantined_finish_expected_at',
             'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'number_of_vaccine_doses', 'care_staff_code',
+            'care_staff_code',
         ]
 
         custom_user_fields = [
@@ -1354,7 +1353,7 @@ class MemberAPI(AbstractView):
             'quarantined_at', 'quarantined_finish_expected_at',
             'positive_tested_before',
             'background_disease', 'other_background_disease',
-            'number_of_vaccine_doses', 'care_staff_code',
+            'care_staff_code',
         ]
 
         try:
@@ -1375,7 +1374,7 @@ class MemberAPI(AbstractView):
                 'health_insurance_number', 'identity_number',
                 'label', 'quarantined_at', 'quarantined_finish_expected_at',
                 'positive_tested_before',
-                'number_of_vaccine_doses', 'background_disease',
+                'background_disease',
             ])
             validator.extra_validate_to_update_member(sender=request.user)
 
@@ -1562,6 +1561,9 @@ class MemberAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -1723,6 +1725,9 @@ class MemberAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -1882,6 +1887,9 @@ class MemberAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -1930,6 +1938,9 @@ class MemberAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -2204,6 +2215,9 @@ class MemberAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -2415,6 +2429,9 @@ class MemberAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -2490,6 +2507,12 @@ class MemberAPI(AbstractView):
         ]
 
         try:
+            custom_user = request.user
+            if custom_user.role.name != 'MEMBER' or not hasattr(custom_user, 'member_x_custom_user'):
+                raise exceptions.ValidationException({'sender': messages.ISNOTMEMBER})
+            if custom_user.status != CustomUserStatus.LEAVE:
+                raise exceptions.ValidationException({'sender': messages.ISNOTLEAVE})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -2502,8 +2525,7 @@ class MemberAPI(AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(['label', 'positive_tested_before'])
 
-            custom_user = request.user
-            validator.extra_validate_to_member_call_requarantine(custom_user)
+            validator.extra_validate_to_member_call_requarantine()
 
             member = custom_user.member_x_custom_user
 
@@ -2729,6 +2751,7 @@ class ManagerAPI(AbstractView):
         try:
             if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER']:
                 raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -2827,6 +2850,9 @@ class ManagerAPI(AbstractView):
         manager_fields = []
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -2849,7 +2875,7 @@ class ManagerAPI(AbstractView):
 
             custom_user = validator.get_field('custom_user')
 
-            if request.user.role.name in ['STAFF', 'MEMBER']:
+            if request.user.role.name == 'MANAGER' and request.user != custom_user:
                 raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             list_to_update_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
@@ -3019,6 +3045,7 @@ class StaffAPI(AbstractView):
         try:
             if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
                 raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -3118,6 +3145,9 @@ class StaffAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
@@ -3141,7 +3171,7 @@ class StaffAPI(AbstractView):
 
             custom_user = validator.get_field('custom_user')
 
-            if request.user.role.name == 'MEMBER':
+            if request.user.role.name == 'STAFF' and request.user != custom_user:
                 raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             list_to_update_custom_user = [key for key in accepted_fields.keys() if key in custom_user_fields]
@@ -3613,6 +3643,9 @@ class HomeAPI(AbstractView):
         ]
 
         try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+                
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
             accepted_fields = dict()
