@@ -184,7 +184,7 @@ class ResetPasswordAPI(AbstractView):
     @csrf_exempt
     @action(methods=['POST'], url_path='manager_reset_member', detail=False)
     def manager_reset_member(self, request):
-        """For manager to reset a member password 
+        """For manager to reset a member password
         Args:
             + code (str)
         """
