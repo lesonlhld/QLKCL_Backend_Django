@@ -1076,20 +1076,26 @@ class MemberAPI(AbstractView):
                         dict_custom_user_data = dict()
                         dict_member_data = dict()
                         is_available = False
+                        check_data = None
+
                         if is_csv_file: 
                             row = list(row.values())[1:]
+                            check_data = row[0]
+                        else:
+                            check_data = row[0].value
+                        if check_data in [None, '']:
+                            continue
 
                         for index, data in enumerate(row):
                             value = data.value if not is_csv_file else data
-
                             if (index < 15):
-                                
                                 if index == 3:
-                                    if not is_csv_file: 
-                                        value = value.strftime('%d/%m/%Y')
-                                    else:
-                                        value = str(value)
-                                        value = str(datetime.datetime.strptime(value, '%d/%m/%Y').strftime('%d/%m/%Y'))
+                                    if (value != None):
+                                        if not is_csv_file: 
+                                            value = value.strftime('%d/%m/%Y')
+                                        else:
+                                            value = str(value)
+                                            value = str(datetime.datetime.strptime(value, '%d/%m/%Y').strftime('%d/%m/%Y'))
                                 elif index == 5:
                                     value = str(value)
                                     value = gender_switcher[value]
@@ -1106,11 +1112,12 @@ class MemberAPI(AbstractView):
 
                             else:
                                 if (index == 18):
-                                    if not is_csv_file:
-                                        value = value.strftime('%Y-%m-%dT%H:%M:%S.%f%zZ')
-                                    else:
-                                        value = str(value)
-                                        value = str(datetime.datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%dT%H:%M:%S.%f%zZ'))
+                                    if (value != None):
+                                        if not is_csv_file:
+                                            value = value.strftime('%Y-%m-%dT%H:%M:%S.%f%zZ')
+                                        else:
+                                            value = str(value)
+                                            value = str(datetime.datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%dT%H:%M:%S.%f%zZ'))
                                     
                                 if value in ["Có", "Không"]:
                                     value = str(value)
@@ -1193,6 +1200,7 @@ class MemberAPI(AbstractView):
                                     raise exceptions.ValidationException({'main': warning})
 
                             member.quarantine_room = quarantine_room
+                            member.number_of_vaccine_doses = 0
 
                             # create QuarantineHistory
                             quarantine_history = QuarantineHistory(
@@ -1205,19 +1213,18 @@ class MemberAPI(AbstractView):
                                 created_by=request.user,
                                 updated_by=request.user,
                             )
-                            quarantine_history.save()
 
                         custom_user.save()
                         member.save()
 
                         if is_available:
+                            quarantine_history.save()
                             self.do_after_change_room_of_member_work(member, None)
 
                         custom_user_ids += [custom_user.id]
                     except Exception as e:
                         error[str(row_index + 1)] = str(e)
                         pass
-                
                 
                 custom_user_data = CustomUser.objects.filter(id__in=custom_user_ids)
                 member_serializer = FilterMemberSerializer(custom_user_data, many=True)

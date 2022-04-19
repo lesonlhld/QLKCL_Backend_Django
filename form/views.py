@@ -1,5 +1,6 @@
 import os
 import datetime
+import openpyxl, csv, codecs
 from random import randint
 from django.db.models import Q
 from django.shortcuts import render
@@ -765,6 +766,212 @@ class TestAPI(AbstractView):
             serializer = TestSerializer(test, many=False)
 
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+    
+    @csrf_exempt
+    @action(methods=['POST'], url_path='create_by_file', detail=False)
+    def create_test_by_file(self, request):
+        """Create a test by file (csv, xlsx)
+
+        Args:
+            + user_code: String
+            + status: String ['WAITING', 'DONE']
+            + type: String ['QUICK', 'RT-PCR']
+            + result: String ['NONE', 'NEGATIVE', 'POSITIVE']
+            + file: .csv, .xlsx
+        """
+
+        test_fields = [
+            'user_code', 'status', 'type',
+            'result',
+        ]
+
+        status_switcher = {
+            "Chờ kết quả": 'WAITING',
+            "Đã có kết quả": 'DONE',
+        }
+
+        type_switcher = {
+            "Test nhanh": 'QUICK',
+            "Test Real-time PCR": 'RT-PCR'
+        }
+
+        result_switcher = {
+            "Chưa có": 'NONE',
+            "Âm tính": 'NEGATIVE',
+            "Dương tính": 'POSITIVE',
+        }
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            file_name = request.FILES.get('file', False)
+            if file_name:
+                extension = os.path.splitext(str(file_name))[1]
+                iter_rows = None
+                error = dict()
+                test_ids = list()
+                is_csv_file = False
+
+                if (extension == ".xlsx"):
+                    wb = openpyxl.load_workbook(file_name)
+                    ws = wb["Sheet1"]
+                    iter_rows = ws.iter_rows(min_row=2, min_col=2, max_col=5)
+                elif (extension == ".csv"):
+                    iter_rows = csv.DictReader(codecs.iterdecode(file_name, encoding='utf-8'))
+                    is_csv_file = True
+
+                for row_index, row in enumerate(iter_rows):
+                    try:
+                        dict_test_data = dict()
+                        check_data = None
+
+                        if is_csv_file: 
+                            row = list(row.values())[1:]
+                            check_data = row[0]
+                        else:
+                            check_data = row[0].value
+                        if check_data in [None, '']:
+                            continue
+
+                        for index, data in enumerate(row):
+                            value = data.value if not is_csv_file else data
+                            if index == 1:
+                                value = str(value)
+                                value = status_switcher[value]
+                            elif index == 2:
+                                value = str(value)
+                                value = type_switcher[value]
+                            elif index == 3:
+                                value = str(value)
+                                value = result_switcher[value]
+                            dict_test_data[test_fields[index]] = value
+                            
+                        validator = TestValidator(**dict_test_data)
+                        validator.is_valid_fields([
+                            'status', 'type', 'result',
+                        ])
+                        
+                        validator.extra_validate_to_create_test()
+
+                        list_to_create_test = [key for key in test_fields]
+                        list_to_create_test = set(list_to_create_test) - {'user_code'}
+                        list_to_create_test = list(list_to_create_test) + ['user']
+
+                        dict_to_create_test = validator.get_data(list_to_create_test)
+
+                        test = Test(**dict_to_create_test)
+
+                        test.code = self.custom_test_code_generator(test.user.code)
+                        while (validator.is_code_exist(test.code)):
+                            test.code = self.custom_test_code_generator(test.user.code)
+                        test.created_by = request.user
+                        test.save()
+
+                        # Update user
+                        user = test.user
+                        if hasattr(user, 'member_x_custom_user'):
+                            this_member = user.member_x_custom_user
+                            this_member.last_tested = test.created_at
+
+                            if test.result != TestResult.NONE:
+                                old_positive_test_now = this_member.positive_test_now
+                                new_positive_test_now = self.calculate_new_conclude_from_test(test, old_positive_test_now)
+                                this_member.positive_test_now = new_positive_test_now
+
+                                if old_positive_test_now != True and new_positive_test_now == True:
+                                    this_member.label = MemberLabel.F0
+
+                                    if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
+                                        if this_member.quarantined_finish_expected_at == None:
+                                            quarantine_ward = this_member.custom_user.quarantine_ward
+                                            if quarantine_ward.pandemic:
+                                                if this_member.number_of_vaccine_doses < 2:
+                                                    remain_qt = quarantine_ward.pandemic.remain_qt_pos_not_vac
+                                                else:
+                                                    remain_qt = quarantine_ward.pandemic.remain_qt_pos_vac
+                                            else:
+                                                if this_member.number_of_vaccine_doses < 2:
+                                                    remain_qt = int(os.environ.get('REMAIN_QT_POS_NOT_VAC', 14))
+                                                else:
+                                                    remain_qt = int(os.environ.get('REMAIN_QT_POS_VAC', 10))
+                                            this_member.quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                                        
+                                        # affect other member in this room
+                                        this_room = this_member.quarantine_room
+                                        if this_room:
+                                            members_in_this_room = this_room.member_x_quarantine_room.all()
+                                            for member in list(members_in_this_room):
+                                                if member.label != MemberLabel.F0:
+                                                    member.label = MemberLabel.F1
+                                                    member.quarantined_finish_expected_at = None
+                                                    member.save()
+
+                                elif old_positive_test_now == True and new_positive_test_now == False:
+                                    this_member.positive_tested_before = True
+
+                                    if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
+                                        # affect other member in this room
+                                        this_room = this_member.quarantine_room
+                                        if this_room:
+                                            other_members_in_this_room = this_room.member_x_quarantine_room.all().exclude(id=this_member.id)
+                                            number_of_other_positive_member_in_this_room = other_members_in_this_room.filter(positive_test_now=True).count()
+                                            if number_of_other_positive_member_in_this_room == 0:
+                                                quarantine_ward = this_room.quarantine_floor.quarantine_building.quarantine_ward
+                                                for member in list(other_members_in_this_room):
+                                                    if member.label != MemberLabel.F0:
+                                                        if quarantine_ward.pandemic:
+                                                            if member.number_of_vaccine_doses < 2:
+                                                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_not_vac
+                                                            else:
+                                                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_pos_vac
+                                                        else:
+                                                            if member.number_of_vaccine_doses < 2:
+                                                                remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_NOT_VAC', 14))
+                                                            else:
+                                                                remain_qt = int(os.environ.get('REMAIN_QT_CC_POS_VAC', 10))
+                                                        old_quarantined_finish_expected_at = member.quarantined_finish_expected_at
+                                                        new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                                                        if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                                            member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                                            member.save()
+
+                                this_member.last_tested_had_result = test.created_at
+                            this_member.save()
+                        if hasattr(user, 'manager_x_custom_user'):
+                            this_manager = user.manager_x_custom_user
+                            this_manager.last_tested = test.created_at
+                            if test.result != TestResult.NONE:
+                                new_positive_test_now = self.calculate_new_conclude_from_test(test, this_manager.positive_test_now)
+                                this_manager.positive_test_now = new_positive_test_now
+                                this_manager.last_tested_had_result = test.created_at
+                            this_manager.save()
+                        if hasattr(user, 'staff_x_custom_user'):
+                            this_staff = user.staff_x_custom_user
+                            this_staff.last_tested = test.created_at
+                            if test.result != TestResult.NONE:
+                                new_positive_test_now = self.calculate_new_conclude_from_test(test, this_staff.positive_test_now)
+                                this_staff.positive_test_now = new_positive_test_now
+                                this_staff.last_tested_had_result = test.created_at
+                            this_staff.save()
+
+                        test_ids += [test.id]
+                    except Exception as e:
+                        error[str(row_index + 1)] = str(e)
+                        pass
+                
+                test_data = Test.objects.filter(id__in=test_ids)
+                test_serializer = FilterTestSerializer(test_data, many=True)
+                response_data = dict()
+                response_data["test_success"] = test_serializer.data
+                response_data["test_fail"] = error
+                
+            else:
+                raise exceptions.InvalidArgumentException({'main': messages.FILE_IMPORT_EMPTY})
+
+            return self.response_handler.handle(data=response_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
