@@ -2235,9 +2235,9 @@ class MemberAPI(AbstractView):
 
             return_dict = dict()
             return_dict['quarantine_room'] = None
-            return_dict['warning'] = warning
 
             if room:
+                return_message = messages.SUCCESS
                 serializer = QuarantineRoomSerializer(room, many=False)
                 return_dict['quarantine_room'] = serializer.data
                 floor = room.quarantine_floor
@@ -2249,8 +2249,10 @@ class MemberAPI(AbstractView):
                 ward = building.quarantine_ward
                 serializer = BaseQuarantineWardSerializer(ward, many=False)
                 return_dict['quarantine_ward'] = serializer.data
+            else:
+                return_message = warning
 
-            return self.response_handler.handle(data=return_dict)
+            return self.response_handler.handle(message=return_message, data=return_dict)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
