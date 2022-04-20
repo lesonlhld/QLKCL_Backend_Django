@@ -2205,7 +2205,7 @@ class MemberAPI(AbstractView):
             + gender: String ['MALE', 'FEMALE']
             + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             + number_of_vaccine_doses: int
-            - positive_test_now: boolean - True or False, if null, just dont send
+            + positive_test_now: String ['True', 'False', 'Null']
             - old_quarantine_room_id: int
             - not_quarantine_room_ids: String <id>,<id>,<id>
         """
@@ -2221,6 +2221,7 @@ class MemberAPI(AbstractView):
         require_fields = [
             'quarantine_ward_id', 'gender',
             'label', 'number_of_vaccine_doses',
+            'positive_test_now',
         ]
 
         try:
