@@ -6,7 +6,7 @@ from ..models import CustomUser, Member
 from address.models import Country, City, District, Ward
 from role.models import Role
 from quarantine_ward.models import QuarantineWard, QuarantineRoom, QuarantineBuilding, QuarantineFloor
-from form.models import BackgroundDisease
+from form.models import BackgroundDisease, Pandemic
 from utils import validators, messages, exceptions
 from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus, MemberQuarantinedStatus
 from utils.tools import split_input_list, is_change_date_in_time_zone_vn
@@ -1035,8 +1035,12 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_care_staff_code') and not self.is_care_staff_code_exist():
             raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
         if hasattr(self, '_is_last_tested') and self._is_last_tested:
-            test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
-            self._last_tested_max = timezone.now() - datetime.timedelta(days=test_day)
+            try:
+                pandemic = Pandemic.objects.get(name='Covid-19')
+                day_between_tests = int(pandemic.day_between_tests)
+            except:
+                day_between_tests = int(os.environ.get('DAY_BETWEEN_TESTS', 5))
+            self._last_tested_max = timezone.now() - datetime.timedelta(days=day_between_tests)
             self._status_list = CustomUserStatus.AVAILABLE
         if hasattr(self, '_can_finish_quarantine'):
             if self._can_finish_quarantine:

@@ -152,6 +152,7 @@ class PandemicAPI(AbstractView):
             - test_type_none_to_neg_not_vac: String ['QUICK', 'RT-PCR']
             - num_test_none_to_neg_not_vac: int
             - num_day_to_close_room: int
+            - day_between_tests: int
         """
 
         accept_fields = [
@@ -164,6 +165,7 @@ class PandemicAPI(AbstractView):
             'num_test_pos_to_neg_not_vac', 'test_type_none_to_neg_vac',
             'num_test_none_to_neg_vac', 'test_type_none_to_neg_not_vac',
             'num_test_none_to_neg_not_vac', 'num_day_to_close_room',
+            'day_between_tests',
         ]
 
         require_fields = [
@@ -191,7 +193,7 @@ class PandemicAPI(AbstractView):
                 'remain_qt_pos_vac', 'remain_qt_pos_not_vac',
                 'num_test_pos_to_neg_vac', 'num_test_pos_to_neg_not_vac',
                 'num_test_none_to_neg_vac', 'num_test_none_to_neg_not_vac',
-                'num_day_to_close_room',
+                'num_day_to_close_room', 'day_between_tests',
             ])
             validator.extra_validate_test_type([
                 'test_type_pos_to_neg_vac', 'test_type_pos_to_neg_not_vac',
