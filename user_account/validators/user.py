@@ -217,6 +217,13 @@ class UserValidator(validators.AbstractRequestValidate):
                 message={'quarantined_finish_expected_at_max': messages.INVALID_DATETIME},
             )
 
+    def is_validate_quarantined_finish_expected_at_min(self):
+        if hasattr(self, '_quarantined_finish_expected_at_min'):
+            self._quarantined_finish_expected_at_min = validators.DateTimeFieldValidator.valid(
+                value=self._quarantined_finish_expected_at_min,
+                message={'quarantined_finish_expected_at_min': messages.INVALID_DATETIME},
+            )
+
     def is_validate_created_at_max(self):
         if hasattr(self, '_created_at_max'):
             self._created_at_max = validators.DateTimeFieldValidator.valid(
