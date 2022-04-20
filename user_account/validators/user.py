@@ -111,10 +111,15 @@ class UserValidator(validators.AbstractRequestValidate):
 
     def is_validate_positive_test_now(self):
         if hasattr(self, '_positive_test_now') and self._positive_test_now != None:
-            self._positive_test_now = validators.BooleanValidator.valid(
-                value=self._positive_test_now,
-                message={'positive_test_now': messages.INVALID},
-            )
+            try:
+                self._positive_test_now = validators.BooleanValidator.valid(
+                    value=self._positive_test_now,
+                )
+            except:
+                if self._positive_test_now == 'Null':
+                    self._positive_test_now = None
+                else:
+                    raise exceptions.ValidationException({'positive_test_now': messages.INVALID})
 
     def is_validate_positive_test_now_list(self):
         if hasattr(self, '_positive_test_now_list'):
