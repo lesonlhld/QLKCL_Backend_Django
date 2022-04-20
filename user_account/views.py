@@ -1280,6 +1280,47 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @action(methods=['POST'], url_path='get_by_phone_number', detail=False)
+    def get_user_by_phone_number(self, request):
+        """Get a user by phone number
+
+        Args:
+            + phone_number: String
+        """
+
+        accept_fields = [
+            'phone_number',
+        ]
+
+        require_fields = [
+            'phone_number',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_to_get_user_by_phone_number()
+
+            custom_user = validator.get_field('custom_user')
+            
+            response_data = dict()
+            response_data['code'] = custom_user.code
+            response_data['full_name'] = custom_user.full_name
+            
+            return self.response_handler.handle(data=response_data)
+        
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
     @action(methods=['POST'], url_path='update', detail=False)
     def update_member(self, request):
         """Update a member, if dont get code, will update member sending request

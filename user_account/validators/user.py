@@ -690,6 +690,11 @@ class UserValidator(validators.AbstractRequestValidate):
                 return False
         return True
 
+    def extra_validate_to_get_user_by_phone_number(self):
+        if hasattr(self, '_phone_number') and self._phone_number:
+            if not self.is_phone_number_exist():
+                raise exceptions.ValidationException({'phone_number': messages.NOT_EXIST})
+
     def extra_validate_to_register_member(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.EXIST})
