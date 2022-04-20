@@ -2037,6 +2037,7 @@ class MemberAPI(AbstractView):
             - quarantined_at_max: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantined_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantined_finish_expected_at_max: String vd:'2000-01-26T01:23:45.123456Z'
+            - quarantined_finish_expected_at_min: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantine_ward_id: String
             - quarantine_building_id: String
             - quarantine_floor_id: String
@@ -2055,7 +2056,7 @@ class MemberAPI(AbstractView):
             'is_need_change_room_because_be_positive',
             'created_at_max', 'created_at_min',
             'quarantined_at_max', 'quarantined_at_min',
-            'quarantined_finish_expected_at_max',
+            'quarantined_finish_expected_at_max', 'quarantined_finish_expected_at_min',
             'quarantine_ward_id', 'quarantine_building_id',
             'quarantine_floor_id', 'quarantine_room_id',
             'label_list', 'care_staff_code',
@@ -2079,7 +2080,8 @@ class MemberAPI(AbstractView):
                 'can_finish_quarantine', 'is_need_change_room_because_be_positive',
                 'created_at_max', 'created_at_min',
                 'quarantined_at_max', 'quarantined_at_min',
-                'quarantined_finish_expected_at_max', 'label_list',
+                'quarantined_finish_expected_at_max', 'quarantined_finish_expected_at_min',
+                'label_list',
             ])
             validator.extra_validate_to_filter_member()
 
@@ -2107,7 +2109,7 @@ class MemberAPI(AbstractView):
                 else:
                     dict_to_filter_user['quarantine_ward_id'] = request.user.quarantine_ward.id
 
-            dict_to_filter_user.setdefault('order_by', '-created_at')
+            dict_to_filter_user.setdefault('order_by', '-quarantined_at')
 
             filter = MemberFilter(dict_to_filter_user, queryset=query_set)
 
