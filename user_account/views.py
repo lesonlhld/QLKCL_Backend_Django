@@ -1570,8 +1570,8 @@ class MemberAPI(AbstractView):
 
             if custom_user.role.name != 'MEMBER' or not hasattr(custom_user, 'member_x_custom_user'):
                 raise exceptions.ValidationException({'main': messages.ISNOTMEMBER})
-            if custom_user.status != CustomUserStatus.WAITING:
-                raise exceptions.ValidationException({'main': messages.ISNOTWAITING})
+            if custom_user.status not in [CustomUserStatus.WAITING, CustomUserStatus.REFUSED]:
+                raise exceptions.ValidationException({'main': messages.IS_NOT_WAITING_OR_REFUSED})
 
             must_not_empty_fields_of_custom_user = [
                 'full_name', 'nationality', 'country', 'city', 'district',
@@ -1736,8 +1736,8 @@ class MemberAPI(AbstractView):
                     return_data[custom_user.code] = messages.ISNOTMEMBER
                     continue
 
-                if custom_user.status != CustomUserStatus.WAITING:
-                    return_data[custom_user.code] = messages.ISNOTWAITING
+                if custom_user.status not in [CustomUserStatus.WAITING, CustomUserStatus.REFUSED]:
+                    return_data[custom_user.code] = messages.IS_NOT_WAITING_OR_REFUSED
                     continue
 
                 member = custom_user.member_x_custom_user
