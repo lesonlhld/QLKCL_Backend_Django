@@ -25,7 +25,7 @@ from .filters.staff import StaffFilter
 from .filters.manager import ManagerFilter
 from .filters.destination_history import DestinationHistoryFilter
 from .filters.quarantine_history import QuarantineHistoryFilter
-from form.models import Test, VaccineDose
+from form.models import Test, VaccineDose, Pandemic
 from form.filters.test import TestFilter
 from role.models import Role
 from address.models import City, District, Ward
@@ -3445,8 +3445,13 @@ class HomeAPI(AbstractView):
 
             # Calculate number of need test members
 
-            test_day = int(os.environ.get('TEST_DAY_DEFAULT', 5))
-            last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=test_day))
+            try:
+                pandemic = Pandemic.objects.get(name='Covid-19')
+                day_between_tests = int(pandemic.day_between_tests)
+            except:
+                day_between_tests = int(os.environ.get('DAY_BETWEEN_TESTS', 5))
+
+            last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=day_between_tests))
 
             dict_to_filter_need_test_members = {
                 'role_name': 'MEMBER',
