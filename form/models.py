@@ -64,6 +64,8 @@ class Pandemic(models.Model):
 
     num_day_to_close_room = models.IntegerField(default=1, null=False)
 
+    day_between_tests = models.IntegerField(default=5, null=False)
+
     created_at = models.DateTimeField(auto_now_add=True, auto_now=False)
 
     updated_at = models.DateTimeField(auto_now_add=False, auto_now=True)
