@@ -608,7 +608,16 @@ class TestAPI(AbstractView):
                         type_test_need = os.environ.get('TEST_TYPE_POS_TO_NEG_VAC', TestType.QUICK)
 
                 # check there tests
-                tests_to_check = Test.objects.filter(user=this_user, type=type_test_need).filter(~Q(result=TestResult.NONE)).order_by('-created_at')[:number_test_need]
+                tests_to_check = Test.objects.filter(user=this_user)
+                if type_test_need == TestType.RT_PCR:
+                    tests_to_check = tests_to_check.filter(type=type_test_need)
+                tests_to_check = tests_to_check.filter(~Q(result=TestResult.NONE))
+                positive_tests_of_this_user = Test.objects.filter(user=this_user, result=TestResult.POSITIVE)
+                if positive_tests_of_this_user.count() >= 1:
+                    last_positive_test_of_this_user = positive_tests_of_this_user.order_by('-created_at')[:1].get()
+                    tests_to_check = tests_to_check.filter(created_at__gt=last_positive_test_of_this_user.created_at)
+                
+                tests_to_check = tests_to_check.order_by('-created_at')[:number_test_need]
                 tests_to_check = list(tests_to_check)
                 if len(tests_to_check) < number_test_need:
                     return True
