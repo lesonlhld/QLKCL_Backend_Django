@@ -637,18 +637,17 @@ class TestAPI(AbstractView):
 
         Args:
             + user_code: String
-            + status: String ['WAITING', 'DONE']
             + type: String ['QUICK', 'RT-PCR']
             + result: String ['NONE', 'NEGATIVE', 'POSITIVE']
         """
 
         accept_fields = [
-            'user_code', 'status', 'type',
+            'user_code', 'type',
             'result',
         ]
 
         require_fields = [
-            'user_code', 'status', 'type',
+            'user_code', 'type',
             'result',
         ]
 
@@ -667,14 +666,14 @@ class TestAPI(AbstractView):
             validator = TestValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields([
-                'status', 'type', 'result',
+                'type', 'result',
             ])
             
             validator.extra_validate_to_create_test()
 
             list_to_create_test = [key for key in accepted_fields.keys()]
             list_to_create_test = set(list_to_create_test) - {'user_code'}
-            list_to_create_test = list(list_to_create_test) + ['user']
+            list_to_create_test = list(list_to_create_test) + ['user', 'status']
 
             dict_to_create_test = validator.get_data(list_to_create_test)
 
@@ -826,13 +825,12 @@ class TestAPI(AbstractView):
 
         Args:
             + code: String
-            - status: String ['WAITING', 'DONE']
             - type: String ['QUICK', 'RT-PCR']
             - result: String ['NONE', 'NEGATIVE', 'POSITIVE']
         """
 
         accept_fields = [
-            'code', 'status', 'type',
+            'code', 'type',
             'result',
         ]
 
@@ -855,7 +853,7 @@ class TestAPI(AbstractView):
             validator = TestValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields([
-                'status', 'type', 'result',
+                'type', 'result',
             ])
             
             validator.extra_validate_to_update_test()
@@ -864,6 +862,7 @@ class TestAPI(AbstractView):
 
             list_to_update_test = [key for key in accepted_fields.keys()]
             list_to_update_test = set(list_to_update_test) - {'code'}
+            list_to_update_test = list(list_to_update_test) + ['status']
 
             dict_to_update_test = validator.get_data(list_to_update_test)
 
