@@ -115,6 +115,9 @@ class QuarantineWard(models.Model):
 
 class QuarantineBuilding(models.Model):
 
+    class Meta:
+        unique_together = [['name', 'quarantine_ward', ], ]
+
     name = models.CharField(max_length=64, null=False)
 
     quarantine_ward = models.ForeignKey(
@@ -126,6 +129,9 @@ class QuarantineBuilding(models.Model):
 
 class QuarantineFloor(models.Model):
 
+    class Meta:
+        unique_together = [['name', 'quarantine_building', ], ]
+
     name = models.CharField(max_length=32, null=False)
 
     quarantine_building = models.ForeignKey(
@@ -136,6 +142,9 @@ class QuarantineFloor(models.Model):
     )
 
 class QuarantineRoom(models.Model):
+
+    class Meta:
+        unique_together = [['name', 'quarantine_floor', ], ]
 
     name = models.CharField(max_length=16, null=False)
 
