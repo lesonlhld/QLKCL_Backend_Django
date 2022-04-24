@@ -250,7 +250,7 @@ class MemberHomeSerializer(serializers.ModelSerializer):
         if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_ward:
             return QuarantineWardSerializer(custom_user.member_x_custom_user.quarantine_ward, many=False).data
         else:
-            return None
+            return QuarantineWardSerializer(custom_user.quarantine_ward, many=False).data
     
     def get_health_status(self, custom_user):
         if hasattr(custom_user, 'member_x_custom_user'):
