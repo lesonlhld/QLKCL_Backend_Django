@@ -243,6 +243,11 @@ class UserValidator(validators.AbstractRequestValidate):
                 message={'created_at_min': messages.INVALID_DATETIME},
             )
 
+    def is_validate_order_by(self):
+        if hasattr(self, '_order_by'):
+            if self._order_by not in ['quarantined_finished_at', '-quarantined_finished_at']:
+                raise exceptions.ValidationException({'order_by': messages.INVALID})
+
     def is_validate_positive_tested_before(self):
         if hasattr(self, '_positive_tested_before'):
             self._positive_tested_before = validators.BooleanValidator.valid(

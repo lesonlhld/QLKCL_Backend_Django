@@ -2065,6 +2065,7 @@ class MemberAPI(AbstractView):
             - page: int
             - page_size: int
             - search: String
+            - order_by: String ['quarantined_finished_at']
         """
 
         accept_fields = [
@@ -2079,6 +2080,7 @@ class MemberAPI(AbstractView):
             'quarantine_floor_id', 'quarantine_room_id',
             'label_list', 'care_staff_code',
             'page', 'page_size', 'search',
+            'order_by',
         ]
 
         try:
@@ -2099,7 +2101,7 @@ class MemberAPI(AbstractView):
                 'created_at_max', 'created_at_min',
                 'quarantined_at_max', 'quarantined_at_min',
                 'quarantined_finish_expected_at_max', 'quarantined_finish_expected_at_min',
-                'label_list',
+                'label_list', 'order_by',
             ])
             validator.extra_validate_to_filter_member()
 
@@ -2127,7 +2129,8 @@ class MemberAPI(AbstractView):
                 else:
                     dict_to_filter_user['quarantine_ward_id'] = request.user.quarantine_ward.id
 
-            dict_to_filter_user.setdefault('order_by', '-quarantined_at')
+            if 'order_by' not in accepted_fields.keys():
+                dict_to_filter_user.setdefault('order_by', '-quarantined_at')
 
             filter = MemberFilter(dict_to_filter_user, queryset=query_set)
 

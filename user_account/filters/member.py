@@ -194,6 +194,7 @@ class MemberFilter(django_filters.FilterSet):
         fields=(
             ('member_x_custom_user__quarantined_at', 'quarantined_at'),
             ('created_at', 'created_at'),
+            ('member_x_custom_user__quarantined_finished_at', 'quarantined_finished_at')
         ),
     )
 
