@@ -783,12 +783,8 @@ class TestAPI(AbstractView):
     @action(methods=['POST'], url_path='create_by_file', detail=False)
     def create_test_by_file(self, request):
         """Create a test by file (csv, xlsx)
-
+        
         Args:
-            + user_code: String
-            + status: String ['WAITING', 'DONE']
-            + type: String ['QUICK', 'RT-PCR']
-            + result: String ['NONE', 'NEGATIVE', 'POSITIVE']
             + file: .csv, .xlsx
         """
 
