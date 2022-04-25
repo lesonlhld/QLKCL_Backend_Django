@@ -16,6 +16,7 @@ from quarantine_ward.serializers import (
 from role.serializers import RoleSerializer, BaseRoleSerializer
 
 from utils import messages
+from utils.enums import Professional
 from utils.tools import timestamp_string_to_date_string, split_input_list
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -25,6 +26,24 @@ class CustomUserSerializer(serializers.ModelSerializer):
     city = BaseCitySerializer(many=False)
     district = BaseDistrictSerializer(many=False)
     ward = BaseWardSerializer(many=False)
+    professional = serializers.SerializerMethodField('get_professional')
+
+    def get_professional(self, custom_user):
+        if custom_user.professional:
+            reversed_professional_dict = {i.value: i.name for i in Professional}
+            if custom_user.professional in reversed_professional_dict.keys():
+                return {
+                    'code': reversed_professional_dict[custom_user.professional],
+                    'name': custom_user.professional,
+                }
+            else:
+                return {
+                    'code': messages.INVALID,
+                    'name': custom_user.professional,
+                }
+        else:
+            return None
+    
     quarantine_ward = BaseQuarantineWardSerializer(many=False)
     role = BaseRoleSerializer(many=False)
 
