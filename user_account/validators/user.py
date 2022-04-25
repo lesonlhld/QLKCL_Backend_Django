@@ -1198,6 +1198,10 @@ class UserValidator(validators.AbstractRequestValidate):
             self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
         else:
             self._positive_test_now = None
+
+        if not hasattr(self, '_quarantine_reason'):
+            self._quarantine_reason = None
+
         if hasattr(self, '_quarantine_room_id') and self._quarantine_room_id:
             if not self.is_quarantine_room_id_exist():
                 raise exceptions.NotFoundException({'quarantine_room_id': messages.NOT_EXIST})
