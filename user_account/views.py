@@ -39,11 +39,30 @@ from utils.enums import (
     CustomUserStatus, HealthStatus, TestStatus,
     MemberQuarantinedStatus, MemberLabel,
     QuarantineHistoryStatus, QuarantineHistoryEndType,
+    Professional,
 )
 from utils.views import AbstractView, paginate_data
 from utils.tools import custom_user_code_generator, LabelTool
 
 # Create your views here.
+
+class ProfessionalAPI(AbstractView):
+    
+    @csrf_exempt
+    @action(methods=['POST'], url_path='filter', detail=False)
+    def filter_professional(self, request):
+        """Get a list of professionals
+
+        Args:
+            None
+        """
+
+        try:
+            response_data = [{'code': v.name, 'name': v.value} for v in Professional.__members__.values()]
+
+            return self.response_handler.handle(data=response_data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
 
 class DestinationHistoryAPI(AbstractView):
 
@@ -853,6 +872,7 @@ class MemberAPI(AbstractView):
             + district_id: int
             + ward_id: int
             + detail_address: String
+            - professional: String in Professional enum, call api to get list of professionals
             - health_insurance_number: String
             - identity_number: String
             - passport_number: String
@@ -874,6 +894,7 @@ class MemberAPI(AbstractView):
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
+            'professional',
             'quarantine_ward_id', 'quarantine_room_id',
             'label', 'quarantine_reason',
             'quarantined_at', 'positive_tested_before',
@@ -894,7 +915,7 @@ class MemberAPI(AbstractView):
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
-            'quarantine_ward_id',
+            'professional', 'quarantine_ward_id',
         ]
 
         member_fields = [
@@ -921,6 +942,7 @@ class MemberAPI(AbstractView):
             validator.is_valid_fields([
                 'phone_number', 'email', 'birthday', 'gender',
                 'passport_number', 'health_insurance_number', 'identity_number',
+                'professional',
                 'label', 'quarantined_at', 'positive_tested_before',
                 'background_disease', 'number_of_vaccine_doses',
             ])
@@ -1333,6 +1355,7 @@ class MemberAPI(AbstractView):
             - email: String
             - birthday: String 'dd/mm/yyyy'
             - gender: String ['MALE', 'FEMALE']
+            - professional: String in Professional enum, call api to get list of professionals
             - nationality_code: String
             - country_code: int
             - city_id: int
@@ -1361,7 +1384,8 @@ class MemberAPI(AbstractView):
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
             'quarantine_ward_id', 'quarantine_room_id',
-            'label', 'quarantine_reason',
+            'label', 'professional',
+            'quarantine_reason',
             'quarantined_at', 'quarantined_finish_expected_at',
             'positive_tested_before',
             'background_disease', 'other_background_disease',
@@ -1370,7 +1394,8 @@ class MemberAPI(AbstractView):
 
         custom_user_fields = [
             'code', 'full_name', 'email',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender',
+            'professional', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
@@ -1402,7 +1427,8 @@ class MemberAPI(AbstractView):
             validator.is_valid_fields([
                 'email', 'birthday', 'gender', 'passport_number',
                 'health_insurance_number', 'identity_number',
-                'label', 'quarantined_at', 'quarantined_finish_expected_at',
+                'label', 'professional',
+                'quarantined_at', 'quarantined_finish_expected_at',
                 'positive_tested_before',
                 'background_disease',
             ])
@@ -2760,6 +2786,7 @@ class ManagerAPI(AbstractView):
             + district_id: int
             + ward_id: int
             + detail_address: String
+            - professional: String in Professional enum, call api to get list of professionals
             - health_insurance_number: String
             - identity_number: String
             - passport_number: String
@@ -2770,7 +2797,8 @@ class ManagerAPI(AbstractView):
             'full_name', 'phone_number', 'email',
             'birthday', 'gender', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
-            'detail_address', 'health_insurance_number',
+            'detail_address', 'professional',
+            'health_insurance_number',
             'identity_number', 'passport_number',
             'quarantine_ward_id',
         ]
@@ -2786,7 +2814,8 @@ class ManagerAPI(AbstractView):
             'full_name', 'phone_number', 'email',
             'birthday', 'gender', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
-            'detail_address', 'health_insurance_number',
+            'detail_address', 'professional',
+            'health_insurance_number',
             'identity_number', 'passport_number',
             'quarantine_ward_id',
         ]
@@ -2809,6 +2838,7 @@ class ManagerAPI(AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields([
                 'phone_number', 'email', 'birthday', 'gender',
+                'professional',
                 'passport_number', 'health_insurance_number', 'identity_number',
             ])
             validator.extra_validate_to_create_manager()
@@ -2862,6 +2892,7 @@ class ManagerAPI(AbstractView):
             - email: String
             - birthday: String 'dd/mm/yyyy'
             - gender: String ['MALE', 'FEMALE']
+            - professional: String in Professional enum, call api to get list of professionals
             - nationality_code: String
             - country_code: int
             - city_id: int
@@ -2876,7 +2907,8 @@ class ManagerAPI(AbstractView):
 
         accept_fields = [
             'code', 'full_name', 'email',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender', 'professional',
+            'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
@@ -2885,7 +2917,8 @@ class ManagerAPI(AbstractView):
 
         custom_user_fields = [
             'code', 'full_name', 'email',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender',
+            'professional', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
@@ -2911,7 +2944,8 @@ class ManagerAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_valid_fields([
-                'email', 'birthday', 'gender', 'passport_number',
+                'email', 'birthday', 'gender',
+                'professional', 'passport_number',
                 'health_insurance_number', 'identity_number',
             ])
             validator.extra_validate_to_update_manager()
@@ -3055,6 +3089,7 @@ class StaffAPI(AbstractView):
             + district_id: int
             + ward_id: int
             + detail_address: String
+            - professional: String in Professional enum, call api to get list of professionals
             - health_insurance_number: String
             - identity_number: String
             - passport_number: String
@@ -3066,7 +3101,8 @@ class StaffAPI(AbstractView):
             'full_name', 'phone_number', 'email',
             'birthday', 'gender', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
-            'detail_address', 'health_insurance_number',
+            'detail_address', 'professional',
+            'health_insurance_number',
             'identity_number', 'passport_number',
             'quarantine_ward_id', 'care_area',
         ]
@@ -3082,7 +3118,8 @@ class StaffAPI(AbstractView):
             'full_name', 'phone_number', 'email',
             'birthday', 'gender', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
-            'detail_address', 'health_insurance_number',
+            'detail_address', 'professional',
+            'health_insurance_number',
             'identity_number', 'passport_number',
             'quarantine_ward_id',
         ]
@@ -3104,7 +3141,7 @@ class StaffAPI(AbstractView):
             validator.is_valid_fields([
                 'phone_number', 'email', 'birthday', 'gender',
                 'passport_number', 'health_insurance_number', 'identity_number',
-                'care_area',
+                'care_area', 'professional',
             ])
             validator.extra_validate_to_create_staff()
 
@@ -3158,6 +3195,7 @@ class StaffAPI(AbstractView):
             - email: String
             - birthday: String 'dd/mm/yyyy'
             - gender: String ['MALE', 'FEMALE']
+            - professional: String in Professional enum, call api to get list of professionals
             - nationality_code: String
             - country_code: int
             - city_id: int
@@ -3173,7 +3211,8 @@ class StaffAPI(AbstractView):
 
         accept_fields = [
             'code', 'full_name', 'email',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender',
+            'professional', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
@@ -3182,7 +3221,8 @@ class StaffAPI(AbstractView):
 
         custom_user_fields = [
             'code', 'full_name', 'email',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender',
+            'professional', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
@@ -3206,7 +3246,8 @@ class StaffAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_valid_fields([
-                'email', 'birthday', 'gender', 'passport_number',
+                'email', 'birthday', 'gender',
+                'professional', 'passport_number',
                 'health_insurance_number', 'identity_number',
                 'care_area',
             ])

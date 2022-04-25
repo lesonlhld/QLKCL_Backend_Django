@@ -154,11 +154,18 @@ class EnumValidator(AbstractValidator):
 
     @classmethod
     def valid(cls, value, enum_cls, message=default_message):
+
+        if value in [v.value for v in enum_cls.__members__.values()]:
+            return value
+        elif value in [k for k in enum_cls.__members__.keys()]:
+            return str(enum_cls[value])
+
         value = value.upper()
         if value in [v.value for v in enum_cls.__members__.values()]:
             return value
         elif value in [k for k in enum_cls.__members__.keys()]:
             return str(enum_cls[value])
+            
         raise exceptions.ValidationException(message)
 
 class ModelInstanceExistenceValidator(AbstractValidator):

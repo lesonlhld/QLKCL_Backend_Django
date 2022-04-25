@@ -8,7 +8,7 @@ from role.models import Role
 from quarantine_ward.models import QuarantineWard, QuarantineRoom, QuarantineBuilding, QuarantineFloor
 from form.models import BackgroundDisease, Pandemic
 from utils import validators, messages, exceptions
-from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus, MemberQuarantinedStatus
+from utils.enums import Gender, MemberLabel, CustomUserStatus, HealthStatus, MemberQuarantinedStatus, Professional
 from utils.tools import split_input_list, is_change_date_in_time_zone_vn
 
 class UserValidator(validators.AbstractRequestValidate):
@@ -64,6 +64,17 @@ class UserValidator(validators.AbstractRequestValidate):
             self._identity_number = validators.IdentityNumberValidator.valid(
                 value=self._identity_number,
             )
+
+    def is_validate_professional(self):
+        if hasattr(self, '_professional'):
+            if self._professional:
+                self._professional = validators.EnumValidator.valid(
+                    value=self._professional,
+                    enum_cls=Professional,
+                    message={'professional': messages.INVALID},
+                )
+            else:
+                self._professional = None
 
     def is_validate_label(self):
         if hasattr(self, '_label'):

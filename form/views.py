@@ -239,7 +239,6 @@ class PandemicAPI(AbstractView):
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
-
 class BackgroundDiseaseAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
