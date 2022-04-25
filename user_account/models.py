@@ -13,6 +13,7 @@ from utils.enums import (
     HealthStatus,
     QuarantineHistoryStatus,
     QuarantineHistoryEndType,
+    Professional,
 )
 from utils import validators
 
@@ -93,6 +94,13 @@ class CustomUser(AbstractBaseUser):
         choices=Gender.choices,
         default=Gender.MALE,
         null=False,
+    )
+
+    professional = models.CharField(
+        max_length=255,
+        choices=Professional.choices,
+        null=True,
+        blank=True,
     )
 
     nationality = models.ForeignKey(
@@ -207,6 +215,8 @@ class Member(models.Model):
         null=False,
     )
 
+    quarantine_reason = models.TextField(null=True, blank=True)
+
     positive_tested_before = models.BooleanField(default=False, null=False)
 
     quarantined_at = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
@@ -236,6 +246,8 @@ class Member(models.Model):
     health_note = models.TextField(null=True, blank=True)
 
     positive_test_now = models.BooleanField(null=True, blank=True)
+
+    first_positive_test_date = models.DateTimeField(auto_now_add=False, auto_now=False, null=True, blank=True)
 
     care_staff = models.ForeignKey(
         to=CustomUser,
