@@ -16,6 +16,32 @@ from .filters.user_notification import UserNotificationFilter
 
 # Create your views here.
 
+def create_and_send_noti_to_list_user(title, description, created_by, receive_user_list):
+    notification = Notification(title=title, description=description, created_by=created_by)
+    list_user_notification = []
+    for user in receive_user_list:
+        list_user_notification += [UserNotification(
+            notification=notification,
+            user=user,
+            created_by=created_by,
+        )]
+    if list_user_notification:
+        notification.save()
+        UserNotification.objects.bulk_create(list_user_notification)
+
+        header = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Authorization': 'Bearer ' + settings.ONE_SIGNAL_REST_API_KEY,
+        }
+        payload = {
+            'app_id': settings.ONE_SIGNAL_APP_ID,
+            'headings': {"en": notification.title},
+            'contents': {"en": notification.description},
+            'include_external_user_ids': [user.code for user in receive_user_list],
+            'channel_for_external_user_ids': 'push',
+        }
+        requests.post(settings.ONE_SIGNAL_NOTIFICATION_URL, headers=header, data=json.dumps(payload))
+
 class NotificationAPI (AbstractView):
     
     permission_classes = [permissions.IsAuthenticated]

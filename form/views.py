@@ -29,6 +29,7 @@ from .serializers import (
 from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
 from .filters.vaccine import VaccineDoseFilter
+from notification.views import create_and_send_noti_to_list_user
 from utils import exceptions, messages
 from utils.enums import SymptomType, TestResult, TestType, HealthStatus, MemberLabel, CustomUserStatus
 from utils.views import AbstractView
@@ -452,6 +453,21 @@ class MedicalDeclarationAPI(AbstractView):
                 for_staff = for_user.staff_x_custom_user
                 for_staff.health_status = medical_declaration.conclude
                 for_staff.save()
+
+            if medical_declaration.conclude == HealthStatus.SERIOUS and medical_declaration.user.role.name == 'MEMBER' \
+            and hasattr(medical_declaration.user, 'member_x_custom_user') and medical_declaration.user.status == CustomUserStatus.AVAILABLE:
+                # Send notification to care_staff or manager
+                receive_user = medical_declaration.user.member_x_custom_user.care_staff
+                if not receive_user:
+                    receive_user = medical_declaration.user.quarantine_ward.main_manager
+                if receive_user:
+                    title = 'Người cách ly sức khỏe nguy hiểm'
+                    description = f'Người cách ly {medical_declaration.user.full_name} ở {medical_declaration.user.member_x_custom_user.quarantine_room.name} - ' + \
+                                f'{medical_declaration.user.member_x_custom_user.quarantine_floor.name} - ' + \
+                                f'{medical_declaration.user.member_x_custom_user.quarantine_building.name} - ' + \
+                                f'{medical_declaration.user.member_x_custom_user.quarantine_ward.full_name} ' + \
+                                f'đang có dấu hiệu sức khỏe nguy hiểm'
+                    create_and_send_noti_to_list_user(title, description, created_by=medical_declaration.user, receive_user_list=[receive_user])
 
             serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
 
