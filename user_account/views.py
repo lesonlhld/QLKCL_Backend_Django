@@ -879,6 +879,7 @@ class MemberAPI(AbstractView):
             + quarantine_ward_id: int
             - quarantine_room_id: int
             - label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            - first_positive_test_date: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantine_reason: String
             - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
             - positive_tested_before: boolean
@@ -896,7 +897,8 @@ class MemberAPI(AbstractView):
             'identity_number', 'passport_number',
             'professional',
             'quarantine_ward_id', 'quarantine_room_id',
-            'label', 'quarantine_reason',
+            'label', 'first_positive_test_date',
+            'quarantine_reason',
             'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
             'number_of_vaccine_doses', 'care_staff_code',
@@ -920,7 +922,8 @@ class MemberAPI(AbstractView):
 
         member_fields = [
             'quarantine_room_id', 'quarantine_reason',
-            'label', 'quarantined_at', 'positive_tested_before',
+            'label', 'first_positive_test_date',
+            'quarantined_at', 'positive_tested_before',
             'background_disease', 'other_background_disease',
             'number_of_vaccine_doses', 'care_staff_code',
         ]
@@ -943,7 +946,8 @@ class MemberAPI(AbstractView):
                 'phone_number', 'email', 'birthday', 'gender',
                 'passport_number', 'health_insurance_number', 'identity_number',
                 'professional',
-                'label', 'quarantined_at', 'positive_tested_before',
+                'label', 'first_positive_test_date',
+                'quarantined_at', 'positive_tested_before',
                 'background_disease', 'number_of_vaccine_doses',
             ])
             validator.extra_validate_to_create_member()
@@ -1368,6 +1372,7 @@ class MemberAPI(AbstractView):
             - quarantine_ward_id: int
             - quarantine_room_id: int
             - label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            - first_positive_test_date: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantine_reason: String
             - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantined_finish_expected_at: String vd:'2000-01-26T01:23:45.123456Z'
@@ -1384,7 +1389,7 @@ class MemberAPI(AbstractView):
             'detail_address', 'health_insurance_number',
             'identity_number', 'passport_number',
             'quarantine_ward_id', 'quarantine_room_id',
-            'label', 'professional',
+            'label', 'first_positive_test_date', 'professional',
             'quarantine_reason',
             'quarantined_at', 'quarantined_finish_expected_at',
             'positive_tested_before',
@@ -1404,7 +1409,7 @@ class MemberAPI(AbstractView):
 
         member_fields = [
             'quarantine_room_id', 'label',
-            'quarantine_reason',
+            'first_positive_test_date', 'quarantine_reason',
             'quarantined_at', 'quarantined_finish_expected_at',
             'positive_tested_before',
             'background_disease', 'other_background_disease',
@@ -1427,7 +1432,7 @@ class MemberAPI(AbstractView):
             validator.is_valid_fields([
                 'email', 'birthday', 'gender', 'passport_number',
                 'health_insurance_number', 'identity_number',
-                'label', 'professional',
+                'label', 'first_positive_test_date', 'professional',
                 'quarantined_at', 'quarantined_finish_expected_at',
                 'positive_tested_before',
                 'background_disease',
@@ -2562,12 +2567,14 @@ class MemberAPI(AbstractView):
             + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - quarantine_reason: String
             - positive_tested_before: boolean
+            - first_positive_test_date: String vd:'2000-01-26T01:23:45.123456Z'
         """
 
         
         accept_fields = [
             'quarantine_ward_id', 'label',
             'quarantine_reason', 'positive_tested_before',
+            'first_positive_test_date',
         ]
 
         require_fields = [
@@ -2591,9 +2598,9 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
-            validator.is_valid_fields(['label', 'positive_tested_before'])
+            validator.is_valid_fields(['label', 'positive_tested_before', 'first_positive_test_date'])
 
-            validator.extra_validate_to_member_call_requarantine()
+            validator.extra_validate_to_member_call_requarantine(request.user)
 
             member = custom_user.member_x_custom_user
 
@@ -2601,6 +2608,7 @@ class MemberAPI(AbstractView):
             label = validator.get_field('label')
             quarantine_reason = validator.get_field('quarantine_reason')
             positive_tested_before = validator.get_field('positive_tested_before')
+            first_positive_test_date = validator.get_field('first_positive_test_date')
 
             # requarantine
             custom_user.status = CustomUserStatus.WAITING
@@ -2609,13 +2617,18 @@ class MemberAPI(AbstractView):
             member.quarantined_finish_expected_at = None
             member.quarantined_finished_at = None
             member.quarantined_status = MemberQuarantinedStatus.QUARANTINING
-            member.positive_test_now = None
+            if label == MemberLabel.F0:
+                member.positive_test_now = True
+            else:
+                member.positive_test_now = None
             member.care_staff = None
             member.quarantine_room = None
             member.label = label
             member.quarantine_reason = quarantine_reason
             if positive_tested_before != None:
                 member.positive_tested_before = positive_tested_before
+            if 'first_positive_test_date' in accepted_fields.keys():
+                member.first_positive_test_date = first_positive_test_date
             
             custom_user.save()
             member.save()
@@ -2635,6 +2648,7 @@ class MemberAPI(AbstractView):
             + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - quarantine_reason: String
             - positive_tested_before: boolean
+            - first_positive_test_date: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantine_room_id: int
             - care_staff_code: String
@@ -2643,6 +2657,7 @@ class MemberAPI(AbstractView):
         accept_fields = [
             'code',
             'quarantine_ward_id', 'label', 'positive_tested_before',
+            'first_positive_test_date',
             'quarantined_at', 'quarantine_reason',
             'quarantine_room_id', 'care_staff_code',
         ]
@@ -2665,7 +2680,7 @@ class MemberAPI(AbstractView):
 
             validator = UserValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
-            validator.is_valid_fields(['label', 'positive_tested_before', 'quarantined_at'])
+            validator.is_valid_fields(['label', 'positive_tested_before', 'first_positive_test_date', 'quarantined_at'])
             
             validator.extra_validate_to_manager_call_requarantine()
 
