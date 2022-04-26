@@ -698,6 +698,8 @@ class TestAPI(AbstractView):
 
                     if old_positive_test_now != True and new_positive_test_now == True:
                         this_member.label = MemberLabel.F0
+                        if not this_member.first_positive_test_date:
+                            this_member.first_positive_test_date = test.created_at
 
                         if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
                             if this_member.quarantined_finish_expected_at == None:
@@ -1079,7 +1081,7 @@ class TestAPI(AbstractView):
                 # if this test has result
                 last_test_has_result = Test.objects.filter(user = test.user).filter(~Q(result=TestResult.NONE)).order_by('-created_at')[0]
                 if last_test_has_result == test:
-                    # if this test is the last test of this user that has result
+                    # This test is the last test of this user that has result
                     if hasattr(test.user, 'member_x_custom_user'):
                         this_member = test.user.member_x_custom_user
                         old_positive_test_now = this_member.positive_test_now
@@ -1088,6 +1090,8 @@ class TestAPI(AbstractView):
 
                         if old_positive_test_now != True and new_positive_test_now == True:
                             this_member.label = MemberLabel.F0
+                            if not this_member.first_positive_test_date:
+                                this_member.first_positive_test_date = test.created_at
 
                             if this_member.custom_user.status == CustomUserStatus.AVAILABLE:
                                 if this_member.quarantined_finish_expected_at == None:

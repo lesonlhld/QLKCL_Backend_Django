@@ -198,6 +198,16 @@ class UserValidator(validators.AbstractRequestValidate):
                 message={'is_last_tested': messages.INVALID},
             )
 
+    def is_validate_first_positive_test_date(self):
+        if hasattr(self, '_first_positive_test_date'):
+            if self._first_positive_test_date:
+                self._first_positive_test_date = validators.DateTimeFieldValidator.valid(
+                    value=self._first_positive_test_date,
+                    message={'first_positive_test_date': messages.INVALID_DATETIME},
+                )
+            else:
+                self._first_positive_test_date = None
+
     def is_validate_quarantined_at(self):
         if hasattr(self, '_quarantined_at') and self._quarantined_at != None:
             self._quarantined_at = validators.DateTimeFieldValidator.valid(
@@ -778,6 +788,12 @@ class UserValidator(validators.AbstractRequestValidate):
                     remain_qt = int(os.environ.get('REMAIN_QT_POS_VAC', 10))
             self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
 
+        if hasattr(self, '_first_positive_test_date'):
+            if self._first_positive_test_date:
+                if (not hasattr(self, '_positive_tested_before') or self._positive_tested_before == False) \
+                and (not hasattr(self, '_label') or self._label != MemberLabel.F0):
+                    raise exceptions.ValidationException({'first_positive_test_date': messages.MUST_EMPTY})
+
         if hasattr(self, '_care_staff_code') and self._care_staff_code:
             if not self.is_care_staff_code_exist():
                 raise exceptions.NotFoundException({'care_staff_code': messages.NOT_EXIST})
@@ -926,6 +942,16 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_label') and self._label != self._custom_user.member_x_custom_user.label:
             if hasattr(self, '_quarantine_room') and self._quarantine_room != self._custom_user.member_x_custom_user.quarantine_room:
                 raise exceptions.ValidationException({'main': messages.CANNOT_CHANGE_ROOM_LABEL_TOGETHER})
+
+        if hasattr(self, '_first_positive_test_date') and is_change_date_in_time_zone_vn(self._first_positive_test_date, self._custom_user.member_x_custom_user.first_positive_test_date):
+            if self._custom_user.status not in [CustomUserStatus.WAITING, CustomUserStatus.REFUSED]:
+                raise exceptions.ValidationException({'first_positive_test_date': messages.CANNOT_CHANGE})
+            elif self._first_positive_test_date:
+                label_to_check = self._label if hasattr(self, '_label') else self._custom_user.member_x_custom_user.label
+                positive_tested_before_to_check = self._positive_tested_before if hasattr(self, '_positive_tested_before') else self._custom_user.member_x_custom_user.positive_tested_before
+                if label_to_check != MemberLabel.F0 and positive_tested_before_to_check == False:
+                    raise exceptions.ValidationException({'first_positive_test_date': messages.MUST_EMPTY})
+
         if hasattr(self, '_care_staff_code'):
             if self._care_staff_code:
                 if not self.is_care_staff_code_exist():
@@ -1155,10 +1181,16 @@ class UserValidator(validators.AbstractRequestValidate):
             if self._custom_user.status != CustomUserStatus.AVAILABLE:
                 raise exceptions.ValidationException({'code': messages.ISNOTAVAILABLE})
 
-    def extra_validate_to_member_call_requarantine(self):
+    def extra_validate_to_member_call_requarantine(self, sender):
         if hasattr(self, '_quarantine_ward_id') and self._quarantine_ward_id:
             if not self.is_quarantine_ward_id_exist():
                 raise exceptions.ValidationException({'quarantine_ward_id': messages.NOT_EXIST})
+        if hasattr(self, '_first_positive_test_date'):
+            if self._first_positive_test_date:
+                label_to_check = self._label if hasattr(self, '_label') else sender.member_x_custom_user.label
+                positive_tested_before_to_check = self._positive_tested_before if hasattr(self, '_positive_tested_before') else sender.member_x_custom_user.positive_tested_before
+                if label_to_check != MemberLabel.F0 and positive_tested_before_to_check == False:
+                    raise exceptions.ValidationException({'first_positive_test_date': messages.MUST_EMPTY})
 
     def extra_validate_to_manager_call_requarantine(self):
         if hasattr(self, '_code') and not self.is_code_exist():
@@ -1209,6 +1241,13 @@ class UserValidator(validators.AbstractRequestValidate):
             self._quarantined_finish_expected_at = self._quarantined_at + datetime.timedelta(days=remain_qt)
         else:
             self._positive_test_now = None
+
+        if hasattr(self, '_first_positive_test_date'):
+            if self._first_positive_test_date:
+                label_to_check = self._label if hasattr(self, '_label') else self._custom_user.member_x_custom_user.label
+                positive_tested_before_to_check = self._positive_tested_before if hasattr(self, '_positive_tested_before') else self._custom_user.member_x_custom_user.positive_tested_before
+                if label_to_check != MemberLabel.F0 and positive_tested_before_to_check == False:
+                    raise exceptions.ValidationException({'first_positive_test_date': messages.MUST_EMPTY})
 
         if not hasattr(self, '_quarantine_reason'):
             self._quarantine_reason = None
