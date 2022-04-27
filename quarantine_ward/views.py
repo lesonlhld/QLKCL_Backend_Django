@@ -3,7 +3,7 @@ from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from rest_framework.serializers import Serializer
 from utils.views import AbstractView, paginate_data
-from utils import exceptions
+from utils import exceptions, messages
 from utils.enums import RoleName
 from utils.tools import split_input_list
 from .models import (
@@ -435,8 +435,8 @@ class QuarantineBuildingAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
                 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -481,8 +481,8 @@ class QuarantineBuildingAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -525,8 +525,8 @@ class QuarantineBuildingAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -678,8 +678,8 @@ class QuarantineFloorAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -766,8 +766,8 @@ class QuarantineFloorAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -810,8 +810,8 @@ class QuarantineFloorAPI (AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -961,8 +961,8 @@ class QuarantineRoomAPI(AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -1035,8 +1035,8 @@ class QuarantineRoomAPI(AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
@@ -1079,8 +1079,8 @@ class QuarantineRoomAPI(AbstractView):
 
         try:
             user = request.user
-            if user.role.name != RoleName.ADMINISTRATOR:
-                raise exceptions.AuthenticationException()
+            if user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
             request_extractor = self.request_handler.handle(request)
             receive_fields = request_extractor.data
