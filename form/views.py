@@ -461,7 +461,7 @@ class MedicalDeclarationAPI(AbstractView):
                 if not receive_user:
                     receive_user = medical_declaration.user.quarantine_ward.main_manager
                 if receive_user:
-                    title = 'Người cách ly sức khỏe nguy hiểm'
+                    title = 'Cảnh báo sức khỏe người cách ly'
                     description = f'Người cách ly {medical_declaration.user.full_name} ở {medical_declaration.user.member_x_custom_user.quarantine_room.name} - ' + \
                                 f'{medical_declaration.user.member_x_custom_user.quarantine_floor.name} - ' + \
                                 f'{medical_declaration.user.member_x_custom_user.quarantine_building.name} - ' + \
