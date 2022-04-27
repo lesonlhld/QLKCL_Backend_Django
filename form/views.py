@@ -8,7 +8,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from utils.views import paginate_data
 from rest_framework import permissions
+from rest_framework.parsers import MultiPartParser
 from rest_framework.decorators import action
+from drf_yasg.utils import swagger_auto_schema
 from .models import BackgroundDisease, MedicalDeclaration, Symptom, Test, Vaccine, VaccineDose, Pandemic
 from .validators.medical_declaration import MedicalDeclarationValidator
 from .validators.test import TestValidator
@@ -29,6 +31,10 @@ from .serializers import (
 from .filters.medical_declaration import MedicalDeclarationFilter
 from .filters.test import TestFilter
 from .filters.vaccine import VaccineDoseFilter
+from .swagger_params import (
+    get_pandemic_swagger_params,
+    update_pandemic_swagger_params,
+)
 from notification.views import create_and_send_noti_to_list_user
 from utils import exceptions, messages
 from utils.enums import SymptomType, TestResult, TestType, HealthStatus, MemberLabel, CustomUserStatus
@@ -38,6 +44,7 @@ from utils.views import AbstractView
 
 class PandemicAPI(AbstractView):
 
+    parser_classes = (MultiPartParser,)
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
@@ -92,6 +99,7 @@ class PandemicAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @swagger_auto_schema(method='post', manual_parameters=get_pandemic_swagger_params, responses={200: ''})
     @action(methods=['POST'], url_path='get', detail=False)
     def get_pandemic(self, request):
         """Get a pandemic
@@ -130,6 +138,7 @@ class PandemicAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @swagger_auto_schema(method='post', manual_parameters=update_pandemic_swagger_params, responses={200: ''})
     @action(methods=['POST'], url_path='update', detail=False)
     def update_pandemic(self, request):
         """Update a pandemic
