@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from .models import Role
 from .serializers import RoleSerializer
 from utils import exceptions, messages, validators
-from utils.views import AbstractView
+from utils.views import AbstractView, query_debugger
 
 import datetime
 import pytz
@@ -24,6 +24,7 @@ class RoleAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='init', detail=False)
     def init_role(self, request):
         """Init some base role
@@ -78,6 +79,7 @@ class RoleAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_role(self, request):
         """Get a list of roles
@@ -96,6 +98,7 @@ class RoleAPI(AbstractView):
 class DebugAPI(AbstractView):
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='debug', detail=False)
     def debug(self, request):
         """For debug

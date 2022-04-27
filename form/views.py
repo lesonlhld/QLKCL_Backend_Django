@@ -38,7 +38,7 @@ from .swagger_params import (
 from notification.views import create_and_send_noti_to_list_user
 from utils import exceptions, messages
 from utils.enums import SymptomType, TestResult, TestType, HealthStatus, MemberLabel, CustomUserStatus
-from utils.views import AbstractView
+from utils.views import AbstractView, query_debugger
 
 # Create your views here.
 
@@ -48,6 +48,7 @@ class PandemicAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_pandemic(self, request):
         """Create a pandemic
@@ -99,6 +100,7 @@ class PandemicAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @swagger_auto_schema(method='post', manual_parameters=get_pandemic_swagger_params, responses={200: ''})
     @action(methods=['POST'], url_path='get', detail=False)
     def get_pandemic(self, request):
@@ -138,6 +140,7 @@ class PandemicAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @swagger_auto_schema(method='post', manual_parameters=update_pandemic_swagger_params, responses={200: ''})
     @action(methods=['POST'], url_path='update', detail=False)
     def update_pandemic(self, request):
@@ -232,6 +235,7 @@ class PandemicAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_pandemic(self, request):
         """Get a list of pandemics
@@ -255,6 +259,7 @@ class BackgroundDiseaseAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='init', detail=False)
     def init_background_disease(self, request):
         """Init some background disease
@@ -286,6 +291,7 @@ class BackgroundDiseaseAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_background_disease(self, request):
         """List all background disease
@@ -307,6 +313,7 @@ class SymptomAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='init', detail=False)
     def init_symptom(self, request):
         """Init some symptom
@@ -349,6 +356,7 @@ class SymptomAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_symptom(self, request):
         """List all symptom
@@ -387,6 +395,7 @@ class MedicalDeclarationAPI(AbstractView):
         return first_part + second_part + third_part
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_medical_declaration(self, request):
         """Create a medical declaration
@@ -485,6 +494,7 @@ class MedicalDeclarationAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get', detail=False)
     def get_medical_declaration(self, request):
         """Get a medical declaration
@@ -525,6 +535,7 @@ class MedicalDeclarationAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_medical_declaration(self, request):
         """Get a list of medical declarations
@@ -573,7 +584,7 @@ class MedicalDeclarationAPI(AbstractView):
 
             query_set = filter.qs
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('user__member_x_custom_user', 'user__manager_x_custom_user', 'user__staff_x_custom_user')
 
             serializer = FilterMedicalDeclarationSerializer(query_set, many=True)
 
@@ -656,6 +667,7 @@ class TestAPI(AbstractView):
             return old_positive_test_now
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_test(self, request):
         """Create a test
@@ -806,6 +818,7 @@ class TestAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create_by_file', detail=False)
     def create_test_by_file(self, request):
         """Create a test by file (csv, xlsx)
@@ -1008,6 +1021,7 @@ class TestAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get', detail=False)
     def get_test(self, request):
         """Get a test
@@ -1041,6 +1055,12 @@ class TestAPI(AbstractView):
 
             test = validator.get_field('test')
 
+            test = Test.objects.all().select_related(
+                'user__member_x_custom_user', 'user__manager_x_custom_user', 'user__staff_x_custom_user',
+                'created_by__member_x_custom_user', 'created_by__manager_x_custom_user', 'created_by__staff_x_custom_user',
+                'updated_by__member_x_custom_user', 'updated_by__manager_x_custom_user', 'updated_by__staff_x_custom_user',
+            ).get(id=test.id)
+
             serializer = TestSerializer(test, many=False)
 
             return self.response_handler.handle(data=serializer.data)
@@ -1048,6 +1068,7 @@ class TestAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_test(self, request):
         """Update a test
@@ -1196,6 +1217,7 @@ class TestAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_test(self, request):
         """Get a list of tests
@@ -1269,7 +1291,7 @@ class TestAPI(AbstractView):
 
             query_set = filter.qs
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('user__member_x_custom_user', 'user__manager_x_custom_user', 'user__staff_x_custom_user')
 
             serializer = FilterTestSerializer(query_set, many=True)
 
@@ -1284,6 +1306,7 @@ class VaccineAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get', detail=False)
     def get_vaccine(self, request):
         """Get a vaccine
@@ -1324,6 +1347,7 @@ class VaccineAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_vaccine(self, request):
         """Create a vaccine
@@ -1372,6 +1396,7 @@ class VaccineAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_vaccine(self, request):
         """Update a vaccine
@@ -1427,6 +1452,7 @@ class VaccineAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_vaccine(self, request):
         """Get a list of vaccine
@@ -1449,6 +1475,7 @@ class VaccineDoseAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get', detail=False)
     def get_vaccine_dose(self, request):
         """Get a vaccine dose
@@ -1489,6 +1516,7 @@ class VaccineDoseAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_vaccine_dose(self, request):
         """Create a vaccine dose
@@ -1568,6 +1596,7 @@ class VaccineDoseAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_vaccine_dose(self, request):
         """Update a vaccine dose
@@ -1628,6 +1657,7 @@ class VaccineDoseAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_vaccine_dose(self, request):
         """Delete a vaccine dose
@@ -1689,6 +1719,7 @@ class VaccineDoseAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_vaccine_dose(self, request):
         """Get a list of vaccine_doses

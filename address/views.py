@@ -15,7 +15,7 @@ from .filters.city import CityFilter
 from .filters.district import DistrictFilter
 from .filters.ward import WardFilter
 from utils import exceptions, messages
-from utils.views import AbstractView
+from utils.views import AbstractView, query_debugger
 
 # Create your views here.
 
@@ -109,6 +109,7 @@ class CountryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['GET'], url_path='get', detail=False)
     def get_country(self, request):
         """Get a Country
@@ -148,6 +149,7 @@ class CountryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_country(self, request):
         """Create a Country
@@ -190,6 +192,7 @@ class CountryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_country(self, request):
         """Update a Country
@@ -238,6 +241,7 @@ class CountryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_country(self, request):
         """Delete a Country
@@ -279,6 +283,7 @@ class CountryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_country(self, request):
         """List all Country
@@ -299,6 +304,7 @@ class CityAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_city(self, request):
         """List cities of country
@@ -350,6 +356,7 @@ class DistrictAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_district(self, request):
         """List districts of city
@@ -401,6 +408,7 @@ class WardAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_ward(self, request):
         """List wards of district

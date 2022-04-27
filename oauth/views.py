@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action, permission_classes
 from rest_framework import permissions
 from utils import messages, exceptions
-from utils.views import AbstractView
+from utils.views import AbstractView, query_debugger
 from utils.tools import generateOTP
 from utils.services import send_mail
 from utils.enums import ResetPasswordType
@@ -24,6 +24,7 @@ class ResetPasswordAPI(AbstractView):
         return super().get_permissions()
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='set', detail=False)
     def set_reset_password(self, request):
         """Reset password: 
@@ -83,6 +84,7 @@ class ResetPasswordAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='otp', detail=False)
     def confirm_otp(self, request):
         """Confirm otp: Check if otp is valid
@@ -135,6 +137,7 @@ class ResetPasswordAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='confirm', detail=False)
     def confirm_reset_password(self, request):
         """Confirm Reset Password: 
@@ -182,6 +185,7 @@ class ResetPasswordAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='manager_reset_member', detail=False)
     def manager_reset_member(self, request):
         """For manager to reset a member password
@@ -239,6 +243,7 @@ class ChangePasswordAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='confirm', detail=False)
     def change_password(self, request):
         """Change password: 

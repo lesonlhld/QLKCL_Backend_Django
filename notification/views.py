@@ -4,7 +4,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action
 from rest_framework import permissions
-from utils.views import AbstractView, paginate_data
+from utils.views import AbstractView, paginate_data, query_debugger
 from utils.enums import RoleName
 from utils import exceptions
 from .models import Notification, UserNotification, CustomUser
@@ -47,6 +47,7 @@ class NotificationAPI (AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['GET'], url_path='get', detail=False)
     def get_notification(self, request):
         """Get a Notification
@@ -83,6 +84,7 @@ class NotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_notification(self, request):
         """Create a Notification
@@ -130,6 +132,7 @@ class NotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create_all', detail=False)
     def create_notification_and_related(self, request):
         """Create a Notification and its related (UserNotification and notifications on user's device)
@@ -300,6 +303,7 @@ class NotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_notification(self, request):
         """Update a Notification
@@ -347,6 +351,7 @@ class NotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_notification(self, request):
         """Delete a Notification
@@ -387,6 +392,7 @@ class NotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_notification(self, request):
         """Get a list of Notifications
@@ -446,6 +452,7 @@ class UserNotificationAPI (AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['GET'], url_path='get', detail=False)
     def get_user_notification(self, request):
         """Get a User Notification
@@ -487,6 +494,7 @@ class UserNotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_user_notification(self, request):
         """Create a UserNotification and send Notification to user account
@@ -631,6 +639,7 @@ class UserNotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='change_status', detail=False)
     def change_read_status_user_notification(self, request):
         """Change is_read field in UserNotification 
@@ -672,6 +681,7 @@ class UserNotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_user_notification(self, request):
         """Delete a UserNotification
@@ -717,6 +727,7 @@ class UserNotificationAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_user_notification(self, request):
         """Get a list of Notifications of a User

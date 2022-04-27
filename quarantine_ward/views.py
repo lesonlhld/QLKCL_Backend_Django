@@ -2,7 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions
 from rest_framework.decorators import action, permission_classes
 from rest_framework.serializers import Serializer
-from utils.views import AbstractView, paginate_data
+from utils.views import AbstractView, paginate_data, query_debugger
 from utils import exceptions
 from utils.enums import RoleName
 from utils.tools import split_input_list
@@ -42,6 +42,7 @@ class QuarantineWardAPI (AbstractView):
         return super().get_permissions()
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantineward(self, request):
         """Get a Quarantine Ward
@@ -79,6 +80,7 @@ class QuarantineWardAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_quarantineward(self, request):
         """Create a Quarantine Ward
@@ -146,6 +148,7 @@ class QuarantineWardAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_quarantineward(self, request):
         """Update a Quarantine Ward
@@ -224,6 +227,7 @@ class QuarantineWardAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_quarantineward(self, request):
         """Delete a Quarantine Ward
@@ -266,6 +270,7 @@ class QuarantineWardAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_quarantineward(self, request):
         """Get a list of Quarantine Wards
@@ -338,6 +343,7 @@ class QuarantineWardAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter_register', detail=False)
     def filter_quarantineward_for_register(self, request):
         """Get a list of active quarantine wards
@@ -379,6 +385,7 @@ class QuarantineBuildingAPI (AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantinebuilding(self, request):
         """Get a Quarantine Building
@@ -416,6 +423,7 @@ class QuarantineBuildingAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_quarantinebuilding(self, request):
         """Create a Quarantine Building
@@ -461,6 +469,7 @@ class QuarantineBuildingAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_quarantinebuilding(self, request):
         """Update a Quarantine Building
@@ -507,6 +516,7 @@ class QuarantineBuildingAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_quarantinebuilding(self, request):
         """Delete a Quarantine Building
@@ -549,6 +559,7 @@ class QuarantineBuildingAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_quarantinebuilding(self, request):
         """Get a list of Quarantine Buildings
@@ -621,6 +632,7 @@ class QuarantineFloorAPI (AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantinefloor(self, request):
         """Get a Quarantine Floor
@@ -658,6 +670,7 @@ class QuarantineFloorAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_quarantinefloor(self, request):
         """Create 1 or multiple Quarantine Floors
@@ -746,6 +759,7 @@ class QuarantineFloorAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_quarantinefloor(self, request):
         """Update a Quarantine Floor
@@ -792,6 +806,7 @@ class QuarantineFloorAPI (AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_quarantinefloor(self, request):
         """Delete a Quarantine Floor
@@ -834,6 +849,7 @@ class QuarantineFloorAPI (AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_quarantinefloor(self, request):
         """Get a list of Quarantine Floors
@@ -904,6 +920,7 @@ class QuarantineRoomAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['GET'], url_path='get', detail=False)
     def get_quarantineroom(self, request):
         """Get a Quarantine Room
@@ -941,6 +958,7 @@ class QuarantineRoomAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_quarantineroom(self, request):
         """Create 1 or multiple Quarantine Rooms
@@ -1014,6 +1032,7 @@ class QuarantineRoomAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_quarantineroom(self, request):
         """Update a Quarantine Room
@@ -1061,6 +1080,7 @@ class QuarantineRoomAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_quarantineroom(self, request):
         """Delete a Quarantine Room
@@ -1103,6 +1123,7 @@ class QuarantineRoomAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_quarantineroom(self, request):
         """Get a list of Quarantine Rooms
