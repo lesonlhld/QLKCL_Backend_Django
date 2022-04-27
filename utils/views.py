@@ -7,7 +7,7 @@ from django.core.exceptions import (
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from rest_framework import viewsets
+from rest_framework import viewsets, serializers
 from . import messages, exceptions
 
 # Create your views here.
@@ -84,6 +84,9 @@ def paginate_data(request, data):
     }
 
     return response_data
+
+class EmptySerializer(serializers.Serializer):
+    pass
 
 class JsonResponseHandler:
 
@@ -174,6 +177,8 @@ class RequestHandler:
 
 class AbstractView(viewsets.GenericViewSet):
 
+    serializer_class = EmptySerializer
     response_handler = JsonResponseHandler
     exception_handler = ExceptionHandler
     request_handler = RequestHandler
+    swagger_fake_view = True

@@ -108,7 +108,26 @@ INSTALLED_APPS = [
     'oauth',
     'notification',
     'utils',
+
+    'drf_yasg',
 ]
+
+SWAGGER_SETTINGS = {
+    'USE_SESSION_AUTH': False,
+    'SECURITY_DEFINITIONS': {
+        'Bearer: add Bearer before to run': {
+            'type':'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+        },
+    },
+    'DEFAULT_FIELD_INSPECTORS': [
+        'drf_yasg.inspectors.InlineSerializerInspector',
+    ],
+    'DEFAULT_FILTER_INSPECTORS': [
+        'utils.swagger.CustomCoreAPICompatInspector',
+    ],
+}
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
