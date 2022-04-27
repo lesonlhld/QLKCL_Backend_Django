@@ -41,7 +41,7 @@ from utils.enums import (
     QuarantineHistoryStatus, QuarantineHistoryEndType,
     Professional,
 )
-from utils.views import AbstractView, paginate_data
+from utils.views import AbstractView, paginate_data, query_debugger
 from utils.tools import custom_user_code_generator, LabelTool
 
 # Create your views here.
@@ -49,6 +49,7 @@ from utils.tools import custom_user_code_generator, LabelTool
 class ProfessionalAPI(AbstractView):
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_professional(self, request):
         """Get a list of professionals
@@ -69,6 +70,7 @@ class DestinationHistoryAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_destination_history(self, request):
         """Create a destination history
@@ -134,6 +136,7 @@ class DestinationHistoryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get', detail=False)
     def get_destination_history(self, request):
         """Get a destination history
@@ -172,6 +175,7 @@ class DestinationHistoryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_destination_history(self, request):
         """Update a destination history
@@ -239,6 +243,7 @@ class DestinationHistoryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='delete', detail=False)
     def delete_destination_history(self, request):
         """Delete a destination history
@@ -276,6 +281,7 @@ class DestinationHistoryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_destination_history(self, request):
         """Get a list of destination history
@@ -329,6 +335,7 @@ class QuarantineHistoryAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get', detail=False)
     def get_quarantine_history(self, request):
         """Get a quarantine history
@@ -367,6 +374,7 @@ class QuarantineHistoryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_quarantine_history(self, request):
         """Get a list of quarantine history
@@ -416,6 +424,7 @@ class QuarantineHistoryAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='fix_invalid', detail=False)
     def fix_invalid_quarantine_history(self, request):
         """
@@ -783,6 +792,7 @@ class MemberAPI(AbstractView):
                             each_member.save()
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='register', detail=False)
     def register_member(self, request):
         """For someone outside to register quarantine
@@ -856,6 +866,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_member(self, request):
         """Create a member
@@ -1046,6 +1057,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create_by_file', detail=False)
     def create_member_by_file(self, request):
         """Create a member by file (csv, xlsx)
@@ -1268,6 +1280,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get', detail=False)
     def get_user(self, request):
         """Get a user, if dont get id, will return user sending request
@@ -1331,6 +1344,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get_by_phone_number', detail=False)
     def get_user_by_phone_number(self, request):
         """Get a user by phone number
@@ -1372,6 +1386,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_member(self, request):
         """Update a member, if dont get code, will update member sending request
@@ -1624,6 +1639,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='accept_one', detail=False)
     def accept_one_member(self, request):
         """Accept one member
@@ -1792,6 +1808,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='accept_many', detail=False)
     def accept_many_members(self, request):
         """Accept some members
@@ -1954,6 +1971,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='refuse', detail=False)
     def refuse_members(self, request):
         """Refuse some members
@@ -2005,6 +2023,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='finish_quarantine', detail=False)
     def finish_quarantine_members(self, request):
         """Finish quarantine some members
@@ -2097,6 +2116,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_member(self, request):
         """Get a list of members
@@ -2214,6 +2234,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='not_member_filter', detail=False)
     def not_member_filter(self, request):
         """Get a list user of some role
@@ -2276,6 +2297,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='get_suitable_room', detail=False)
     def get_suitable_room(self, request):
         """Get a suitable room for a member
@@ -2362,6 +2384,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='change_quarantine_ward_and_room', detail=False)
     def change_quarantine_ward_and_room(self, request):
         """Change quarantine_ward and room of an available member, can change care staff too
@@ -2504,6 +2527,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='hospitalize', detail=False)
     def hospitalize(self, request):
         """Hospitalize a 'AVAILABLE' member.
@@ -2581,6 +2605,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='member_call_requarantine', detail=False)
     def member_call_requarantine(self, request):
         """Requarantine a 'LEAVE' member. This member will be added to waiting member list. This member call api for themselve.
@@ -2661,6 +2686,7 @@ class MemberAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='manager_call_requarantine', detail=False)
     def manager_call_requarantine(self, request):
         """Requarantine a 'LEAVE' member. This member will be AVAILABLE and have a room. Manager, Super Manager, Administrator can call this api.
@@ -2808,6 +2834,7 @@ class ManagerAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_manager(self, request):
         """Create a manager
@@ -2920,6 +2947,7 @@ class ManagerAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_manager(self, request):
         """Update a manager, if dont get code, will update manager sending request
@@ -3023,6 +3051,7 @@ class ManagerAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_manager(self, request):
         """Get a list of manager and super managers
@@ -3111,6 +3140,7 @@ class StaffAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='create', detail=False)
     def create_staff(self, request):
         """Create a staff
@@ -3223,6 +3253,7 @@ class StaffAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='update', detail=False)
     def update_staff(self, request):
         """Update a staff, if dont get code, will update staff sending request
@@ -3333,6 +3364,7 @@ class StaffAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter', detail=False)
     def filter_staff(self, request):
         """Get a list of staffs
@@ -3423,6 +3455,7 @@ class HomeAPI(AbstractView):
     permission_classes = [permissions.IsAuthenticated]
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='manager', detail=False)
     def manager_home(self, request):
         """Get informations to display home screen for manager
@@ -3749,6 +3782,7 @@ class HomeAPI(AbstractView):
             return self.exception_handler.handle(exception)
     
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='filter_address_with_num_of_members_pass_by', detail=False)
     def filter_address_with_num_of_members_pass_by(self, request):
         """Get a list of cities/districts/wards and number of members pass by it
@@ -3860,6 +3894,7 @@ class HomeAPI(AbstractView):
             return self.exception_handler.handle(exception)
 
     @csrf_exempt
+    @query_debugger
     @action(methods=['POST'], url_path='member', detail=False)
     def member_home(self, request):
         """Get information to display home screen for member

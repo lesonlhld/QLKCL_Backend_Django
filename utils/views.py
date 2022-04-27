@@ -1,9 +1,13 @@
+import imp
 import os
+import functools
+import time
 from datetime import datetime
 from django.core.exceptions import (
     ValidationError,
     FieldError,
 )
+from django.db import connection, reset_queries
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.core.paginator import Paginator
@@ -84,6 +88,28 @@ def paginate_data(request, data):
     }
 
     return response_data
+
+# Calculate query time and number of query statement
+def query_debugger(func):
+    @functools.wraps(func)
+    def inner_func(*args, **kwargs):
+        reset_queries()
+
+        start_queries = len(connection.queries)
+
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        end = time.perf_counter()
+
+        end_queries = len(connection.queries)
+
+        print("Function : " + func.__name__)
+        print("Number of Queries : {}".format(end_queries - start_queries))
+        print("Finished in : {}".format(end - start))
+        print("======================================")
+        return result
+
+    return inner_func
 
 class EmptySerializer(serializers.Serializer):
     pass
