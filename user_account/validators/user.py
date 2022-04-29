@@ -721,6 +721,15 @@ class UserValidator(validators.AbstractRequestValidate):
             if not self.is_phone_number_exist():
                 raise exceptions.ValidationException({'phone_number': messages.NOT_EXIST})
 
+    def extra_validate_to_get_member_timeline(self):
+        if hasattr(self, '_code'):
+            if not self.is_code_exist():
+                raise exceptions.ValidationException({'code': messages.NOT_EXIST})
+        if self._custom_user.role.name != 'MEMBER' or not hasattr(self._custom_user, 'member_x_custom_user'):
+            raise exceptions.ValidationException({'code': messages.ISNOTMEMBER})
+        if self._custom_user.status not in [CustomUserStatus.AVAILABLE, CustomUserStatus.LEAVE]:
+            raise exceptions.ValidationException({'code': messages.IS_NOT_AVAILABLE_OR_LEAVE})
+
     def extra_validate_to_register_member(self):
         if hasattr(self, '_phone_number') and self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.EXIST})

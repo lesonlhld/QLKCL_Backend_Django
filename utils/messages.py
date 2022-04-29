@@ -84,6 +84,7 @@ ISNOTWAITING = 'This user is not waiting'
 ISNOTAVAILABLE = 'This user is not available'
 ISNOTLEAVE = 'This user is not leave'
 IS_NOT_WAITING_OR_REFUSED = 'This user is not waiting or refused'
+IS_NOT_AVAILABLE_OR_LEAVE = 'This user is not available or leave'
 CANNOT_FINISH_QUARANTINE = 'This member cannot finish quarantine'
 
 NOT_IN_QUARANTINE_WARD_OF_MEMBER = r"""Not in the quarantine ward of this member"""

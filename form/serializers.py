@@ -20,6 +20,14 @@ class BaseSymptomSerializer(serializers.ModelSerializer):
         model = Symptom
         fields = ['id', 'name',]
 
+class BaseMedicalDeclarationSerializer(serializers.ModelSerializer):
+
+    user = BaseBaseCustomUserSerializer(many=False)
+
+    class Meta:
+        model = MedicalDeclaration
+        fields = '__all__'
+
 class MedicalDeclarationSerializer(serializers.ModelSerializer):
 
     user = BaseCustomUserSerializer(many=False)
@@ -35,6 +43,18 @@ class FilterMedicalDeclarationSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicalDeclaration
         fields = ['id', 'code', 'user', 'conclude', 'created_at']
+
+class BaseTestSerializer(serializers.ModelSerializer):
+
+    user = BaseBaseCustomUserSerializer(many=False)
+
+    class Meta:
+        model = Test
+        fields = [
+            'code', 'user', 'status', 'result',
+            'type',
+            'created_at', 'updated_at',
+        ]
 
 class TestSerializer(serializers.ModelSerializer):
 
