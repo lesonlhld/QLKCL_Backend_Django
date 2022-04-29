@@ -18,6 +18,7 @@ from .serializers import (
     FilterMemberSerializer, FilterNotMemberSerializer,
     MemberHomeSerializer, ManagerSerializer,
     StaffSerializer, FilterStaffSerializer, FilterManagerSerializer,
+    BaseQuarantineHistorySerializer,
 )
 from .filters.member import MemberFilter
 from .filters.user import UserFilter
@@ -25,7 +26,11 @@ from .filters.staff import StaffFilter
 from .filters.manager import ManagerFilter
 from .filters.destination_history import DestinationHistoryFilter
 from .filters.quarantine_history import QuarantineHistoryFilter
-from form.models import Test, VaccineDose, Pandemic
+from form.models import Test, VaccineDose, Pandemic, MedicalDeclaration
+from form.serializers import (
+    BaseMedicalDeclarationSerializer,
+    BaseTestSerializer,
+)
 from form.filters.test import TestFilter
 from role.models import Role
 from address.models import City, District, Ward
@@ -39,7 +44,7 @@ from utils.enums import (
     CustomUserStatus, HealthStatus, TestStatus,
     MemberQuarantinedStatus, MemberLabel,
     QuarantineHistoryStatus, QuarantineHistoryEndType,
-    Professional,
+    Professional, TestResult,
 )
 from utils.views import AbstractView, paginate_data, query_debugger
 from utils.tools import custom_user_code_generator, LabelTool
@@ -1379,6 +1384,201 @@ class MemberAPI(AbstractView):
             response_data = dict()
             response_data['code'] = custom_user.code
             response_data['full_name'] = custom_user.full_name
+            
+            return self.response_handler.handle(data=response_data)
+        
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @query_debugger
+    @action(methods=['POST'], url_path='get_timeline', detail=False)
+    def get_member_timeline(self, request):
+        """Get a member timeline
+
+        Args:
+            + code: String
+        """
+
+        accept_fields = [
+            'code',
+        ]
+
+        require_fields = [
+            'code',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_to_get_member_timeline()
+
+            custom_user = validator.get_field('custom_user')
+
+            if request.user.role.name == 'MEMBER' and request.user != custom_user:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            response_data = dict()
+
+            if custom_user.member_x_custom_user.quarantined_at:
+                vntz = pytz.timezone('Asia/Saigon')
+                start_time = custom_user.member_x_custom_user.quarantined_at.astimezone(vntz) - datetime.timedelta(14)
+                if custom_user.member_x_custom_user.quarantined_finished_at:
+                    end_time = custom_user.member_x_custom_user.quarantined_finished_at.astimezone(vntz)
+                else:
+                    end_time = timezone.now().astimezone(vntz)
+                end_time = datetime.datetime(end_time.year, end_time.month, end_time.day, 23, 59, 59, 999999).astimezone(vntz)
+
+                # destination history
+                destination_history_query_set = DestinationHistory.objects.filter(
+                    user=custom_user,
+                    start_time__gte=start_time,
+                    start_time__lte=custom_user.member_x_custom_user.quarantined_at,
+                )
+                destination_history_query_set = destination_history_query_set.order_by('start_time')
+                destination_history_query_set = destination_history_query_set.select_related('user', 'ward__district__city__country', 'district__city__country', 'city__country', 'country')
+                destination_history_list = DestinationHistorySerializer(destination_history_query_set, many=True).data
+
+                new_destination_history_list = []
+                for item in destination_history_list:
+                    new_item = dict()
+                    new_item['type'] = 'destination_history'
+                    new_item['data'] = item
+                    new_destination_history_list += [new_item]
+                destination_history_list = new_destination_history_list
+
+                # quarantine history
+                quarantine_history_query_set = QuarantineHistory.objects.filter(
+                    user=custom_user,
+                    start_date__gte=start_time,
+                    start_date__lte=end_time,
+                )
+                quarantine_history_query_set = quarantine_history_query_set.order_by('start_date')
+                quarantine_history_query_set = quarantine_history_query_set.select_related('user', 'quarantine_ward', 'quarantine_room__quarantine_floor__quarantine_building')
+                quarantine_history_list = BaseQuarantineHistorySerializer(quarantine_history_query_set, many=True).data
+                last_quarantine_history = quarantine_history_list.pop()
+                new_quarantine_history_list = [last_quarantine_history]
+                while quarantine_history_list:
+                    last_quarantine_history = quarantine_history_list.pop()
+                    if last_quarantine_history['end_type'] == QuarantineHistoryEndType.CHANGE_ROOM:
+                        new_quarantine_history_list.insert(0, last_quarantine_history)
+                    else:
+                        break
+                
+                quarantine_history_list = []
+                new_quarantine_history_list[0]['type'] = 'start_quarantine'
+                if len(new_quarantine_history_list) >= 2:
+                    for item in new_quarantine_history_list[1:]:
+                        item['type'] = 'change_room'
+                last_quarantine_history = dict()
+                is_have_last = True
+                if custom_user.status == CustomUserStatus.LEAVE:
+                    last_quarantine_history['type'] = custom_user.member_x_custom_user.quarantined_status
+                    last_quarantine_history['start_date'] = str(custom_user.member_x_custom_user.quarantined_finished_at.astimezone(vntz))
+                    last_quarantine_history['start_date'] = last_quarantine_history['start_date'][:10] + 'T' + last_quarantine_history['start_date'][11:]
+                    last_quarantine_history['note'] = new_quarantine_history_list[-1]['note']
+                    last_quarantine_history['quarantine_ward'] = None
+                    last_quarantine_history['quarantine_building'] = None
+                    last_quarantine_history['quarantine_floor'] = None
+                    last_quarantine_history['quarantine_room'] = None
+                elif custom_user.member_x_custom_user.quarantined_finish_expected_at:
+                    last_quarantine_history['type'] = 'expect_finish'
+                    last_quarantine_history['start_date'] = str(custom_user.member_x_custom_user.quarantined_finish_expected_at.astimezone(vntz))
+                    last_quarantine_history['start_date'] = last_quarantine_history['start_date'][:10] + 'T' + last_quarantine_history['start_date'][11:]
+                    last_quarantine_history['note'] = None
+                    last_quarantine_history['quarantine_ward'] = None
+                    last_quarantine_history['quarantine_building'] = None
+                    last_quarantine_history['quarantine_floor'] = None
+                    last_quarantine_history['quarantine_room'] = None
+                else:
+                    is_have_last = False
+                for item in new_quarantine_history_list:
+                    item['note'] = None
+                if is_have_last:
+                    new_quarantine_history_list += [last_quarantine_history]
+                
+                for item in new_quarantine_history_list:
+                    new_item = dict()
+                    new_item['type'] = 'quarantine_history'
+                    new_item['data'] = {
+                        'type': item['type'],
+                        'start_date': item['start_date'],
+                        'quarantine_ward': item['quarantine_ward'],
+                        'quarantine_building': item['quarantine_building'],
+                        'quarantine_floor': item['quarantine_floor'],
+                        'quarantine_room': item['quarantine_room'],
+                        'note': item['note'],
+                    }
+                    quarantine_history_list += [new_item]
+
+                # medical declaration
+                medical_declaration_query_set = MedicalDeclaration.objects.filter(
+                    user=custom_user,
+                    created_at__gte=start_time,
+                    created_at__lte=end_time,
+                )
+                medical_declaration_query_set = medical_declaration_query_set.order_by('created_at')
+                medical_declaration_query_set = medical_declaration_query_set.select_related('user')
+                medical_declaration_list = BaseMedicalDeclarationSerializer(medical_declaration_query_set, many=True).data
+                
+                new_medical_declaration_list = []
+                for item in medical_declaration_list:
+                    new_item = dict()
+                    new_item['type'] = 'medical_declaration'
+                    new_item['data'] = item
+                    new_medical_declaration_list += [new_item]
+                medical_declaration_list = new_medical_declaration_list
+
+                # test
+                test_query_set = Test.objects.filter(
+                    user=custom_user,
+                    result__in=[TestResult.POSITIVE, TestResult.NEGATIVE],
+                )
+                test_query_set = test_query_set.order_by('created_at')
+                test_query_set = test_query_set.select_related('user__member_x_custom_user')
+                test_list = BaseTestSerializer(test_query_set, many=True).data
+
+                new_test_list = []
+                for item in test_list:
+                    new_item = dict()
+                    new_item['type'] = 'test'
+                    new_item['data'] = item
+                    new_test_list += [new_item]
+                test_list = new_test_list
+
+                list_of_all = destination_history_list + quarantine_history_list + medical_declaration_list + test_list
+                def key_created_at(a):
+                    if a['type'] == 'destination_history':
+                        return a['data']['start_time']
+                    elif a['type'] == 'quarantine_history':
+                        return a['data']['start_date']
+                    else:
+                        return a['data']['created_at']
+                list_of_all.sort(key=key_created_at)
+
+                for item in list_of_all:
+                    if item['type'] == 'destination_history':
+                        date = str(item['data']['start_time'])[:10]
+                    elif item['type'] == 'quarantine_history':
+                        date = str(item['data']['start_date'])[:10]
+                    else:
+                        date = str(item['data']['created_at'])[:10]
+                    
+                    if date in response_data.keys():
+                        response_data[date] += [item]
+                    else:
+                        response_data[date] = [item]
+
+            else:
+                raise exceptions.ValidationException({'quarantined_at': messages.EMPTY})
             
             return self.response_handler.handle(data=response_data)
         

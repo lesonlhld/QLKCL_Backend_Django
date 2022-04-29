@@ -423,6 +423,30 @@ class BasePandemicSerializer(serializers.ModelSerializer):
         model = Pandemic
         fields = ['id', 'name']
 
+class BaseQuarantineHistorySerializer(serializers.ModelSerializer):
+
+    user = BaseBaseCustomUserSerializer(many=False)
+    quarantine_ward = BaseQuarantineWardSerializer(many=False)
+    quarantine_building = serializers.SerializerMethodField('get_quarantine_building')
+    quarantine_floor = serializers.SerializerMethodField('get_quarantine_floor')
+    quarantine_room = BaseQuarantineRoomSerializer(many=False)
+
+    def get_quarantine_floor(self, quarantine_history):
+        if quarantine_history.quarantine_room:
+            return BaseQuarantineFloorSerializer(quarantine_history.quarantine_room.quarantine_floor, many=False).data
+        else:
+            return None
+    
+    def get_quarantine_building(self, quarantine_history):
+        if quarantine_history.quarantine_room:
+            return BaseQuarantineBuildingSerializer(quarantine_history.quarantine_room.quarantine_floor.quarantine_building, many=False).data
+        else:
+            return None
+
+    class Meta:
+        model = QuarantineHistory
+        fields = '__all__'
+
 class QuarantineHistorySerializer(serializers.ModelSerializer):
 
     user = BaseBaseCustomUserSerializer(many=False)

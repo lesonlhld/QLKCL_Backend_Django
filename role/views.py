@@ -111,6 +111,10 @@ class DebugAPI(AbstractView):
             # request_extractor = self.request_handler.handle(request)
             # receive_fields = request_extractor.data
             # vntz = pytz.timezone('Asia/Saigon')
+            # time_now = timezone.now()
+            # time_now = time_now.astimezone(vntz)
+            # print(time_now)
+            # print(time_now.year)
             # time_now = datetime.datetime.now(vntz)
             # # print(time_now)
             # # new_time = time_now.astimezone(pytz.timezone('US/Eastern'))
@@ -132,17 +136,6 @@ class DebugAPI(AbstractView):
             # members = Member.objects.filter(quarantined_status=MemberQuarantinedStatus.COMPLETED, quarantine_room__isnull=True)
             # print('haha')
             # print(list(members))
-            accept_fields = ['chuoirong', 'null', 'abc']
-
-            request_extractor = self.request_handler.handle(request)
-            receive_fields = request_extractor.data
-            accepted_fields = dict()
-
-            for key in receive_fields.keys():
-                if key in accept_fields:
-                    accepted_fields[key] = receive_fields[key]
-
-            print(accepted_fields)
 
             return self.response_handler.handle(data="fSuccess")
         except Exception as exception:
