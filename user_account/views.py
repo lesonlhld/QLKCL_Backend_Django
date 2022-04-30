@@ -325,7 +325,7 @@ class DestinationHistoryAPI(AbstractView):
             filter = DestinationHistoryFilter(dict_to_filter_destination_history, queryset=DestinationHistory.objects.all())
 
             query_set = filter.qs
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('user', 'country', 'city', 'district', 'ward')
 
             serializer = DestinationHistorySerializer(query_set, many=True)
 
@@ -418,7 +418,7 @@ class QuarantineHistoryAPI(AbstractView):
             filter = QuarantineHistoryFilter(dict_to_filter_quarantine_history, queryset=QuarantineHistory.objects.all())
 
             query_set = filter.qs
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('user', 'pandemic', 'quarantine_ward', 'quarantine_room__quarantine_floor__quarantine_building', 'created_by', 'updated_by')
 
             serializer = QuarantineHistorySerializer(query_set, many=True)
 
@@ -2416,7 +2416,7 @@ class MemberAPI(AbstractView):
 
             query_set = filter.qs
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('member_x_custom_user__quarantine_room__quarantine_floor__quarantine_building', 'quarantine_ward')
 
             serializer = FilterMemberSerializer(query_set, many=True)
 
@@ -2489,7 +2489,7 @@ class MemberAPI(AbstractView):
                 super_manager_query_set = CustomUser.objects.filter(role__name='SUPER_MANAGER', status=CustomUserStatus.AVAILABLE)
                 query_set = (query_set | super_manager_query_set).distinct()
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('role')
 
             serializer = FilterNotMemberSerializer(query_set, many=True)
 
@@ -3327,7 +3327,7 @@ class ManagerAPI(AbstractView):
             super_manager_query_set = CustomUser.objects.filter(role__name='SUPER_MANAGER', status=CustomUserStatus.AVAILABLE)
             query_set = (query_set | super_manager_query_set).distinct()
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('quarantine_ward', 'role')
 
             serializer = FilterManagerSerializer(query_set, many=True)
 
@@ -3643,7 +3643,7 @@ class StaffAPI(AbstractView):
             if 'order_by' not in dict_to_filter_staff.keys():
                 query_set = query_set.annotate(num_care_member=Count('member_x_care_staff')).order_by('num_care_member')
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('quarantine_ward')
 
             serializer = FilterStaffSerializer(query_set, many=True)
 
