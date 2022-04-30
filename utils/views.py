@@ -2,6 +2,7 @@ import imp
 import os
 import functools
 import time
+import json
 from datetime import datetime
 from django.core.exceptions import (
     ValidationError,
@@ -103,11 +104,13 @@ def query_debugger(func):
 
         end_queries = len(connection.queries)
 
-        print("Function : " + func.__name__)
-        print("Number of Queries : {}".format(end_queries - start_queries))
-        print("Finished in : {}".format(end - start))
-        print("======================================")
-        return result
+        result_dict = json.loads(result.content)
+        result_dict['Number of Queries'] = end_queries - start_queries
+        result_dict['Finished in'] = end - start
+        
+        return JsonResponse(
+            data=result_dict,
+        )
 
     return inner_func
 
