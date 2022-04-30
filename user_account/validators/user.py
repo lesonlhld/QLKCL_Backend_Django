@@ -873,8 +873,11 @@ class UserValidator(validators.AbstractRequestValidate):
             raise exceptions.NotFoundException({'email': messages.EXIST})
         if hasattr(self, '_health_insurance_number') and not self.is_new_health_insurance_number_valid():
             raise exceptions.NotFoundException({'health_insurance_number': messages.EXIST})
-        if hasattr(self, '_identity_number') and not self.is_new_identity_number_valid():
-            raise exceptions.NotFoundException({'identity_number': messages.EXIST})
+        if hasattr(self, '_identity_number'):
+            if not self._identity_number:
+                raise exceptions.ValidationException({'identity_number': messages.EMPTY})
+            elif not self.is_new_identity_number_valid():
+                raise exceptions.NotFoundException({'identity_number': messages.EXIST})
         if hasattr(self, '_passport_number') and not self.is_new_passport_number_valid():
             raise exceptions.NotFoundException({'passport_number': messages.EXIST})
         if hasattr(self, '_nationality_code') and not self.is_nationality_code_exist():

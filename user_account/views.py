@@ -890,7 +890,7 @@ class MemberAPI(AbstractView):
             + detail_address: String
             - professional: String in Professional enum, call api to get list of professionals
             - health_insurance_number: String
-            - identity_number: String
+            + identity_number: String
             - passport_number: String
             + quarantine_ward_id: int
             - quarantine_room_id: int
@@ -922,7 +922,8 @@ class MemberAPI(AbstractView):
 
         require_fields = [
             'full_name', 'phone_number',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender',
+            'identity_number', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'quarantine_ward_id',
         ]
@@ -3053,7 +3054,7 @@ class ManagerAPI(AbstractView):
             + detail_address: String
             - professional: String in Professional enum, call api to get list of professionals
             - health_insurance_number: String
-            - identity_number: String
+            + identity_number: String
             - passport_number: String
             + quarantine_ward_id: int
         """
@@ -3070,7 +3071,8 @@ class ManagerAPI(AbstractView):
 
         require_fields = [
             'full_name', 'phone_number',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender',
+            'identity_number', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'quarantine_ward_id',
         ]
@@ -3359,7 +3361,7 @@ class StaffAPI(AbstractView):
             + detail_address: String
             - professional: String in Professional enum, call api to get list of professionals
             - health_insurance_number: String
-            - identity_number: String
+            + identity_number: String
             - passport_number: String
             + quarantine_ward_id: int
             - care_area: String <id>,<id>,<id> trong đó <id> là id của tầng (QuarantineFloor)
@@ -3377,7 +3379,8 @@ class StaffAPI(AbstractView):
 
         require_fields = [
             'full_name', 'phone_number',
-            'birthday', 'gender', 'nationality_code',
+            'birthday', 'gender',
+            'identity_number', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'quarantine_ward_id',
         ]
