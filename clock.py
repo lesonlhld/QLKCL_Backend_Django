@@ -18,5 +18,9 @@ vntz = pytz.timezone('Asia/Saigon')
 
 scheduler.configure(timezone=vntz)
 
-scheduler.add_job(send_notification_is_last_test, 'cron', hour=2, minute=50)
+def test_func():
+    print('oke schedule')
+
+# scheduler.add_job(send_notification_is_last_test, 'cron', hour=2, minute=50)
+scheduler.add_job(test_func, 'interval', seconds=10)
 scheduler.start()
