@@ -15,3 +15,4 @@ django-cors-headers
 requests
 openpyxl
 drf-yasg
+apscheduler
