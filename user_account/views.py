@@ -39,6 +39,7 @@ from quarantine_ward.serializers import (
     QuarantineRoomSerializer, QuarantineFloorSerializer,
     QuarantineBuildingSerializer, BaseQuarantineWardSerializer,
 )
+from notification.views import create_and_send_noti_to_list_user
 from utils import exceptions, messages
 from utils.enums import (
     CustomUserStatus, HealthStatus, TestStatus,
@@ -511,6 +512,31 @@ class QuarantineHistoryAPI(AbstractView):
             return self.response_handler.handle(message=messages.SUCCESS)
         except Exception as exception:
             return self.exception_handler.handle(exception)
+
+def send_notification_is_last_test():
+    try:
+        pandemic = Pandemic.objects.get(name='Covid-19')
+        day_between_tests = int(pandemic.day_between_tests)
+    except:
+        day_between_tests = int(os.environ.get('DAY_BETWEEN_TESTS', 5))
+
+    last_tested_max = timezone.now() - datetime.timedelta(days=day_between_tests)
+
+    dict_to_filter_need_test_members = {
+        'role_name': 'MEMBER',
+        'last_tested_max': last_tested_max,
+        'status': CustomUserStatus.AVAILABLE,
+    }
+
+    filter = MemberFilter(dict_to_filter_need_test_members, queryset=CustomUser.objects.all())
+    query_set = filter.qs
+    
+    create_and_send_noti_to_list_user(
+        'Đến hạn xét nghiệm',
+        'Theo quy định về lịch trình xét nghiệm, bạn đã đến hạn phải làm xét nghiệm',
+        created_by=None,
+        receive_user_list=list(query_set),
+    )
 
 class MemberAPI(AbstractView):
 
@@ -3804,7 +3830,7 @@ class HomeAPI(AbstractView):
             except:
                 day_between_tests = int(os.environ.get('DAY_BETWEEN_TESTS', 5))
 
-            last_tested_max = str(datetime.datetime.now() - datetime.timedelta(days=day_between_tests))
+            last_tested_max = timezone.now() - datetime.timedelta(days=day_between_tests)
 
             dict_to_filter_need_test_members = {
                 'role_name': 'MEMBER',
