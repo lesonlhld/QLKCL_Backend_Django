@@ -9,10 +9,10 @@ import django
 django.setup()
 
 import pytz
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 from user_account.views import send_notification_is_last_test
 
-scheduler = BackgroundScheduler()
+scheduler = BlockingScheduler()
 
 vntz = pytz.timezone('Asia/Saigon')
 
