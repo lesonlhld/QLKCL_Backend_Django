@@ -32,6 +32,9 @@ from form.serializers import (
     BaseTestSerializer,
 )
 from form.filters.test import TestFilter
+from form.serializers import (
+    BaseVaccineDoseSerializer,
+)
 from role.models import Role
 from address.models import City, District, Ward
 from quarantine_ward.models import QuarantineRoom
@@ -1464,6 +1467,23 @@ class MemberAPI(AbstractView):
                     end_time = timezone.now().astimezone(vntz)
                 end_time = datetime.datetime(end_time.year, end_time.month, end_time.day, 23, 59, 59, 999999).astimezone(vntz)
 
+                # vaccine dose
+                vaccine_dose_query_set = VaccineDose.objects.filter(
+                    custom_user=custom_user,
+                    injection_date__isnull=False,
+                )
+                vaccine_dose_query_set = vaccine_dose_query_set.order_by('injection_date')
+                vaccine_dose_query_set = vaccine_dose_query_set.select_related('custom_user', 'vaccine')
+                vaccine_dose_list = BaseVaccineDoseSerializer(vaccine_dose_query_set, many=True).data
+
+                new_vaccine_dose_list = []
+                for item in vaccine_dose_list:
+                    new_item = dict()
+                    new_item['type'] = 'vaccine_dose'
+                    new_item['data'] = item
+                    new_vaccine_dose_list += [new_item]
+                vaccine_dose_list = new_vaccine_dose_list
+
                 # destination history
                 destination_history_query_set = DestinationHistory.objects.filter(
                     user=custom_user,
@@ -1491,6 +1511,8 @@ class MemberAPI(AbstractView):
                 quarantine_history_query_set = quarantine_history_query_set.order_by('start_date')
                 quarantine_history_query_set = quarantine_history_query_set.select_related('user', 'quarantine_ward', 'quarantine_room__quarantine_floor__quarantine_building')
                 quarantine_history_list = BaseQuarantineHistorySerializer(quarantine_history_query_set, many=True).data
+                if not quarantine_history_list:
+                    raise exceptions.ValidationException({'quarantine_history': messages.INVALID})
                 last_quarantine_history = quarantine_history_list.pop()
                 new_quarantine_history_list = [last_quarantine_history]
                 while quarantine_history_list:
@@ -1581,12 +1603,14 @@ class MemberAPI(AbstractView):
                     new_test_list += [new_item]
                 test_list = new_test_list
 
-                list_of_all = destination_history_list + quarantine_history_list + medical_declaration_list + test_list
+                list_of_all = vaccine_dose_list + destination_history_list + quarantine_history_list + medical_declaration_list + test_list
                 def key_created_at(a):
                     if a['type'] == 'destination_history':
                         return a['data']['start_time']
                     elif a['type'] == 'quarantine_history':
                         return a['data']['start_date']
+                    elif a['type'] == 'vaccine_dose':
+                        return a['data']['injection_date']
                     else:
                         return a['data']['created_at']
                 list_of_all.sort(key=key_created_at)
@@ -1596,6 +1620,8 @@ class MemberAPI(AbstractView):
                         date = str(item['data']['start_time'])[:10]
                     elif item['type'] == 'quarantine_history':
                         date = str(item['data']['start_date'])[:10]
+                    elif item['type'] == 'vaccine_dose':
+                        date = str(item['data']['injection_date'])[:10]
                     else:
                         date = str(item['data']['created_at'])[:10]
                     
