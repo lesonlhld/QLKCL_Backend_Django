@@ -4136,7 +4136,20 @@ class HomeAPI(AbstractView):
             if request.user.role.name not in ['MEMBER']:
                 raise exceptions.AuthenticationException()
 
-            member = request.user
+            if hasattr(request.user, 'member_x_custom_user'):
+                member = request.user.member_x_custom_user
+                member = Member.objects.select_related(
+                    'custom_user__quarantine_ward__main_manager',
+                    'custom_user__quarantine_ward__country',
+                    'custom_user__quarantine_ward__city',
+                    'custom_user__quarantine_ward__district',
+                    'custom_user__quarantine_ward__ward',
+                    'custom_user__quarantine_ward__pandemic',
+                    'quarantine_room__quarantine_floor__quarantine_building',
+                    'care_staff',
+                ).get(id=member.id)
+            else:
+                member = None
             serializer = MemberHomeSerializer(member, many=False)
 
             return self.response_handler.handle(data=serializer.data)

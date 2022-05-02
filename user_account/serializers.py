@@ -225,109 +225,15 @@ class MemberSerializer(serializers.ModelSerializer):
 
 class MemberHomeSerializer(serializers.ModelSerializer):
 
-    quarantine_room = serializers.SerializerMethodField('get_quarantine_room')
-    quarantine_floor = serializers.SerializerMethodField('get_quarantine_floor')
-    quarantine_building = serializers.SerializerMethodField('get_quarantine_building')
+    quarantine_room = BaseQuarantineRoomSerializer(many=False)
+    quarantine_floor = BaseQuarantineFloorSerializer(many=False)
+    quarantine_building = BaseQuarantineBuildingSerializer(many=False)
     quarantine_ward = serializers.SerializerMethodField('get_quarantine_ward')
-    custom_user = serializers.SerializerMethodField('get_custom_user')
-    health_status = serializers.SerializerMethodField('get_health_status')
-    positive_test_now = serializers.SerializerMethodField('get_positive_test_now')
-    last_tested = serializers.SerializerMethodField('get_last_tested')
-    last_tested_had_result = serializers.SerializerMethodField('get_last_tested_had_result')
-    created_at = serializers.SerializerMethodField('get_created_at')
-    quarantined_at = serializers.SerializerMethodField('get_quarantined_at')
-    quarantined_finish_expected_at = serializers.SerializerMethodField('get_quarantined_finish_expected_at')
-    quarantined_finished_at = serializers.SerializerMethodField('get_quarantined_finished_at')
-    care_staff = serializers.SerializerMethodField('get_care_staff')
-    number_of_vaccine_doses = serializers.SerializerMethodField('get_number_of_vaccine_doses')
+    custom_user = BaseBaseCustomUserSerializer(many=False)
+    care_staff = BaseCustomUserSerializer(many=False)
 
-    def get_custom_user(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user:
-            return BaseCustomUserSerializer(custom_user, many=False).data
-        else:
-            return None
-
-    def get_quarantine_room(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_room:
-            return BaseQuarantineRoomSerializer(custom_user.member_x_custom_user.quarantine_room, many=False).data
-        else:
-            return None
-    
-    def get_quarantine_floor(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_floor:
-            return BaseQuarantineFloorSerializer(custom_user.member_x_custom_user.quarantine_floor, many=False).data
-        else:
-            return None
-    
-    def get_quarantine_building(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_building:
-            return BaseQuarantineBuildingSerializer(custom_user.member_x_custom_user.quarantine_building, many=False).data
-        else:
-            return None
-
-    def get_quarantine_ward(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.quarantine_ward:
-            return QuarantineWardSerializer(custom_user.member_x_custom_user.quarantine_ward, many=False).data
-        else:
-            return QuarantineWardSerializer(custom_user.quarantine_ward, many=False).data
-    
-    def get_health_status(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.health_status
-        else:
-            return None
-
-    def get_positive_test_now(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.positive_test_now
-        else:
-            return None
-
-    def get_last_tested(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.last_tested
-        else:
-            return None
-    
-    def get_last_tested_had_result(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.last_tested_had_result
-        else:
-            return None
-
-    def get_created_at(self, custom_user):
-        created_at = str(custom_user.created_at)
-        return timestamp_string_to_date_string(created_at)
-
-    def get_quarantined_at(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.quarantined_at
-        else:
-            return None
-    
-    def get_quarantined_finish_expected_at(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.quarantined_finish_expected_at
-        else:
-            return None
-    
-    def get_quarantined_finished_at(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.quarantined_finished_at
-        else:
-            return None
-    
-    def get_care_staff(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user') and custom_user.member_x_custom_user.care_staff:
-            return BaseCustomUserSerializer(custom_user.member_x_custom_user.care_staff, many=False).data
-        else:
-            return None
-    
-    def get_number_of_vaccine_doses(self, custom_user):
-        if hasattr(custom_user, 'member_x_custom_user'):
-            return custom_user.member_x_custom_user.number_of_vaccine_doses
-        else:
-            return None
+    def get_quarantine_ward(self, member):
+        return QuarantineWardSerializer(member.custom_user.quarantine_ward, many=False).data
 
     class Meta:
         model = Member
