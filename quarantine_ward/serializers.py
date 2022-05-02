@@ -113,7 +113,7 @@ class QuarantineWardSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def to_representation(self, instance):
-        data =  super().to_representation(instance)
+        data = super().to_representation(instance)
 
         data['num_current_member'] = Member.objects.filter(
             quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id=data['id']
