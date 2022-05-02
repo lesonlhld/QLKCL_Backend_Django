@@ -83,7 +83,16 @@ class VaccineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vaccine
         fields = '__all__'
-        
+
+class BaseVaccineDoseSerializer(serializers.ModelSerializer):
+
+    vaccine = VaccineSerializer(many=False)
+    custom_user = BaseBaseCustomUserSerializer(many=False)
+
+    class Meta:
+        model = VaccineDose
+        fields = '__all__'
+
 class VaccineDoseSerializer(serializers.ModelSerializer):
 
     vaccine = VaccineSerializer(many=False)
