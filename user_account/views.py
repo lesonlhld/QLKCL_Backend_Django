@@ -1590,6 +1590,8 @@ class MemberAPI(AbstractView):
                 test_query_set = Test.objects.filter(
                     user=custom_user,
                     result__in=[TestResult.POSITIVE, TestResult.NEGATIVE],
+                    created_at__gte=start_time,
+                    created_at__lte=end_time,
                 )
                 test_query_set = test_query_set.order_by('created_at')
                 test_query_set = test_query_set.select_related('user__member_x_custom_user')
