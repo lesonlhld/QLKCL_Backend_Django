@@ -55,7 +55,7 @@ class BaseBaseCustomUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['code', 'full_name',]
+        fields = ['code', 'full_name', 'status']
 
 class BaseCustomUserSerializer(serializers.ModelSerializer):
 
