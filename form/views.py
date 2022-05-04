@@ -35,6 +35,9 @@ from .swagger_params import (
     get_pandemic_swagger_params,
     update_pandemic_swagger_params,
 )
+from user_account.serializers import (
+    BaseBaseCustomUserSerializer,
+)
 from notification.views import create_and_send_noti_to_list_user
 from utils import exceptions, messages
 from utils.enums import SymptomType, TestResult, TestType, HealthStatus, MemberLabel, CustomUserStatus
@@ -531,6 +534,115 @@ class MedicalDeclarationAPI(AbstractView):
             serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
 
             return self.response_handler.handle(data=serializer.data)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @query_debugger
+    @action(methods=['POST'], url_path='get_health_info_of_user', detail=False)
+    def get_health_info_of_user(self, request):
+        """Get all health info of a user
+
+        Args:
+            + user_code: String
+        """
+
+        accept_fields = [
+            'user_code',
+        ]
+
+        require_fields = [
+            'user_code',
+        ]
+
+        try:
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = MedicalDeclarationValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.extra_validate_to_get_health_info_of_user()
+
+            user = validator.get_field('user')
+
+            response_dict = {
+                'user': BaseBaseCustomUserSerializer(user, many=False).data,
+                'heartbeat': None,
+                'temperature': None,
+                'breathing': None,
+                'spo2': None,
+                'blood_pressure': None,
+                'main_symptoms': None,
+                'extra_symptoms': None,
+                'other_symptoms': None,
+            }
+
+            last_medical_declaration = MedicalDeclaration.objects.filter(user=user).order_by('created_at').last()
+            if last_medical_declaration:
+                main_symptoms = {
+                    'data': last_medical_declaration.main_symptoms,
+                    'updated_at': last_medical_declaration.created_at,
+                }
+                extra_symptoms = {
+                    'data': last_medical_declaration.extra_symptoms,
+                    'updated_at': last_medical_declaration.created_at,
+                }
+                other_symptoms = {
+                    'data': last_medical_declaration.other_symptoms,
+                    'updated_at': last_medical_declaration.created_at,
+                }
+                response_dict['main_symptoms'] = main_symptoms
+                response_dict['extra_symptoms'] = extra_symptoms
+                response_dict['other_symptoms'] = other_symptoms
+            
+            heartbeat_medical_declaration = MedicalDeclaration.objects.filter(user=user, heartbeat__isnull=False).order_by('created_at').last()
+            if heartbeat_medical_declaration:
+                heartbeat = {
+                    'data': heartbeat_medical_declaration.heartbeat,
+                    'updated_at': heartbeat_medical_declaration.created_at,
+                }
+                response_dict['heartbeat'] = heartbeat
+
+            temperature_medical_declaration = MedicalDeclaration.objects.filter(user=user, temperature__isnull=False).order_by('created_at').last()
+            if temperature_medical_declaration:
+                temperature = {
+                    'data': temperature_medical_declaration.temperature,
+                    'updated_at': temperature_medical_declaration.created_at,
+                }
+                response_dict['temperature'] = temperature
+
+            breathing_medical_declaration = MedicalDeclaration.objects.filter(user=user, breathing__isnull=False).order_by('created_at').last()
+            if breathing_medical_declaration:
+                breathing = {
+                    'data': breathing_medical_declaration.breathing,
+                    'updated_at': breathing_medical_declaration.created_at,
+                }
+                response_dict['breathing'] = breathing
+
+            spo2_medical_declaration = MedicalDeclaration.objects.filter(user=user, spo2__isnull=False).order_by('created_at').last()
+            if spo2_medical_declaration:
+                spo2 = {
+                    'data': spo2_medical_declaration.spo2,
+                    'updated_at': spo2_medical_declaration.created_at,
+                }
+                response_dict['spo2'] = spo2
+
+            blood_pressure_medical_declaration = MedicalDeclaration.objects.filter(user=user, blood_pressure__isnull=False).order_by('created_at').last()
+            if blood_pressure_medical_declaration:
+                blood_pressure = {
+                    'data': blood_pressure_medical_declaration.blood_pressure,
+                    'updated_at': blood_pressure_medical_declaration.created_at,
+                }
+                response_dict['blood_pressure'] = blood_pressure
+
+            # serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
+
+            return self.response_handler.handle(data=response_dict)
         except Exception as exception:
             return self.exception_handler.handle(exception)
 
