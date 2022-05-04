@@ -200,11 +200,17 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
     def extra_validate_to_create_medical_declaration(self):
         if hasattr(self, '_phone_number') and not self.is_phone_number_exist():
             raise exceptions.ValidationException({'phone_number': messages.NOT_EXIST})
+        if hasattr(self, '_other_symptoms') and not self._other_symptoms:
+            self._other_symptoms = None
         self.set_conclude_when_create_medical_declaration()
         
     def extra_validate_to_get_medical_declaration(self):
         if hasattr(self, '_id') and not self.is_id_exist():
             raise exceptions.ValidationException({'id': messages.NOT_EXIST})
+
+    def extra_validate_to_get_health_info_of_user(self):
+        if hasattr(self, '_user_code') and not self.is_user_code_exist():
+            raise exceptions.ValidationException({'main': messages.USER_NOT_FOUND})
 
     def extra_validate_to_filter_medical_declaration(self):
         if hasattr(self, '_user_code') and not self.is_user_code_exist():
