@@ -544,14 +544,10 @@ class MedicalDeclarationAPI(AbstractView):
         """Get all health info of a user
 
         Args:
-            + user_code: String
+            - user_code: String
         """
 
         accept_fields = [
-            'user_code',
-        ]
-
-        require_fields = [
             'user_code',
         ]
 
@@ -564,8 +560,9 @@ class MedicalDeclarationAPI(AbstractView):
                 if key in accept_fields:
                     accepted_fields[key] = receive_fields[key]
 
+            if 'user_code' not in accepted_fields.keys() or not accepted_fields['user_code']:
+                accepted_fields['user_code'] = request.user.code
             validator = MedicalDeclarationValidator(**accepted_fields)
-            validator.is_missing_fields(require_fields)
             validator.extra_validate_to_get_health_info_of_user()
 
             user = validator.get_field('user')
