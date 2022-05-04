@@ -640,8 +640,6 @@ class MedicalDeclarationAPI(AbstractView):
                 }
                 response_dict['blood_pressure'] = blood_pressure
 
-            # serializer = MedicalDeclarationSerializer(medical_declaration, many=False)
-
             return self.response_handler.handle(data=response_dict)
         except Exception as exception:
             return self.exception_handler.handle(exception)
