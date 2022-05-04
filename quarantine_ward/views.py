@@ -332,7 +332,7 @@ class QuarantineWardAPI (AbstractView):
 
             query_set = filter.qs
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('main_manager', 'pandemic', 'city', 'country', 'district', 'ward')
 
             serializer = FilterQuarantineWardSerializer(query_set, many=True, context=context)
             _data = [i for i in serializer.data if i]
@@ -374,6 +374,7 @@ class QuarantineWardAPI (AbstractView):
                     context = 'set_not_full'
 
             list_quarantine_ward = QuarantineWard.objects.filter(trash=False)
+            list_quarantine_ward = list_quarantine_ward.select_related('pandemic')
             serializer = QuarantineWardForRegisterSerializer(list_quarantine_ward, many=True, context=context)
             _data = [i for i in serializer.data if i]
             return self.response_handler.handle(data=_data)
@@ -617,7 +618,7 @@ class QuarantineBuildingAPI (AbstractView):
             
             query_set = filter.qs
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('quarantine_ward__main_manager')
 
             serializer = FilterQuarantineBuildingSerializer(query_set, many=True, context=context)
             _data = [i for i in serializer.data if i]
@@ -905,7 +906,7 @@ class QuarantineFloorAPI (AbstractView):
 
             query_set = filter.qs
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('quarantine_building')
 
             serializer = FilterQuarantineFloorSerializer(query_set, many=True, context=context)
             _data = [i for i in serializer.data if i]
@@ -1132,7 +1133,7 @@ class QuarantineRoomAPI(AbstractView):
             - page: int
             - page_size: int
             - search: String
-            - quarantine_floor: int (id)
+            + quarantine_floor: int (id)
             - is_full: boolean
         """
 
@@ -1178,7 +1179,7 @@ class QuarantineRoomAPI(AbstractView):
 
             query_set = filter.qs
 
-            query_set = query_set.select_related()
+            query_set = query_set.select_related('quarantine_floor')
 
             serializer = FilterQuarantineRoomSerializer(query_set, many=True, context=context)
             _data = [i for i in serializer.data if i]
