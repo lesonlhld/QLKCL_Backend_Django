@@ -1,6 +1,8 @@
 import os
 import datetime, pytz
 import locale
+import json
+import requests
 import openpyxl, csv, codecs
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -2789,19 +2791,22 @@ class MemberAPI(AbstractView):
 
         Args:
             + code: String
+            + hospital_name: String
             - note: String
         """
 
         
         accept_fields = [
-            'code', 'note',
+            'code', 'hospital_name', 'note'
         ]
 
         require_fields = [
-            'code'
+            'code', 'hospital_name'
         ]
 
         try:
+            raise exceptions.AuthenticationException({'main': 'Chờ bên bệnh viện viết api cái đã rồi mới test được'})
+
             if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
                 raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
@@ -2820,6 +2825,7 @@ class MemberAPI(AbstractView):
 
             custom_user = validator.get_field('custom_user')
             member = custom_user.member_x_custom_user
+            hospital_name = validator.get_field('hospital_name')
             note = validator.get_field('note')
 
             # hospitalize
@@ -2841,15 +2847,29 @@ class MemberAPI(AbstractView):
                 old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
                 old_present_quarantine_history.end_date = member.quarantined_finished_at
                 old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
-                if note:
-                    if old_present_quarantine_history.note:
-                        old_present_quarantine_history.note += ';' + note
-                    else:
-                        old_present_quarantine_history.note = note
+                if old_present_quarantine_history.note:
+                    old_present_quarantine_history.note += ';' + hospital_name + (';' + note) if note else ''
+                else:
+                    old_present_quarantine_history.note = hospital_name + (';' + note) if note else ''
                 old_present_quarantine_history.updated_by = request.user
 
-                old_present_quarantine_history.save()
-            
+            if hospital_name == 'Bệnh viện Dã Chiến Covid-19':
+                # call api nhom kia
+                benhvien_url = 'api.bvdc.link/api/transfer'
+
+                data = {
+                    'cai gi do': 'cai gi do',
+                }
+
+                data = json.dumps(data)
+
+                headers = {'Content-type': 'application/json; charset=UTF-8'}
+
+                r = requests.post(benhvien_url, headers=headers, data=data)
+
+                benhvien_response = r.json()
+
+            old_present_quarantine_history.save()
             custom_user.save()
             member.save()
 
