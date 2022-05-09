@@ -780,18 +780,18 @@ class TestAPI(AbstractView):
         """Create a test
 
         Args:
-            + user_code: String
+            + phone_number: String
             + type: String ['QUICK', 'RT-PCR']
             + result: String ['NONE', 'NEGATIVE', 'POSITIVE']
         """
 
         accept_fields = [
-            'user_code', 'type',
+            'phone_number', 'type',
             'result',
         ]
 
         require_fields = [
-            'user_code', 'type',
+            'phone_number', 'type',
             'result',
         ]
 
@@ -816,7 +816,7 @@ class TestAPI(AbstractView):
             validator.extra_validate_to_create_test()
 
             list_to_create_test = [key for key in accepted_fields.keys()]
-            list_to_create_test = set(list_to_create_test) - {'user_code'}
+            list_to_create_test = set(list_to_create_test) - {'phone_number'}
             list_to_create_test = list(list_to_create_test) + ['user', 'status']
 
             dict_to_create_test = validator.get_data(list_to_create_test)
