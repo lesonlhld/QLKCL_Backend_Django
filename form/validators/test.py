@@ -89,6 +89,18 @@ class TestValidator(validators.AbstractRequestValidate):
                     return False
             return False
 
+    def is_phone_number_exist(self):
+        if hasattr(self, '_phone_number'):
+            try:
+                self._user = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=CustomUser,
+                    query_expr=Q(phone_number=self._phone_number),
+                )
+                return True
+            except Exception as exception:
+                return False
+        return False
+
     def is_user_code_exist(self):
         if hasattr(self, '_user_code'):
             try:
@@ -185,8 +197,8 @@ class TestValidator(validators.AbstractRequestValidate):
                     raise exceptions.ValidationException({'quarantine_ward_room_relationship': messages.INVALID})
 
     def extra_validate_to_create_test(self):
-        if hasattr(self, '_user_code') and not self.is_user_code_exist():
-            raise exceptions.ValidationException({'user_code': messages.NOT_EXIST})
+        if hasattr(self, '_phone_number') and not self.is_phone_number_exist():
+            raise exceptions.ValidationException({'phone_number': messages.NOT_EXIST})
         if hasattr(self, '_result'):
             if self._result in [TestResult.POSITIVE, TestResult.NEGATIVE]:
                 self._status = TestStatus.DONE
