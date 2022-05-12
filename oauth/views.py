@@ -68,8 +68,8 @@ class ResetPasswordAPI(AbstractView):
                 created_by=user,
             )
             
-            subject = 'Mã đặt lại mật khẩu'
-            message = 'Nhập mã OTP: ' + reset_password_for_user.otp
+            subject = 'Reset mật khẩu - HỆ THỐNG QUẢN LÝ KHU CÁCH LY'
+            message = 'Bạn đã yêu cầu reset mật khẩu.\nMã xác thực của bạn là: ' + reset_password_for_user.otp
 
             send_mail(
                 subject=subject,
