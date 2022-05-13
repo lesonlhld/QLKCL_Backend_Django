@@ -2058,6 +2058,11 @@ class MemberAPI(AbstractView):
             custom_user.save()
             member.save()
 
+            # Send notification
+            title = 'Xét duyệt tài khoản'
+            description = f'Bạn đã được chấp nhận cách ly tại khu cách ly {custom_user.quarantine_ward.full_name}'
+            create_and_send_noti_to_list_user(title=title, description=description, created_by=None, receive_user_list=[custom_user])
+
             self.do_after_change_room_of_member_work(member, None)
 
             return self.response_handler.handle(data=messages.SUCCESS)
@@ -2217,6 +2222,11 @@ class MemberAPI(AbstractView):
                 custom_user.save()
                 member.save()
 
+                # Send notification
+                title = 'Xét duyệt tài khoản'
+                description = f'Bạn đã được chấp nhận cách ly tại khu cách ly {custom_user.quarantine_ward.full_name}'
+                create_and_send_noti_to_list_user(title=title, description=description, created_by=None, receive_user_list=[custom_user])
+
                 self.do_after_change_room_of_member_work(member, None)
 
             return_message = messages.SUCCESS
@@ -2274,6 +2284,11 @@ class MemberAPI(AbstractView):
                     member.quarantine_room = None
                     custom_user.save()
                     member.save()
+
+                    # Send notification
+                    title = 'Xét duyệt tài khoản'
+                    description = f'Bạn đã bị từ chối cách ly tại khu cách ly {custom_user.quarantine_ward.full_name}'
+                    create_and_send_noti_to_list_user(title=title, description=description, created_by=None, receive_user_list=[custom_user])
 
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
