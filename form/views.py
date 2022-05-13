@@ -410,7 +410,8 @@ class MedicalDeclarationAPI(AbstractView):
             - temperature: float
             - breathing: int
             - spo2: float
-            - blood_pressure: float
+            - blood_pressure_max: int
+            - blood_pressure_min: int
             - main_symptoms: String '<id>,<id>,<id>'
             - extra_symptoms: String '<id>,<id>,<id>'
             - other_symptoms: String
@@ -418,7 +419,9 @@ class MedicalDeclarationAPI(AbstractView):
 
         accept_fields = [
             'phone_number', 'heartbeat', 'temperature', 
-            'breathing', 'spo2', 'blood_pressure',
+            'breathing', 'spo2',
+            'blood_pressure_max',
+            'blood_pressure_min',
             'main_symptoms', 'extra_symptoms', 'other_symptoms',
         ]
 
@@ -434,7 +437,8 @@ class MedicalDeclarationAPI(AbstractView):
             validator = MedicalDeclarationValidator(**accepted_fields)
             validator.is_valid_fields([
                 'phone_number', 'heartbeat', 'temperature',
-                'breathing', 'spo2', 'blood_pressure',
+                'breathing', 'spo2',
+                'blood_pressure_max', 'blood_pressure_min',
                 'main_symptoms', 'extra_symptoms',
             ])
             
@@ -574,7 +578,8 @@ class MedicalDeclarationAPI(AbstractView):
                 'temperature': None,
                 'breathing': None,
                 'spo2': None,
-                'blood_pressure': None,
+                'blood_pressure_max': None,
+                'blood_pressure_min': None,
                 'main_symptoms': None,
                 'extra_symptoms': None,
                 'other_symptoms': None,
@@ -630,13 +635,21 @@ class MedicalDeclarationAPI(AbstractView):
                 }
                 response_dict['spo2'] = spo2
 
-            blood_pressure_medical_declaration = MedicalDeclaration.objects.filter(user=user, blood_pressure__isnull=False).order_by('created_at').last()
-            if blood_pressure_medical_declaration:
-                blood_pressure = {
-                    'data': blood_pressure_medical_declaration.blood_pressure,
-                    'updated_at': blood_pressure_medical_declaration.created_at,
+            blood_pressure_max_medical_declaration = MedicalDeclaration.objects.filter(user=user, blood_pressure_max__isnull=False).order_by('created_at').last()
+            if blood_pressure_max_medical_declaration:
+                blood_pressure_max = {
+                    'data': blood_pressure_max_medical_declaration.blood_pressure_max,
+                    'updated_at': blood_pressure_max_medical_declaration.created_at,
                 }
-                response_dict['blood_pressure'] = blood_pressure
+                response_dict['blood_pressure_max'] = blood_pressure_max
+
+            blood_pressure_min_medical_declaration = MedicalDeclaration.objects.filter(user=user, blood_pressure_min__isnull=False).order_by('created_at').last()
+            if blood_pressure_min_medical_declaration:
+                blood_pressure_min = {
+                    'data': blood_pressure_min_medical_declaration.blood_pressure_min,
+                    'updated_at': blood_pressure_min_medical_declaration.created_at,
+                }
+                response_dict['blood_pressure_min'] = blood_pressure_min
 
             return self.response_handler.handle(data=response_dict)
         except Exception as exception:
