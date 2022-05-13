@@ -52,12 +52,20 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
             if self._spo2 > 100:
                 self._spo2 = 100
 
-    def is_validate_blood_pressure(self):
-        if hasattr(self, '_blood_pressure'):
-            self._blood_pressure = validators.PositiveFloatValidator.valid(
-                self._blood_pressure,
-                message={'blood_pressure': messages.INVALID_POSITIVE_FLOAT},
-                message1={'blood_pressure': messages.CANNOT_CONVERT_STRING_TO_FLOAT},
+    def is_validate_blood_pressure_max(self):
+        if hasattr(self, '_blood_pressure_max'):
+            self._blood_pressure_max = validators.PositiveIntegerValidator.valid(
+                self._blood_pressure_max,
+                message={'blood_pressure_max': messages.INVALID_POSITIVE_FLOAT},
+                message1={'blood_pressure_max': messages.CANNOT_CONVERT_STRING_TO_FLOAT},
+            )
+
+    def is_validate_blood_pressure_min(self):
+        if hasattr(self, '_blood_pressure_min'):
+            self._blood_pressure_min = validators.PositiveIntegerValidator.valid(
+                self._blood_pressure_min,
+                message={'blood_pressure_min': messages.INVALID_POSITIVE_FLOAT},
+                message1={'blood_pressure_min': messages.CANNOT_CONVERT_STRING_TO_FLOAT},
             )
 
     def is_validate_main_symptoms(self):
