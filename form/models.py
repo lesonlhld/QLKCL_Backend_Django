@@ -125,6 +125,10 @@ class MedicalDeclaration(models.Model):
 
     spo2 = models.FloatField(null=True, blank=True)
 
+    blood_pressure_min = models.IntegerField(null=True, blank=True)
+
+    blood_pressure_max = models.IntegerField(null=True, blank=True)
+
     main_symptoms = models.TextField(null=True, blank=True)
 
     extra_symptoms = models.TextField(null=True, blank=True)
