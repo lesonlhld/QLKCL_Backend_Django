@@ -174,14 +174,14 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_temperature') and self._temperature:
             if self._temperature >= 35 and self._temperature < 36:
                 self._conclude = HealthDeclarationConclude.UNWELL
-            elif self._temperature > 37.5 and self._temperature <= 38.5:
+            elif self._temperature > 37.6 and self._temperature <= 38.6:
                 self._conclude = HealthDeclarationConclude.UNWELL
-            elif self._temperature < 35 or self._temperature > 38.5:
+            elif self._temperature < 35 or self._temperature > 38.6:
                 self._conclude = HealthDeclarationConclude.SERIOUS
                 return
 
         if hasattr(self, '_spo2') and self._spo2:
-            if self._spo2 >= 94 and self._spo2 < 97:
+            if self._spo2 >= 94 and self._spo2 <= 97:
                 self._conclude = HealthDeclarationConclude.UNWELL
             elif self._spo2 < 94:
                 self._conclude = HealthDeclarationConclude.SERIOUS
@@ -193,6 +193,25 @@ class MedicalDeclarationValidator(validators.AbstractRequestValidate):
             elif self._breathing > 20 and self._breathing <= 28:
                 self._conclude = HealthDeclarationConclude.UNWELL
             elif self._breathing < 12 or self._breathing > 28:
+                self._conclude = HealthDeclarationConclude.SERIOUS
+                return
+
+        if hasattr(self, '_blood_pressure_max') and self._blood_pressure_max:
+            if self._blood_pressure_max >= 120 and self._blood_pressure_max <= 139:
+                self._conclude = HealthDeclarationConclude.UNWELL
+            elif self._blood_pressure_max >= 140 or self._blood_pressure_max <= 89:
+                self._conclude = HealthDeclarationConclude.SERIOUS
+                return
+
+        if hasattr(self, '_blood_pressure_min') and self._blood_pressure_min:
+            if self._blood_pressure_min >= 80 and self._blood_pressure_min <= 89:
+                self._conclude = HealthDeclarationConclude.UNWELL
+            elif self._blood_pressure_min >= 90 or self._blood_pressure_min <= 59:
+                self._conclude = HealthDeclarationConclude.SERIOUS
+                return
+
+        if hasattr(self, '_heartbeat') and self._heartbeat:
+            if self._heartbeat > 100 or self._heartbeat < 50:
                 self._conclude = HealthDeclarationConclude.SERIOUS
                 return
 

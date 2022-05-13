@@ -31,6 +31,7 @@ class BaseMedicalDeclarationSerializer(serializers.ModelSerializer):
 class MedicalDeclarationSerializer(serializers.ModelSerializer):
 
     user = BaseCustomUserSerializer(many=False)
+    created_by = BaseBaseCustomUserSerializer(many=False)
 
     class Meta:
         model = MedicalDeclaration
