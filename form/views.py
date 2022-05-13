@@ -934,7 +934,79 @@ class TestAPI(AbstractView):
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
-    
+        
+    @csrf_exempt
+    @query_debugger
+    @action(methods=['POST'], url_path='create_many', detail=False)
+    def create_many_test(self, request):
+        """Create many test
+
+        Args:
+            + user_codes: String <code>,<code>
+            + type: String ['QUICK', 'RT-PCR']
+        """
+
+        accept_fields = [
+            'user_codes', 'type',
+        ]
+
+        require_fields = [
+            'user_codes', 'type',
+        ]
+
+        try:
+            if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
+                raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = TestValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+            validator.is_valid_fields([
+                'type',
+            ])
+            
+            validator.extra_validate_to_create_many_test()
+
+            users = validator.get_field('users')
+            type = validator.get_field('type')
+
+            tests = []
+            for user in users:
+                test = Test(user=user, type=type, created_by=request.user, updated_by=request.user)
+                test.code = self.custom_test_code_generator(user.code)
+                while (validator.is_code_exist(test.code)):
+                    test.code = self.custom_test_code_generator(user.code)
+                tests += [test]
+
+            Test.objects.bulk_create(tests)
+
+            # Update user
+            for test in tests:
+                user = test.user
+                if hasattr(user, 'member_x_custom_user'):
+                    this_member = user.member_x_custom_user
+                    this_member.last_tested = test.created_at
+                    this_member.save()
+                if hasattr(user, 'manager_x_custom_user'):
+                    this_manager = user.manager_x_custom_user
+                    this_manager.last_tested = test.created_at
+                    this_manager.save()
+                if hasattr(user, 'staff_x_custom_user'):
+                    this_staff = user.staff_x_custom_user
+                    this_staff.last_tested = test.created_at
+                    this_staff.save()
+
+            return self.response_handler.handle(message=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
     @csrf_exempt
     @query_debugger
     @action(methods=['POST'], url_path='create_by_file', detail=False)

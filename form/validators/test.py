@@ -170,6 +170,15 @@ class TestValidator(validators.AbstractRequestValidate):
                 return False
         return True
 
+    def get_user_by_code(self, code):
+        try:
+            user = validators.ModelInstanceExistenceValidator.valid(
+                model_cls=CustomUser,
+                query_expr=Q(code=code),
+            )
+            return user
+        except Exception as exception:
+            return None
 
     def check_quarantine_ward_room_relationship(self):
         if hasattr(self, '_quarantine_room'):
@@ -204,6 +213,16 @@ class TestValidator(validators.AbstractRequestValidate):
                 self._status = TestStatus.DONE
             else:
                 self._status = TestStatus.WAITING
+
+    def extra_validate_to_create_many_test(self):
+        if hasattr(self, '_user_codes'):
+            self._user_codes = split_input_list(self._user_codes)
+            self._users = []
+            for code in self._user_codes:
+                user = self.get_user_by_code(code)
+                if not user:
+                    raise exceptions.NotFoundException({'main': f'{code}: ' + messages.NOT_EXIST})
+                self._users += [user]
 
     def extra_validate_to_get_test(self):
         if hasattr(self, '_code') and not self.is_code_exist():
