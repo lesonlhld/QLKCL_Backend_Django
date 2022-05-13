@@ -1490,7 +1490,7 @@ class MemberAPI(AbstractView):
                 destination_history_query_set = DestinationHistory.objects.filter(
                     user=custom_user,
                     start_time__gte=start_time,
-                    start_time__lte=custom_user.member_x_custom_user.quarantined_at,
+                    start_time__lte=end_time,
                 )
                 destination_history_query_set = destination_history_query_set.order_by('start_time')
                 destination_history_query_set = destination_history_query_set.select_related('user', 'ward__district__city__country', 'district__city__country', 'city__country', 'country')
