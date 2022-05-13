@@ -1062,6 +1062,8 @@ class TestAPI(AbstractView):
                 error = dict()
                 test_ids = list()
                 is_csv_file = False
+                list_user_positive = list()
+                list_user_negative = list()
 
                 if (extension == ".xlsx"):
                     wb = openpyxl.load_workbook(file_name)
@@ -1205,10 +1207,26 @@ class TestAPI(AbstractView):
                                 this_staff.last_tested_had_result = test.created_at
                             this_staff.save()
 
+                        if test.result != TestResult.NONE:
+                            if test.result == TestResult.POSITIVE:
+                                list_user_positive += [test.user]
+                            else:
+                                list_user_negative += [test.user]
+
                         test_ids += [test.id]
                     except Exception as e:
                         error[str(row_index + 1)] = str(e)
                         pass
+
+                # Send notification to users
+                vntz = pytz.timezone('Asia/Saigon')
+                created_at = test.created_at.astimezone(vntz)
+                time_string = f'{created_at.hour} giờ {created_at.minute} phút {created_at.second} giây, ngày {created_at.day} tháng {created_at.month} năm {created_at.year}'
+                title = 'Kết quả xét nghiệm'
+                description_positive = 'Phiếu xét nghiệm lúc ' + time_string + ' có kết quả ' + 'DƯƠNG TÍNH'
+                description_negative = 'Phiếu xét nghiệm lúc ' + time_string + ' có kết quả ' + 'ÂM TÍNH'
+                create_and_send_noti_to_list_user(title=title, description=description_positive, receive_user_list=list_user_positive, created_by=None)
+                create_and_send_noti_to_list_user(title=title, description=description_negative, receive_user_list=list_user_negative, created_by=None)
                 
                 test_data = Test.objects.filter(id__in=test_ids)
                 test_serializer = FilterTestSerializer(test_data, many=True)
