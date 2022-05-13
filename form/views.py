@@ -1031,7 +1031,7 @@ class TestAPI(AbstractView):
         """
 
         test_fields = [
-            'user_code', 'status', 'type',
+            'phone_number', 'status', 'type',
             'result',
         ]
 
@@ -1107,7 +1107,7 @@ class TestAPI(AbstractView):
                         validator.extra_validate_to_create_test()
 
                         list_to_create_test = [key for key in test_fields]
-                        list_to_create_test = set(list_to_create_test) - {'user_code'}
+                        list_to_create_test = set(list_to_create_test) - {'phone_number'}
                         list_to_create_test = list(list_to_create_test) + ['user']
 
                         dict_to_create_test = validator.get_data(list_to_create_test)
