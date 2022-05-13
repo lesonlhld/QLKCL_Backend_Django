@@ -2853,7 +2853,7 @@ class MemberAPI(AbstractView):
                     old_present_quarantine_history.note = hospital_name + (';' + note) if note else ''
                 old_present_quarantine_history.updated_by = request.user
 
-            if hospital_name == 'Bệnh viện Dã Chiến Covid-19':
+            if hospital_name == 'Bệnh viện dã chiến':
                 # call api nhom kia
                 benhvien_url = 'api.bvdc.link/api/transfer'
 

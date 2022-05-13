@@ -1,5 +1,6 @@
 import os
 import datetime
+import pytz
 import openpyxl, csv, codecs
 from random import randint
 from django.db.models import Q
@@ -918,6 +919,16 @@ class TestAPI(AbstractView):
                     this_staff.last_tested_had_result = test.created_at
                 this_staff.save()
 
+            # Send notification to this user
+            if test.result != TestResult.NONE:
+                vntz = pytz.timezone('Asia/Saigon')
+                created_at = test.created_at.astimezone(vntz)
+                time_string = f'{created_at.hour} giờ {created_at.minute} phút {created_at.second} giây, ngày {created_at.day} tháng {created_at.month} năm {created_at.year}'
+                result_string = 'ÂM TÍNH' if test.result == TestResult.NEGATIVE else 'DƯƠNG TÍNH'
+                title = 'Kết quả xét nghiệm'
+                description = 'Phiếu xét nghiệm lúc ' + time_string + ' có kết quả ' + result_string
+                create_and_send_noti_to_list_user(title=title, description=description, receive_user_list=[test.user], created_by=None)
+
             serializer = TestSerializer(test, many=False)
 
             return self.response_handler.handle(data=serializer.data)
@@ -1316,6 +1327,15 @@ class TestAPI(AbstractView):
                         this_staff.positive_test_now = new_positive_test_now
                         this_staff.last_tested_had_result = test.created_at
                         this_staff.save()
+
+            if test.result != TestResult.NONE:
+                vntz = pytz.timezone('Asia/Saigon')
+                created_at = test.created_at.astimezone(vntz)
+                time_string = f'{created_at.hour} giờ {created_at.minute} phút {created_at.second} giây, ngày {created_at.day} tháng {created_at.month} năm {created_at.year}'
+                result_string = 'ÂM TÍNH' if test.result == TestResult.NEGATIVE else 'DƯƠNG TÍNH'
+                title = 'Kết quả xét nghiệm'
+                description = 'Phiếu xét nghiệm lúc ' + time_string + ' có kết quả ' + result_string
+                create_and_send_noti_to_list_user(title=title, description=description, receive_user_list=[test.user], created_by=None)
 
             serializer = TestSerializer(test, many=False)
 
