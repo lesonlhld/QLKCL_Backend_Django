@@ -2820,7 +2820,7 @@ class MemberAPI(AbstractView):
         ]
 
         try:
-            raise exceptions.AuthenticationException({'main': 'Chờ bên bệnh viện viết api cái đã rồi mới test được'})
+            raise exceptions.AuthenticationException({'main': 'Đang phát triển'})
 
             if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
                 raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
@@ -2844,36 +2844,22 @@ class MemberAPI(AbstractView):
             note = validator.get_field('note')
 
             # hospitalize
-            custom_user.status = CustomUserStatus.LEAVE
-            member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE
-            member.quarantined_finished_at = timezone.now()
-
-            old_room = member.quarantine_room
-            member.quarantine_room = None
-
-            # update QuarantineHistory
-            old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
-            if len(old_present_quarantine_history) == 0:
-                raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
-            elif len(old_present_quarantine_history) >= 2:
-                raise exceptions.ValidationException({'main': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
-            else:
-                old_present_quarantine_history = old_present_quarantine_history[0]
-                old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
-                old_present_quarantine_history.end_date = member.quarantined_finished_at
-                old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
-                if old_present_quarantine_history.note:
-                    old_present_quarantine_history.note += ';' + hospital_name + (';' + note) if note else ''
-                else:
-                    old_present_quarantine_history.note = hospital_name + (';' + note) if note else ''
-                old_present_quarantine_history.updated_by = request.user
-
             if hospital_name == 'Bệnh viện dã chiến':
                 # call api nhom kia
-                benhvien_url = 'api.bvdc.link/api/transfer'
-
+                benhvien_url = 'https://api.bvdc.link/api/transfer'
                 data = {
-                    'cai gi do': 'cai gi do',
+                    "cmnd": "191912866",
+                    "name": "Trần Văn Tài",
+                    "phone": "0123450000",
+                    "birthDay": "1998-05-07",
+                    "email": "",
+                    "gender": "NAM",
+                    "tinh": "Tỉnh Quảng Bình",
+                    "huyen": "Huyện Quảng Ninh",
+                    "xa": "Xã Gia Ninh",
+                    "thon": "Thôn Bắc Ngũ",
+                    "bhyt": "123123124",
+                    "sickness": ["Tiểu đường", "Huyết áp cao"],
                 }
 
                 data = json.dumps(data)
@@ -2883,12 +2869,41 @@ class MemberAPI(AbstractView):
                 r = requests.post(benhvien_url, headers=headers, data=data)
 
                 benhvien_response = r.json()
+                if benhvien_response['success'] == True:
+                    # Success register hospitalize, but need wait for accept
+                    ...
+                else:
+                    raise exceptions.ValidationException({'main': messages.CANNOT_HOSPITALIZE_THIS_HOSPITAL})
+            else:
+                custom_user.status = CustomUserStatus.LEAVE
+                member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE
+                member.quarantined_finished_at = timezone.now()
 
-            old_present_quarantine_history.save()
-            custom_user.save()
-            member.save()
+                old_room = member.quarantine_room
+                member.quarantine_room = None
 
-            self.do_after_change_room_of_member_work(member, old_room)
+                # update QuarantineHistory
+                old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
+                if len(old_present_quarantine_history) == 0:
+                    raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                elif len(old_present_quarantine_history) >= 2:
+                    raise exceptions.ValidationException({'main': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                else:
+                    old_present_quarantine_history = old_present_quarantine_history[0]
+                    old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
+                    old_present_quarantine_history.end_date = member.quarantined_finished_at
+                    old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
+                    if old_present_quarantine_history.note:
+                        old_present_quarantine_history.note += ';' + hospital_name + (';' + note) if note else ''
+                    else:
+                        old_present_quarantine_history.note = hospital_name + (';' + note) if note else ''
+                    old_present_quarantine_history.updated_by = request.user
+
+                old_present_quarantine_history.save()
+                custom_user.save()
+                member.save()
+
+                self.do_after_change_room_of_member_work(member, old_room)
 
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
