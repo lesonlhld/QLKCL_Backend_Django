@@ -1193,6 +1193,17 @@ class UserValidator(validators.AbstractRequestValidate):
             if self._custom_user.status != CustomUserStatus.AVAILABLE:
                 raise exceptions.ValidationException({'code': messages.ISNOTAVAILABLE})
 
+    def extra_validate_to_bvdc_call_hospitalize_confirm(self):
+        if hasattr(self, '_confirm') and self._confirm not in ['ACCEPT', 'REFUSE']:
+            raise exceptions.ValidationException({'confirm': messages.INVALID})
+        if hasattr(self, '_phone_number') and not self.is_phone_number_exist():
+            raise exceptions.NotFoundException({'phone_number': messages.NOT_EXIST})
+        if hasattr(self, '_custom_user') and self._custom_user:
+            if self._custom_user.role.name != 'MEMBER' or not hasattr(self._custom_user, 'member_x_custom_user'):
+                raise exceptions.ValidationException({'phone_number': messages.ISNOTMEMBER})
+            if not (self._custom_user.status == CustomUserStatus.AVAILABLE and self._custom_user.member_x_custom_user.quarantined_status == MemberQuarantinedStatus.HOSPITALIZE_WAITING):
+                raise exceptions.ValidationException({'phone_number': messages.IS_NOT_HOSPITALIZE_WAITING})
+
     def extra_validate_to_member_call_requarantine(self, sender):
         if hasattr(self, '_quarantine_ward_id') and self._quarantine_ward_id:
             if not self.is_quarantine_ward_id_exist():

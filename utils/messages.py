@@ -12,6 +12,7 @@ DUPLICATE = 'Object is already exist'
 EXIST = 'Exist'
 NOT_EXIST = 'Not exist'
 INVALID = 'Invalid'
+WRONG = 'Wrong'
 TIME_OUT = 'Time out'
 NOT_AVAILABLE = 'Not available'
 CANNOT_CHANGE = 'Cannot change'
@@ -98,3 +99,4 @@ MANY_PRESENT_QUARANTINE_HISTORY_EXIST = 'Many PRESENT quarantine history exist'
 
 # hospitalize
 CANNOT_HOSPITALIZE_THIS_HOSPITAL = 'Cannot hospitalize to this hospital'
+IS_NOT_HOSPITALIZE_WAITING = 'This member is not hospitalize waiting'

@@ -138,24 +138,26 @@ class DebugAPI(AbstractView):
             # members = Member.objects.filter(quarantined_status=MemberQuarantinedStatus.COMPLETED, quarantine_room__isnull=True)
             # print('haha')
             # print(list(members))
-            data = {
-                "cmnd": "191912866",
-                "name": "Trần Văn Tài",
-                "phone": "0123450000",
-                "birthDay": "1998-05-07",
-                "email": "",
-                "gender": "NAM",
-                "tinh": "Tỉnh Quảng Bình",
-                "huyen": "Huyện Quảng Ninh",
-                "xa": "Xã Gia Ninh",
-                "thon": "Thôn Bắc Ngũ",
-                "bhyt": "123123124",
-                "sickness": ["Tiểu đường", "Huyết áp cao"],
-            }
+            # data = {
+            #     "cmnd": "191912866",
+            #     "name": "Trần Văn Tài",
+            #     "phone": "0123450000",
+            #     "birthDay": "1998-05-07",
+            #     "email": "",
+            #     "gender": "NAM",
+            #     "tinh": "Tỉnh Quảng Bình",
+            #     "huyen": "Huyện Quảng Ninh",
+            #     "xa": "Xã Gia Ninh",
+            #     "thon": "Thôn Bắc Ngũ",
+            #     "bhyt": "123123124",
+            #     "sickness": ["Tiểu đường", "Huyết áp cao"],
+            # }
 
-            data = json.dumps(data)
+            # data = json.dumps(data)
 
-            headers = {'Content-type': 'application/json; charset=UTF-8'}
+            # headers = {'Content-type': 'application/json; charset=UTF-8'}
+
+            # print(request.headers.get('oke'))
 
             # r = requests.post('https://api.bvdc.link/api/transfer', headers=headers, data=data)
 
