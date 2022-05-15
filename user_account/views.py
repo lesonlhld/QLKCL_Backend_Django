@@ -28,7 +28,7 @@ from .filters.staff import StaffFilter
 from .filters.manager import ManagerFilter
 from .filters.destination_history import DestinationHistoryFilter
 from .filters.quarantine_history import QuarantineHistoryFilter
-from form.models import Test, VaccineDose, Pandemic, MedicalDeclaration
+from form.models import Test, VaccineDose, Pandemic, MedicalDeclaration, BackgroundDisease
 from form.serializers import (
     BaseMedicalDeclarationSerializer,
     BaseTestSerializer,
@@ -50,10 +50,10 @@ from utils.enums import (
     CustomUserStatus, HealthStatus, TestStatus,
     MemberQuarantinedStatus, MemberLabel,
     QuarantineHistoryStatus, QuarantineHistoryEndType,
-    Professional, TestResult,
+    Professional, TestResult, Gender,
 )
 from utils.views import AbstractView, paginate_data, query_debugger
-from utils.tools import custom_user_code_generator, LabelTool
+from utils.tools import custom_user_code_generator, LabelTool, split_input_list
 
 # Create your views here.
 
@@ -547,8 +547,14 @@ class MemberAPI(AbstractView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_background_disease_by_id(self, id):
+        try:
+            return BackgroundDisease.objects.get(id=id)
+        except:
+            return None
+
     def get_permissions(self):
-        if self.action == 'register_member':
+        if self.action in ['register_member', 'bvdc_call_hospitalize_confirm']:
             self.permission_classes = [permissions.AllowAny]
         return super().get_permissions()
 
@@ -2395,7 +2401,7 @@ class MemberAPI(AbstractView):
 
         Args:
             - status_list: String <status>,<status> ['WAITING', 'REFUSED', 'LOCKED', 'AVAILABLE', 'LEAVE']
-            - quarantined_status_list: String <status>,<status> ['COMPLETED', 'QUARANTINING', 'REQUARANTINING', 'HOSPITALIZE', 'MOVED']
+            - quarantined_status_list: String <status>,<status> ['COMPLETED', 'QUARANTINING', 'HOSPITALIZE_WAITING', 'HOSPITALIZE', 'MOVED']
             - health_status_list: String <status>,<status> ['NORMAL', 'UNWELL', 'SERIOUS', 'Null']
             - positive_test_now_list: String <value>,<value> ['True', 'False', 'Null']
             - is_last_tested: boolean - True để lọc những người cách ly đến hạn xét nghiệm, False hoặc không truyền đồng nghĩa không lọc
@@ -2820,8 +2826,6 @@ class MemberAPI(AbstractView):
         ]
 
         try:
-            raise exceptions.AuthenticationException({'main': 'Đang phát triển'})
-
             if request.user.role.name not in ['ADMINISTRATOR', 'SUPER_MANAGER', 'MANAGER', 'STAFF']:
                 raise exceptions.AuthenticationException({'main': messages.NO_PERMISSION})
 
@@ -2843,24 +2847,45 @@ class MemberAPI(AbstractView):
             hospital_name = validator.get_field('hospital_name')
             note = validator.get_field('note')
 
-            # hospitalize
             if hospital_name == 'Bệnh viện dã chiến':
                 # call api nhom kia
                 benhvien_url = 'https://api.bvdc.link/api/transfer'
                 data = {
-                    "cmnd": "191912866",
-                    "name": "Trần Văn Tài",
-                    "phone": "0123450000",
-                    "birthDay": "1998-05-07",
+                    "cmnd": "",
+                    "name": "",
+                    "phone": "",
+                    "birthDay": "",
                     "email": "",
-                    "gender": "NAM",
-                    "tinh": "Tỉnh Quảng Bình",
-                    "huyen": "Huyện Quảng Ninh",
-                    "xa": "Xã Gia Ninh",
-                    "thon": "Thôn Bắc Ngũ",
-                    "bhyt": "123123124",
-                    "sickness": ["Tiểu đường", "Huyết áp cao"],
+                    "gender": "",
+                    "tinh": "",
+                    "huyen": "",
+                    "xa": "",
+                    "thon": "",
+                    "bhyt": "",
+                    "sickness": [],
                 }
+                data['cmnd'] = custom_user.identity_number if custom_user.identity_number else ''
+                data['name'] = custom_user.full_name if custom_user.full_name else ''
+                data['phone'] = custom_user.phone_number if custom_user.phone_number else ''
+
+                if custom_user.birthday:
+                    data['birthDay'] = custom_user.birthday[6:10] + '-' + custom_user.birthday[3:5] + '-' + custom_user.birthday[0:2]
+                else:
+                    data['birthDay'] = ''
+
+                data['email'] = custom_user.email if custom_user.email else ''
+                data['gender'] = 'NAM' if custom_user.gender == Gender.MALE else 'NU'
+                data['tinh'] = custom_user.city.name if custom_user.city else ''
+                data['huyen'] = custom_user.district.name if custom_user.district else ''
+                data['xa'] = custom_user.ward.name if custom_user.ward else ''
+                data['thon'] = custom_user.detail_address if custom_user.detail_address else ''
+                data['bhyt'] = custom_user.health_insurance_number if custom_user.health_insurance_number else ''
+                background_disease_names = []
+                if custom_user.member_x_custom_user.background_disease:
+                    background_disease_ids = split_input_list(custom_user.member_x_custom_user.background_disease)
+                    background_disease_objects = [self.get_background_disease_by_id(id) for id in background_disease_ids]
+                    background_disease_names = [item.name for item in background_disease_objects if item]
+                data['sickness'] = background_disease_names
 
                 data = json.dumps(data)
 
@@ -2871,10 +2896,12 @@ class MemberAPI(AbstractView):
                 benhvien_response = r.json()
                 if benhvien_response['success'] == True:
                     # Success register hospitalize, but need wait for accept
-                    ...
+                    member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE_WAITING
+                    member.save()
                 else:
                     raise exceptions.ValidationException({'main': messages.CANNOT_HOSPITALIZE_THIS_HOSPITAL})
             else:
+                # hospitalize
                 custom_user.status = CustomUserStatus.LEAVE
                 member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE
                 member.quarantined_finished_at = timezone.now()
@@ -2904,6 +2931,94 @@ class MemberAPI(AbstractView):
                 member.save()
 
                 self.do_after_change_room_of_member_work(member, old_room)
+
+            return self.response_handler.handle(data=messages.SUCCESS)
+        except Exception as exception:
+            return self.exception_handler.handle(exception)
+
+    @csrf_exempt
+    @query_debugger
+    @action(methods=['POST'], url_path='hospitalize_confirm', detail=False)
+    def bvdc_call_hospitalize_confirm(self, request):
+        """For benh vien da chien to confirm hospitalize for a hospitalize waiting member
+
+        Headers:
+            + secret_key: String
+        Args:
+            + phone_number: String
+            + confirm: ['ACCEPT', 'REFUSE']
+        """
+
+        
+        accept_fields = [
+            'phone_number', 'confirm',
+        ]
+
+        require_fields = [
+            'phone_number', 'confirm',
+        ]
+
+        try:
+            if request.headers.get('secret-key') != os.environ.get('BENH_VIEN_DA_CHIEN_SECRET_KEY', 'K6YNR4C6UVQMOGPB'):
+                raise exceptions.ValidationException({'secret-key': messages.INVALID})
+
+            request_extractor = self.request_handler.handle(request)
+            receive_fields = request_extractor.data
+            accepted_fields = dict()
+
+            for key in receive_fields.keys():
+                if key in accept_fields:
+                    accepted_fields[key] = receive_fields[key]
+
+            validator = UserValidator(**accepted_fields)
+            validator.is_missing_fields(require_fields)
+
+            validator.extra_validate_to_bvdc_call_hospitalize_confirm()
+
+            custom_user = validator.get_field('custom_user')
+            member = custom_user.member_x_custom_user
+            confirm = validator.get_field('confirm')
+            
+            if confirm == 'ACCEPT':
+                # hospitalize accept
+                custom_user.status = CustomUserStatus.LEAVE
+                member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE
+                member.quarantined_finished_at = timezone.now()
+
+                old_room = member.quarantine_room
+                member.quarantine_room = None
+
+                # update QuarantineHistory
+                try:
+                    old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
+                    if len(old_present_quarantine_history) == 0:
+                        raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                    elif len(old_present_quarantine_history) >= 2:
+                        raise exceptions.ValidationException({'main': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                    else:
+                        old_present_quarantine_history = old_present_quarantine_history[0]
+                        old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
+                        old_present_quarantine_history.end_date = member.quarantined_finished_at
+                        old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
+                        if old_present_quarantine_history.note:
+                            old_present_quarantine_history.note += ';' + 'Bệnh viện dã chiến'
+                        else:
+                            old_present_quarantine_history.note = 'Bệnh viện dã chiến'
+                    old_present_quarantine_history.save()
+                except:
+                    ...
+
+                custom_user.save()
+                member.save()
+
+                try:
+                    self.do_after_change_room_of_member_work(member, old_room)
+                except:
+                    ...
+            else:
+                # hospitalize refuse
+                member.quarantined_status = MemberQuarantinedStatus.QUARANTINING
+                member.save()
 
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
@@ -3940,6 +4055,21 @@ class HomeAPI(AbstractView):
 
             number_of_can_finish_members = filter.qs.count()
 
+            # Calculate number of hospitalize waiting members
+
+            dict_to_filter_hospitalize_waiting_members = {
+                'role_name': 'MEMBER',
+                'status': CustomUserStatus.AVAILABLE,
+                'quarantined_status': MemberQuarantinedStatus.HOSPITALIZE_WAITING,
+            }
+
+            if quarantine_ward_id:
+                dict_to_filter_positive_members['quarantine_ward_id'] = quarantine_ward_id
+
+            filter = MemberFilter(dict_to_filter_hospitalize_waiting_members, queryset=users_query_set)
+
+            number_of_hospitalize_waiting_members = filter.qs.count()
+
             # Calculate number of completed members
 
             dict_to_filter_completed_members = {
@@ -4076,6 +4206,7 @@ class HomeAPI(AbstractView):
                 'number_of_positive_members': number_of_positive_members,
                 'number_of_need_test_members': number_of_need_test_members,
                 'number_of_can_finish_members': number_of_can_finish_members,
+                'number_of_hospitalize_waiting_members': number_of_hospitalize_waiting_members,
                 'number_of_completed_members': number_of_completed_members,
                 'number_of_hospitalized_members': number_of_hospitalized_members,
                 'number_of_waiting_tests': number_of_waiting_tests,
