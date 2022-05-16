@@ -43,6 +43,8 @@ from quarantine_ward.models import QuarantineRoom
 from quarantine_ward.serializers import (
     QuarantineRoomSerializer, QuarantineFloorSerializer,
     QuarantineBuildingSerializer, BaseQuarantineWardSerializer,
+    BaseQuarantineBuildingSerializer, BaseQuarantineFloorSerializer,
+    BaseQuarantineRoomSerializer,
 )
 from notification.views import create_and_send_noti_to_list_user
 from utils import exceptions, messages
@@ -917,7 +919,7 @@ class MemberAPI(AbstractView):
             + full_name: String
             + phone_number: String
             - email: String
-            + birthday: String 'dd/mm/yyyy'
+            - birthday: String 'dd/mm/yyyy'
             + gender: String ['MALE', 'FEMALE']
             + nationality_code: String
             + country_code: String
@@ -959,7 +961,7 @@ class MemberAPI(AbstractView):
 
         require_fields = [
             'full_name', 'phone_number',
-            'birthday', 'gender',
+            'gender',
             'identity_number', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'quarantine_ward_id',
@@ -1551,10 +1553,10 @@ class MemberAPI(AbstractView):
                     last_quarantine_history['start_date'] = str(custom_user.member_x_custom_user.quarantined_finish_expected_at.astimezone(vntz))
                     last_quarantine_history['start_date'] = last_quarantine_history['start_date'][:10] + 'T' + last_quarantine_history['start_date'][11:]
                     last_quarantine_history['note'] = None
-                    last_quarantine_history['quarantine_ward'] = None
-                    last_quarantine_history['quarantine_building'] = None
-                    last_quarantine_history['quarantine_floor'] = None
-                    last_quarantine_history['quarantine_room'] = None
+                    last_quarantine_history['quarantine_ward'] = BaseQuarantineWardSerializer(custom_user.quarantine_ward, many=False).data
+                    last_quarantine_history['quarantine_building'] = BaseQuarantineBuildingSerializer(custom_user.member_x_custom_user.quarantine_building, many=False).data
+                    last_quarantine_history['quarantine_floor'] = BaseQuarantineFloorSerializer(custom_user.member_x_custom_user.quarantine_floor, many=False).data
+                    last_quarantine_history['quarantine_room'] = BaseQuarantineRoomSerializer(custom_user.member_x_custom_user.quarantine_room, many=False).data
                 else:
                     is_have_last = False
                 for item in new_quarantine_history_list:
