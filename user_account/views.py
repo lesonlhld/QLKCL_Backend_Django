@@ -2921,9 +2921,11 @@ class MemberAPI(AbstractView):
                     old_present_quarantine_history.end_date = member.quarantined_finished_at
                     old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
                     if old_present_quarantine_history.note:
-                        old_present_quarantine_history.note += ';' + hospital_name + (';' + note) if note else ''
+                        old_present_quarantine_history.note += ';' + hospital_name
+                        old_present_quarantine_history.note += (';' + note) if note else ''
                     else:
-                        old_present_quarantine_history.note = hospital_name + (';' + note) if note else ''
+                        old_present_quarantine_history.note = hospital_name
+                        old_present_quarantine_history.note += (';' + note) if note else ''
                     old_present_quarantine_history.updated_by = request.user
 
                 old_present_quarantine_history.save()
@@ -4359,8 +4361,31 @@ class HomeAPI(AbstractView):
                 ).get(id=member.id)
             else:
                 member = None
+
             serializer = MemberHomeSerializer(member, many=False)
 
-            return self.response_handler.handle(data=serializer.data)
+            return_data = serializer.data
+
+            if member:
+                if member.custom_user.status == CustomUserStatus.LEAVE and member.quarantined_status == MemberQuarantinedStatus.HOSPITALIZE:
+                    # if this member is hospitalize
+                    hospital_name = None
+                    note = None
+                    time = None
+                    quarantine_histories = list(QuarantineHistory.objects.filter(user=member.custom_user).order_by('-start_date'))
+                    if len(quarantine_histories) >= 1:
+                        last_quarantine_history = quarantine_histories[0]
+                        if last_quarantine_history.status == QuarantineHistoryStatus.ENDED and last_quarantine_history.end_type == QuarantineHistoryEndType.HOSPITALIZE:
+                            temp = last_quarantine_history.note.split(";") if last_quarantine_history.note else []
+                            hospital_name = temp[0] if len(temp) >= 1 else None
+                            note = temp[1] if len(temp) >= 2 else None
+                            time = last_quarantine_history.end_date
+                    return_data['hospitalize_info'] = {
+                        'hospital_name': hospital_name,
+                        'note': note,
+                        'time': time,
+                    }
+
+            return self.response_handler.handle(data=return_data)
         except Exception as exception:
             return self.exception_handler.handle(exception)
