@@ -1179,6 +1179,8 @@ class MemberAPI(AbstractView):
                                         else:
                                             value = str(value)
                                             value = str(datetime.datetime.strptime(value, '%d/%m/%Y').strftime('%d/%m/%Y'))
+                                    else:
+                                        continue
                                 elif index == 5:
                                     value = str(value)
                                     value = gender_switcher[value]
@@ -1207,7 +1209,6 @@ class MemberAPI(AbstractView):
                                     value = boolean_switcher[value]
                                 if value != None or value != "":
                                     dict_member_data[member_fields[index - 16]] = value
-                            
                         user_validator = UserValidator(**dict_custom_user_data)
                         user_validator.is_valid_fields([
                             'phone_number', 'email', 'birthday', 'gender',
