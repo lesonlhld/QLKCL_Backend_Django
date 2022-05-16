@@ -1188,6 +1188,9 @@ class MemberAPI(AbstractView):
                                     value = gender_switcher[value]
                                 elif index in [7, 8, 9, 14]:
                                     value = int(value)
+                                elif (index == 11):
+                                    if value == None or value == "":
+                                        continue
                                 else:
                                     value = str(value)
                                 dict_custom_user_data[custom_user_fields[index]] = value
