@@ -2921,9 +2921,11 @@ class MemberAPI(AbstractView):
                     old_present_quarantine_history.end_date = member.quarantined_finished_at
                     old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
                     if old_present_quarantine_history.note:
-                        old_present_quarantine_history.note += ';' + hospital_name + (';' + note) if note else ''
+                        old_present_quarantine_history.note += ';' + hospital_name
+                        old_present_quarantine_history.note += (';' + note) if note else ''
                     else:
-                        old_present_quarantine_history.note = hospital_name + (';' + note) if note else ''
+                        old_present_quarantine_history.note = hospital_name
+                        old_present_quarantine_history.note += (';' + note) if note else ''
                     old_present_quarantine_history.updated_by = request.user
 
                 old_present_quarantine_history.save()
