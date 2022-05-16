@@ -933,7 +933,7 @@ class MemberAPI(AbstractView):
             - passport_number: String
             + quarantine_ward_id: int
             - quarantine_room_id: int
-            - label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
+            + label: String ['F0', 'F1', 'F2', 'F3', 'FROM_EPIDEMIC_AREA', 'ABROAD']
             - first_positive_test_date: String vd:'2000-01-26T01:23:45.123456Z'
             - quarantine_reason: String
             - quarantined_at: String vd:'2000-01-26T01:23:45.123456Z'
@@ -961,7 +961,7 @@ class MemberAPI(AbstractView):
 
         require_fields = [
             'full_name', 'phone_number',
-            'gender',
+            'gender', 'label',
             'identity_number', 'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'quarantine_ward_id',
@@ -1782,7 +1782,7 @@ class MemberAPI(AbstractView):
             new_label = validator.get_field('label')
             if new_label:
                 if new_label != old_label:
-                    if request.user.role.name == 'MEMBER' and custom_user.status == CustomUserStatus.AVAILABLE:
+                    if request.user.role.name in ['MEMBER', 'STAFF'] and custom_user.status == CustomUserStatus.AVAILABLE:
                         raise exceptions.AuthenticationException({'label': messages.NO_PERMISSION})
 
                     member.label = new_label
@@ -1962,9 +1962,17 @@ class MemberAPI(AbstractView):
             for field in must_not_empty_fields_of_custom_user:
                 if not getattr(custom_user, field):
                     raise exceptions.ValidationException({field: messages.EMPTY})
-            
+
             member = custom_user.member_x_custom_user
 
+            must_not_empty_fields_of_member = [
+                'label'
+            ]
+            
+            for field in must_not_empty_fields_of_member:
+                if not getattr(member, field):
+                    raise exceptions.ValidationException({field: messages.EMPTY})
+            
             # quarantined_at
             if not quarantined_at:
                 quarantined_at = timezone.now()
@@ -2134,12 +2142,24 @@ class MemberAPI(AbstractView):
                     'ward', 'identity_number', 'quarantine_ward', 
                 ]
 
+                must_not_empty_fields_of_member = [
+                    'label'
+                ]
+
                 is_continue_another_custom_user = False
                 for field in must_not_empty_fields_of_custom_user:
                     if not getattr(custom_user, field):
                         is_continue_another_custom_user = True
                         return_data[custom_user.code] = f'{field}: {messages.EMPTY}'
                         break
+
+                if not is_continue_another_custom_user:
+                    for field in must_not_empty_fields_of_member:
+                        if not getattr(member, field):
+                            is_continue_another_custom_user = True
+                            return_data[custom_user.code] = f'{field}: {messages.EMPTY}'
+                            break
+
                 if is_continue_another_custom_user:
                     continue
                 
