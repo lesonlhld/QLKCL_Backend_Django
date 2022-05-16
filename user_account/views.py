@@ -4115,7 +4115,7 @@ class HomeAPI(AbstractView):
 
             number_of_waiting_tests = filter.qs.count()
 
-            # Calculate number of member 'in'
+            # Calculate number of member 'in' everyday
 
             dict_of_in_members = dict()
 
@@ -4140,9 +4140,9 @@ class HomeAPI(AbstractView):
 
                 dict_of_in_members[f'{day}'[:10]] = filter.qs.count()
 
-            # Calculate number of member 'out'
+            # Calculate number of member 'complete' everyday
 
-            dict_of_out_members = dict()
+            dict_of_complete_members = dict()
 
             for day_sub in range(number_of_days_in_out - 1, -1, -1):
                 day = timezone.now() - datetime.timedelta(days=day_sub)
@@ -4152,20 +4152,21 @@ class HomeAPI(AbstractView):
                 end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
                 end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
 
-                dict_to_filter_out_members = {
-                    'role_name': 'MEMBER',
-                    'quarantined_finished_at_max': end_of_day,
-                    'quarantined_finished_at_min': start_of_day,
-                }
-
+                quarantine_history_query_set = QuarantineHistory.objects.filter(
+                    status=QuarantineHistoryStatus.ENDED,
+                    end_type=QuarantineHistoryEndType.COMPLETED,
+                    end_date__lte=end_of_day,
+                    end_date__gte=start_of_day,
+                )
+                
                 if quarantine_ward_id:
-                    dict_to_filter_out_members['quarantine_ward_id'] = quarantine_ward_id
+                    quarantine_history_query_set = quarantine_history_query_set.filter(quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id=quarantine_ward_id)
 
-                filter = MemberFilter(dict_to_filter_out_members, queryset=users_query_set)
+                quarantine_history_query_set = quarantine_history_query_set.values('user').distinct()
 
-                dict_of_out_members[f'{day}'[:10]] = filter.qs.count()
+                dict_of_complete_members[f'{day}'[:10]] = quarantine_history_query_set.count()
 
-            # Calculate number of member 'hospitalize'
+            # Calculate number of member 'hospitalize' everyday
 
             dict_of_hospitalize_members = dict()
 
@@ -4177,20 +4178,19 @@ class HomeAPI(AbstractView):
                 end_of_day = datetime.datetime(day.year, day.month, day.day, 23, 59, 59, 999999)
                 end_of_day = end_of_day.astimezone(pytz.timezone('Asia/Saigon'))
 
-                dict_to_filter_hospitalize_members = {
-                    'role_name': 'MEMBER',
-                    'status': CustomUserStatus.LEAVE,
-                    'quarantined_status': MemberQuarantinedStatus.HOSPITALIZE,
-                    'quarantined_finished_at_max': end_of_day,
-                    'quarantined_finished_at_min': start_of_day,
-                }
-
+                quarantine_history_query_set = QuarantineHistory.objects.filter(
+                    status=QuarantineHistoryStatus.ENDED,
+                    end_type=QuarantineHistoryEndType.HOSPITALIZE,
+                    end_date__lte=end_of_day,
+                    end_date__gte=start_of_day,
+                )
+                
                 if quarantine_ward_id:
-                    dict_to_filter_hospitalize_members['quarantine_ward_id'] = quarantine_ward_id
+                    quarantine_history_query_set = quarantine_history_query_set.filter(quarantine_room__quarantine_floor__quarantine_building__quarantine_ward__id=quarantine_ward_id)
 
-                filter = MemberFilter(dict_to_filter_hospitalize_members, queryset=users_query_set)
+                quarantine_history_query_set = quarantine_history_query_set.values('user').distinct()
 
-                dict_of_hospitalize_members[f'{day}'[:10]] = filter.qs.count()
+                dict_of_hospitalize_members[f'{day}'[:10]] = quarantine_history_query_set.count()
 
             if quarantine_ward:
                 serializer = BaseQuarantineWardSerializer(quarantine_ward, many=False)
@@ -4213,7 +4213,7 @@ class HomeAPI(AbstractView):
                 'number_of_hospitalized_members': number_of_hospitalized_members,
                 'number_of_waiting_tests': number_of_waiting_tests,
                 'in': dict_of_in_members,
-                'out': dict_of_out_members,
+                'complete': dict_of_complete_members,
                 'hospitalize': dict_of_hospitalize_members,
             }
 
