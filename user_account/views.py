@@ -1194,7 +1194,10 @@ class MemberAPI(AbstractView):
 
                                 if str(value) == "Có":
                                     is_available = True
-
+                            elif (index == 17):
+                                if not is_available:
+                                    if value == None or value == "":
+                                        continue
                             else:
                                 if (index == 18):
                                     if (value != None):
