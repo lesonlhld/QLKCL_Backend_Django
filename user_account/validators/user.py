@@ -876,6 +876,8 @@ class UserValidator(validators.AbstractRequestValidate):
         if hasattr(self, '_identity_number'):
             if not self._identity_number:
                 raise exceptions.ValidationException({'identity_number': messages.EMPTY})
+            elif self._custom_user.identity_number and sender.role.name in ['STAFF', 'MEMBER'] and self._custom_user.identity_number != self._identity_number:
+                raise exceptions.AuthenticationException({'identity_number': messages.CANNOT_CHANGE})
             elif not self.is_new_identity_number_valid():
                 raise exceptions.NotFoundException({'identity_number': messages.EXIST})
         if hasattr(self, '_passport_number') and not self.is_new_passport_number_valid():

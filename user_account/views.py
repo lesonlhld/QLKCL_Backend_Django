@@ -929,7 +929,7 @@ class MemberAPI(AbstractView):
             + detail_address: String
             - professional: String in Professional enum, call api to get list of professionals
             - health_insurance_number: String
-            + identity_number: String
+            - identity_number: String
             - passport_number: String
             + quarantine_ward_id: int
             - quarantine_room_id: int
@@ -962,7 +962,7 @@ class MemberAPI(AbstractView):
         require_fields = [
             'full_name', 'phone_number',
             'gender', 'label',
-            'identity_number', 'nationality_code',
+            'nationality_code',
             'country_code', 'city_id', 'district_id', 'ward_id',
             'detail_address', 'quarantine_ward_id',
         ]
@@ -1960,7 +1960,7 @@ class MemberAPI(AbstractView):
 
             must_not_empty_fields_of_custom_user = [
                 'full_name', 'nationality', 'country', 'city', 'district',
-                'ward', 'identity_number', 'quarantine_ward', 
+                'ward', 'quarantine_ward', 
             ]
             
             for field in must_not_empty_fields_of_custom_user:
@@ -2143,7 +2143,7 @@ class MemberAPI(AbstractView):
 
                 must_not_empty_fields_of_custom_user = [
                     'full_name', 'nationality', 'country', 'city', 'district',
-                    'ward', 'identity_number', 'quarantine_ward', 
+                    'ward', 'quarantine_ward', 
                 ]
 
                 must_not_empty_fields_of_member = [
