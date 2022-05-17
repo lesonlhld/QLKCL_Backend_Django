@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 import os
 import dj_database_url
 import django_heroku
+from corsheaders.defaults import default_headers
 
 # Setup environment
 ENVIRONMENT = 'development'
@@ -146,6 +147,10 @@ CORS_ALLOWED_ORIGINS = []
 CORS_ALLOWED_ORIGIN_REGEXES = []
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "secret-key",
+]
 
 ROOT_URLCONF = 'qlkcl.urls'
 
