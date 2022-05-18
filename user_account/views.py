@@ -3040,44 +3040,64 @@ class MemberAPI(AbstractView):
                 except:
                     ...
 
-                # send noti to manager, staff, this member
+                # send noti to manager, staff
                 receive_user = member.care_staff
                 if not receive_user:
                     receive_user = custom_user.quarantine_ward.main_manager
-                if not receive_user:
-                    receive_user_list = []
-                else:
-                    receive_user_list = [receive_user]
-                receive_user_list += [custom_user]
+                if receive_user:
+                    title = 'Chấp nhận chuyển viện'
+                    description = f'Yêu cầu chuyển viện của người cách ly {custom_user.full_name} ở {old_room.name} - ' + \
+                                f'{old_room.quarantine_floor.name} - ' + \
+                                f'{old_room.quarantine_floor.quarantine_building.name} - ' + \
+                                f'{old_room.quarantine_floor.quarantine_building.quarantine_ward.full_name} ' + \
+                                f'đến Bệnh viện dã chiến đã được chấp nhận'
+                    create_and_send_noti_to_list_user(
+                        title=title,
+                        description=description,
+                        created_by=None,
+                        receive_user_list=[receive_user],
+                    )
+
+                # send noti to this member
                 title = 'Chấp nhận chuyển viện'
                 description = 'Yêu cầu chuyển viện đến Bệnh viện dã chiến đã được chấp nhận'
                 create_and_send_noti_to_list_user(
                     title=title,
                     description=description,
                     created_by=None,
-                    receive_user_list=receive_user_list,
+                    receive_user_list=[custom_user],
                 )
             else:
                 # hospitalize refuse
                 member.quarantined_status = MemberQuarantinedStatus.QUARANTINING
                 member.save()
 
-                # send noti to manager, staff, this member
+                # send noti to manager, staff
                 receive_user = member.care_staff
                 if not receive_user:
                     receive_user = custom_user.quarantine_ward.main_manager
-                if not receive_user:
-                    receive_user_list = []
-                else:
-                    receive_user_list = [receive_user]
-                receive_user_list += [custom_user]
+                if receive_user:
+                    title = 'Từ chối chuyển viện'
+                    description = f'Yêu cầu chuyển viện của người cách ly {custom_user.full_name} ở {member.quarantine_room.name} - ' + \
+                                f'{member.quarantine_floor.name} - ' + \
+                                f'{member.quarantine_building.name} - ' + \
+                                f'{member.quarantine_ward.full_name} ' + \
+                                f'đến Bệnh viện dã chiến đã bị từ chối'
+                    create_and_send_noti_to_list_user(
+                        title=title,
+                        description=description,
+                        created_by=None,
+                        receive_user_list=[receive_user],
+                    )
+
+                # send noti to this member
                 title = 'Từ chối chuyển viện'
                 description = 'Yêu cầu chuyển viện đến Bệnh viện dã chiến đã bị từ chối'
                 create_and_send_noti_to_list_user(
                     title=title,
                     description=description,
                     created_by=None,
-                    receive_user_list=receive_user_list,
+                    receive_user_list=[custom_user],
                 )
 
             return self.response_handler.handle(data=messages.SUCCESS)
