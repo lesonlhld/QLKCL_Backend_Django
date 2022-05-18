@@ -3046,10 +3046,46 @@ class MemberAPI(AbstractView):
                     self.do_after_change_room_of_member_work(member, old_room)
                 except:
                     ...
+
+                # send noti to manager, staff, this member
+                receive_user = member.care_staff
+                if not receive_user:
+                    receive_user = custom_user.quarantine_ward.main_manager
+                if not receive_user:
+                    receive_user_list = []
+                else:
+                    receive_user_list = [receive_user]
+                receive_user_list += [custom_user]
+                title = 'Chấp nhận chuyển viện'
+                description = 'Yêu cầu chuyển viện đến Bệnh viện dã chiến đã được chấp nhận'
+                create_and_send_noti_to_list_user(
+                    title=title,
+                    description=description,
+                    created_by=None,
+                    receive_user_list=receive_user_list,
+                )
             else:
                 # hospitalize refuse
                 member.quarantined_status = MemberQuarantinedStatus.QUARANTINING
                 member.save()
+
+                # send noti to manager, staff, this member
+                receive_user = member.care_staff
+                if not receive_user:
+                    receive_user = custom_user.quarantine_ward.main_manager
+                if not receive_user:
+                    receive_user_list = []
+                else:
+                    receive_user_list = [receive_user]
+                receive_user_list += [custom_user]
+                title = 'Từ chối chuyển viện'
+                description = 'Yêu cầu chuyển viện đến Bệnh viện dã chiến đã bị từ chối'
+                create_and_send_noti_to_list_user(
+                    title=title,
+                    description=description,
+                    created_by=None,
+                    receive_user_list=receive_user_list,
+                )
 
             return self.response_handler.handle(data=messages.SUCCESS)
         except Exception as exception:
