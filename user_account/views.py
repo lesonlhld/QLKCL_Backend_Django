@@ -2993,8 +2993,7 @@ class MemberAPI(AbstractView):
             if request.headers.get('secret-key') != os.environ.get('BENH_VIEN_DA_CHIEN_SECRET_KEY', 'K6YNR4C6UVQMOGPB'):
                 raise exceptions.ValidationException({'secret-key': messages.INVALID})
 
-            request_extractor = self.request_handler.handle(request)
-            receive_fields = request_extractor.data
+            receive_fields = json.loads(request.body)
             accepted_fields = dict()
 
             for key in receive_fields.keys():
