@@ -1632,7 +1632,7 @@ class MemberAPI(AbstractView):
                         return a['data']['injection_date']
                     else:
                         return a['data']['created_at']
-                list_of_all.sort(key=key_created_at)
+                list_of_all.sort(key=key_created_at, reverse=True)
 
                 for item in list_of_all:
                     if item['type'] == 'destination_history':
@@ -1645,7 +1645,7 @@ class MemberAPI(AbstractView):
                         date = str(item['data']['created_at'])[:10]
                     
                     if date in response_data.keys():
-                        response_data[date] += [item]
+                        response_data[date].insert(0, item)
                     else:
                         response_data[date] = [item]
 
