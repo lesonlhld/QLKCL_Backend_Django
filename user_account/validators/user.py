@@ -1194,6 +1194,8 @@ class UserValidator(validators.AbstractRequestValidate):
                 raise exceptions.ValidationException({'code': messages.ISNOTMEMBER})
             if self._custom_user.status != CustomUserStatus.AVAILABLE:
                 raise exceptions.ValidationException({'code': messages.ISNOTAVAILABLE})
+            if self._custom_user.member_x_custom_user.quarantined_status == MemberQuarantinedStatus.HOSPITALIZE_WAITING:
+                raise exceptions.ValidationException({'code': messages.ALREADY_HOSPITALIZE_WAITING})
 
     def extra_validate_to_bvdc_call_hospitalize_confirm(self):
         if hasattr(self, '_confirm') and self._confirm not in ['ACCEPT', 'REFUSE']:
