@@ -2925,6 +2925,11 @@ class MemberAPI(AbstractView):
                 benhvien_response = r.json()
                 if benhvien_response['success'] == True:
                     # Success register hospitalize, but need wait for accept
+                    last_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT).order_by('-start_date').first()
+                    if last_quarantine_history:
+                        last_quarantine_history.note = note if note else None
+                        last_quarantine_history.save()
+
                     member.quarantined_status = MemberQuarantinedStatus.HOSPITALIZE_WAITING
                     member.save()
                 else:
@@ -3019,24 +3024,21 @@ class MemberAPI(AbstractView):
                 member.quarantine_room = None
 
                 # update QuarantineHistory
-                try:
-                    old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
-                    if len(old_present_quarantine_history) == 0:
-                        raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
-                    elif len(old_present_quarantine_history) >= 2:
-                        raise exceptions.ValidationException({'main': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                old_present_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT)
+                if len(old_present_quarantine_history) == 0:
+                    raise exceptions.ValidationException({'main': messages.PRESENT_QUARANTINE_HISTORY_NOT_EXIST})
+                elif len(old_present_quarantine_history) >= 2:
+                    raise exceptions.ValidationException({'main': messages.MANY_PRESENT_QUARANTINE_HISTORY_EXIST})
+                else:
+                    old_present_quarantine_history = old_present_quarantine_history[0]
+                    old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
+                    old_present_quarantine_history.end_date = member.quarantined_finished_at
+                    old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
+                    if old_present_quarantine_history.note:
+                        old_present_quarantine_history.note = 'Bệnh viện dã chiến;' + old_present_quarantine_history.note
                     else:
-                        old_present_quarantine_history = old_present_quarantine_history[0]
-                        old_present_quarantine_history.status = QuarantineHistoryStatus.ENDED
-                        old_present_quarantine_history.end_date = member.quarantined_finished_at
-                        old_present_quarantine_history.end_type = QuarantineHistoryEndType.HOSPITALIZE
-                        if old_present_quarantine_history.note:
-                            old_present_quarantine_history.note += ';' + 'Bệnh viện dã chiến'
-                        else:
-                            old_present_quarantine_history.note = 'Bệnh viện dã chiến'
-                    old_present_quarantine_history.save()
-                except:
-                    ...
+                        old_present_quarantine_history.note = 'Bệnh viện dã chiến'
+                old_present_quarantine_history.save()
 
                 custom_user.save()
                 member.save()
@@ -3075,6 +3077,11 @@ class MemberAPI(AbstractView):
                 )
             else:
                 # hospitalize refuse
+                last_quarantine_history = QuarantineHistory.objects.filter(user=custom_user, status=QuarantineHistoryStatus.PRESENT).order_by('-start_date').first()
+                if last_quarantine_history:
+                    last_quarantine_history.note = None
+                    last_quarantine_history.save()
+
                 member.quarantined_status = MemberQuarantinedStatus.QUARANTINING
                 member.save()
 

@@ -100,3 +100,4 @@ MANY_PRESENT_QUARANTINE_HISTORY_EXIST = 'Many PRESENT quarantine history exist'
 # hospitalize
 CANNOT_HOSPITALIZE_THIS_HOSPITAL = 'Cannot hospitalize to this hospital'
 IS_NOT_HOSPITALIZE_WAITING = 'This member is not hospitalize waiting'
+ALREADY_HOSPITALIZE_WAITING = 'This member is already hospitalize waiting'
