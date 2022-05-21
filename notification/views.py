@@ -76,7 +76,7 @@ class NotificationAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            notification = validator.get_field('id')
+            notification = validator.get_field('notification')
 
             serializer = NotificationSerializer(notification, many=False)
             return self.response_handler.handle(data=serializer.data)
@@ -339,7 +339,7 @@ class NotificationAPI (AbstractView):
             validator = NotificationValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
-            notification = validator.get_field('id')
+            notification = validator.get_field('notification')
             list_to_update = accepted_fields.keys() - {'id'}
             
             dict_to_update = validator.get_data(list_to_update)
@@ -383,7 +383,7 @@ class NotificationAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            notification = validator.get_field('id')
+            notification = validator.get_field('notification')
             notification.delete()
 
             serializer = NotificationSerializer(notification, many=False)

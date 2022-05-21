@@ -20,7 +20,7 @@ class QuarantineBuildingValidator(validators.AbstractRequestValidate):
         )
     
     def is_validate_id(self):
-        quarantine_building = validators.ModelInstanceExistenceValidator.valid(
+        self._quarantine_building = validators.ModelInstanceExistenceValidator.valid(
             model_cls=QuarantineBuilding,
             query_expr=Q(
                 id=self._id,

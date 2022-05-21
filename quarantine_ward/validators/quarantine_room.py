@@ -28,7 +28,7 @@ class QuarantineRoomValidator(validators.AbstractRequestValidate):
             )
     
     def is_validate_id(self):
-        quarantine_room = validators.ModelInstanceExistenceValidator.valid(
+        self._quarantine_room = validators.ModelInstanceExistenceValidator.valid(
             model_cls=QuarantineRoom,
             query_expr=Q(
                 id=self._id,
