@@ -205,7 +205,8 @@ class MemberFilter(django_filters.FilterSet):
             Q(full_name__icontains=value) |
             Q(full_name__unaccent__icontains=value) |
             Q(code__iexact=value) |
-            Q(phone_number__iexact=value)
+            Q(phone_number__iexact=value) |
+            Q(identity_number__iexact=value)
         )
         qs = queryset.filter(query)
         return qs
