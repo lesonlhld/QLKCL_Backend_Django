@@ -145,7 +145,7 @@ class QuarantineWardValidator(validators.AbstractRequestValidate):
             )
     
     def is_validate_id(self):
-        self._id = validators.ModelInstanceExistenceValidator.valid(
+        quarantine_ward = validators.ModelInstanceExistenceValidator.valid(
             model_cls=QuarantineWard,
             query_expr=Q(
                 id=self._id,
