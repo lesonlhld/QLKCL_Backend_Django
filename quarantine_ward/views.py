@@ -72,8 +72,8 @@ class QuarantineWardAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_ward = validator.get_field('id')
-
+            quarantine_ward = validator.get_field('quarantine_ward')
+            print(quarantine_ward)
             serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
@@ -205,7 +205,7 @@ class QuarantineWardAPI (AbstractView):
                 require_fields += ['ward']
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
-            quarantine_ward = validator.get_field('id')
+            quarantine_ward = validator.get_field('quarantine_ward')
             list_to_update = accepted_fields.keys() - {'id', 'pandemic_id'}
             
             dict_to_update = validator.get_data(list_to_update)
@@ -261,7 +261,7 @@ class QuarantineWardAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_ward = validator.get_field('id')
+            quarantine_ward = validator.get_field('quarantine_ward')
             quarantine_ward.delete()
 
             serializer = QuarantineWardSerializer(quarantine_ward, many=False)
@@ -416,7 +416,7 @@ class QuarantineBuildingAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_building = validator.get_field('id')
+            quarantine_building = validator.get_field('quarantine_building')
 
             serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
             return self.response_handler.handle(data=serializer.data)
@@ -505,7 +505,7 @@ class QuarantineBuildingAPI (AbstractView):
             validator = QuarantineBuildingValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
-            quarantine_building = validator.get_field('id')
+            quarantine_building = validator.get_field('quarantine_building')
             list_to_update = accepted_fields.keys() - {'id'}
             dict_to_update = validator.get_data(list_to_update)
             quarantine_building.__dict__.update(**dict_to_update)
@@ -551,7 +551,7 @@ class QuarantineBuildingAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_building = validator.get_field('id')
+            quarantine_building = validator.get_field('quarantine_building')
             quarantine_building.delete()
 
             serializer = QuarantineBuildingSerializer(quarantine_building, many=False)
@@ -663,7 +663,7 @@ class QuarantineFloorAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_floor = validator.get_field('id')
+            quarantine_floor = validator.get_field('quarantine_floor')
 
             serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
             return self.response_handler.handle(data=serializer.data)
@@ -795,7 +795,7 @@ class QuarantineFloorAPI (AbstractView):
             validator = QuarantineFloorValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
-            quarantine_floor = validator.get_field('id')
+            quarantine_floor = validator.get_field('quarantine_floor')
             list_to_update = accepted_fields.keys() -{'id'}
             dict_to_update = validator.get_data(list_to_update)
             quarantine_floor.__dict__.update(**dict_to_update)
@@ -841,7 +841,7 @@ class QuarantineFloorAPI (AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_floor = validator.get_field('id')
+            quarantine_floor = validator.get_field('quarantine_floor')
             quarantine_floor.delete()
 
             serializer = QuarantineFloorSerializer(quarantine_floor, many=False)
@@ -951,7 +951,7 @@ class QuarantineRoomAPI(AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_room = validator.get_field('id')
+            quarantine_room = validator.get_field('quarantine_room')
 
             serializer = QuarantineRoomSerializer(quarantine_room, many=False)
             return self.response_handler.handle(data=serializer.data)
@@ -1069,7 +1069,7 @@ class QuarantineRoomAPI(AbstractView):
             validator = QuarantineRoomValidator(**accepted_fields)
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
-            quarantine_room = validator.get_field('id')
+            quarantine_room = validator.get_field('quarantine_room')
             validator.check_capacity(quarantine_room)
             list_to_update = accepted_fields.keys() - {'id'}
             dict_to_update = validator.get_data(list_to_update)
@@ -1116,7 +1116,7 @@ class QuarantineRoomAPI(AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
 
-            quarantine_room = validator.get_field('id')
+            quarantine_room = validator.get_field('quarantine_room')
             quarantine_room.delete()
 
             serializer = QuarantineRoomSerializer(quarantine_room, many=False)
