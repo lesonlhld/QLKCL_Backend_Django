@@ -1,4 +1,5 @@
 from ..models import QuarantineFloor, QuarantineRoom
+from user_account.models import Member
 from utils import validators, messages, exceptions
 from django.db.models import Q
 from utils.tools import date_string_to_timestamp
@@ -49,16 +50,24 @@ class QuarantineRoomValidator(validators.AbstractRequestValidate):
 
     def is_name_exist(self):
         try:
+            quarantine_room = QuarantineRoom.objects.get(id=self._id)
+            quarantine_floor = quarantine_room.quarantine_floor
             name = validators.ModelInstanceExistenceValidator.valid(
                 model_cls=QuarantineRoom,
                 query_expr=Q(
                     name=self._name,
-                    quarantine_floor=self._quarantine_floor,
+                    quarantine_floor=quarantine_floor,
                 ),
             )
             return True
         except Exception as exception:
             return False
+    
+    def check_capacity(self, quarantine_room):
+        if hasattr(self, '_capacity'):
+            num_current_member = Member.objects.filter(quarantine_room=quarantine_room).count()
+            if (self._capacity < num_current_member):
+                raise exceptions.InvalidArgumentException(message={'capacity': messages.UPDATED_CAPACITY_SMALLER_THAN_MEMBER})
     
     def filter_validate(self):
         if hasattr(self, '_created_at_max'):
