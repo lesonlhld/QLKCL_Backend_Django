@@ -13,7 +13,7 @@ class NotificationValidator(validators.AbstractRequestValidate):
         return super().is_valid_fields(set_of_keys)
     
     def is_validate_id(self):
-        self._id = validators.ModelInstanceExistenceValidator.valid(
+        notification = validators.ModelInstanceExistenceValidator.valid(
             model_cls=Notification,
             query_expr=Q(
                 id=self._id,
