@@ -1070,6 +1070,7 @@ class QuarantineRoomAPI(AbstractView):
             validator.is_missing_fields(require_fields)
             validator.is_valid_fields(accepted_fields)
             quarantine_room = validator.get_field('id')
+            validator.check_capacity(quarantine_room)
             list_to_update = accepted_fields.keys() - {'id'}
             dict_to_update = validator.get_data(list_to_update)
             quarantine_room.__dict__.update(**dict_to_update)

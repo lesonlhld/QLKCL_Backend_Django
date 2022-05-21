@@ -34,11 +34,13 @@ class QuarantineBuildingValidator(validators.AbstractRequestValidate):
 
     def is_name_exist(self):
         try:
+            quarantine_building = QuarantineBuilding.objects.get(id=self._id)
+            quarantine_ward = quarantine_building.quarantine_ward
             name = validators.ModelInstanceExistenceValidator.valid(
                 model_cls=QuarantineBuilding,
                 query_expr=Q(
                     name=self._name,
-                    quarantine_ward=self._quarantine_ward,
+                    quarantine_ward=quarantine_ward,
                 ),
             )
             return True

@@ -52,6 +52,7 @@ INVALID_PHONE_NUMBER = 'Invalid phone number'
 INVALID_DATETIME = r"""Invalid datetime field, must be vd:'2000-01-26T01:23:45.123456Z'"""
 
 QUARANTINE_ROOM_FULL = 'Full'
+UPDATED_CAPACITY_SMALLER_THAN_MEMBER = 'Updated capacity is smaller than number of current member'
 
 # password
 TOO_SHORT = 'TOO_SHORT'
