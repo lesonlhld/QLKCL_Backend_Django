@@ -73,7 +73,6 @@ class QuarantineWardAPI (AbstractView):
             validator.is_valid_fields(accepted_fields)
 
             quarantine_ward = validator.get_field('quarantine_ward')
-            print(quarantine_ward)
             serializer = QuarantineWardSerializer(quarantine_ward, many=False)
             return self.response_handler.handle(data=serializer.data)
         except Exception as exception:
