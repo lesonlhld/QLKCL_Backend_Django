@@ -563,6 +563,9 @@ class MemberAPI(AbstractView):
     def is_room_full(self, room):
         return room.member_x_quarantine_room.all().count() >= room.capacity
 
+    def is_room_empty(self, room):
+        return room.member_x_quarantine_room.all().count() == 0
+
     def is_room_close(self, room, num_day_to_close_room):
         # All members in this room must have quarantined at >= 'num_day_to_close_room' day ago.
         time_now = timezone.now()
@@ -579,8 +582,8 @@ class MemberAPI(AbstractView):
     def count_average_number_of_vaccine_doses(self, room):
         return_value = room.member_x_quarantine_room.all().aggregate(Avg('number_of_vaccine_doses'))['number_of_vaccine_doses__avg']
         if not return_value:
-            # Nobody in room
-            return_value = 1
+            # Nobody in room or 0
+            return_value = 0
         return return_value
 
     def count_members_same_gender(self, room, gender):
@@ -669,23 +672,29 @@ class MemberAPI(AbstractView):
                 return_dict['warning'] = 'All rooms are not accept any more member'
                 return return_dict
 
-        # tieu_chi label
-        count_each_room = [self.count_members_same_label(room, input_dict['label']) for room in rooms]
-        max_same_label_in_room = max(count_each_room)
-        remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_label_in_room]
-        rooms = remain_rooms
-        
-        # tieu_chi vaccine
-        difference_each_room = [abs(self.count_average_number_of_vaccine_doses(room) - input_dict['number_of_vaccine_doses']) for room in rooms]
-        min_difference_each_room = min(difference_each_room)
-        remain_rooms = [rooms[i] for i in range(len(rooms)) if difference_each_room[i] == min_difference_each_room]
-        rooms = remain_rooms
+        empty_rooms = [room for room in rooms if self.is_room_empty(room)]
+        rooms = [room for room in rooms if room not in empty_rooms]
 
-        # tieu_chi gender
-        count_each_room = [self.count_members_same_gender(room, input_dict['gender']) for room in rooms]
-        max_same_gender_in_room = max(count_each_room)
-        remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_gender_in_room]
-        rooms = remain_rooms
+        if rooms:
+            # tieu_chi label
+            count_each_room = [self.count_members_same_label(room, input_dict['label']) for room in rooms]
+            max_same_label_in_room = max(count_each_room)
+            remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_label_in_room]
+            rooms = remain_rooms
+            
+            # tieu_chi vaccine
+            difference_each_room = [abs(self.count_average_number_of_vaccine_doses(room) - input_dict['number_of_vaccine_doses']) for room in rooms]
+            min_difference_each_room = min(difference_each_room)
+            remain_rooms = [rooms[i] for i in range(len(rooms)) if difference_each_room[i] == min_difference_each_room]
+            rooms = remain_rooms
+
+            # tieu_chi gender
+            count_each_room = [self.count_members_same_gender(room, input_dict['gender']) for room in rooms]
+            max_same_gender_in_room = max(count_each_room)
+            remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_gender_in_room]
+            rooms = remain_rooms
+
+        rooms += empty_rooms
 
         # tieu_chi less_slot
         count_each_room = [self.count_available_slot(room) for room in rooms]
