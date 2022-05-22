@@ -815,21 +815,22 @@ class MemberAPI(AbstractView):
                 if number_of_other_members_in_new_room >= 1:
                     quarantine_ward = new_room.quarantine_floor.quarantine_building.quarantine_ward
                     for each_member in all_members_in_new_room:
-                        if quarantine_ward.pandemic:
-                            if each_member.number_of_vaccine_doses < 2:
-                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_not_vac
+                        if each_member.label != MemberLabel.F0:
+                            if quarantine_ward.pandemic:
+                                if each_member.number_of_vaccine_doses < 2:
+                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_not_vac
+                                else:
+                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_vac
                             else:
-                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_vac
-                        else:
-                            if each_member.number_of_vaccine_doses < 2:
-                                remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_NOT_VAC', 7))
-                            else:
-                                remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_VAC', 5))
-                        old_quarantined_finish_expected_at = each_member.quarantined_finish_expected_at
-                        new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
-                        if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
-                            each_member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
-                            each_member.save()
+                                if each_member.number_of_vaccine_doses < 2:
+                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_NOT_VAC', 7))
+                                else:
+                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_VAC', 5))
+                            old_quarantined_finish_expected_at = each_member.quarantined_finish_expected_at
+                            new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                            if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                each_member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                each_member.save()
 
                 # set label
                 label_tool = LabelTool()
