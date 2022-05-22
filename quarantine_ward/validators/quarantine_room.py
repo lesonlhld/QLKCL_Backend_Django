@@ -52,14 +52,17 @@ class QuarantineRoomValidator(validators.AbstractRequestValidate):
         try:
             quarantine_room = QuarantineRoom.objects.get(id=self._id)
             quarantine_floor = quarantine_room.quarantine_floor
-            name = validators.ModelInstanceExistenceValidator.valid(
-                model_cls=QuarantineRoom,
-                query_expr=Q(
-                    name=self._name,
-                    quarantine_floor=quarantine_floor,
-                ),
-            )
-            return True
+            old_name = quarantine_room.name
+            if (old_name != self._name):
+                name = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineRoom,
+                    query_expr=Q(
+                        name=self._name,
+                        quarantine_floor=quarantine_floor,
+                    ),
+                )
+                return True
+            return False
         except Exception as exception:
             return False
     

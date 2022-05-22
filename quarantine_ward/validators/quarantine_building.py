@@ -36,14 +36,17 @@ class QuarantineBuildingValidator(validators.AbstractRequestValidate):
         try:
             quarantine_building = QuarantineBuilding.objects.get(id=self._id)
             quarantine_ward = quarantine_building.quarantine_ward
-            name = validators.ModelInstanceExistenceValidator.valid(
-                model_cls=QuarantineBuilding,
-                query_expr=Q(
-                    name=self._name,
-                    quarantine_ward=quarantine_ward,
-                ),
-            )
-            return True
+            old_name = quarantine_building.name
+            if (old_name != self._name):
+                name = validators.ModelInstanceExistenceValidator.valid(
+                    model_cls=QuarantineBuilding,
+                    query_expr=Q(
+                        name=self._name,
+                        quarantine_ward=quarantine_ward,
+                    ),
+                )
+                return True
+            return False
         except Exception as exception:
             return False
     
