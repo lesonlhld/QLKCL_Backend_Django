@@ -771,6 +771,11 @@ class MemberAPI(AbstractView):
             return room.member_x_quarantine_room.all().filter(Q(positive_test_now=False) | Q(positive_test_now__isnull=True)).count()
         return 0
 
+    def count_label_not_f0_in_room(self, room):
+        if room:
+            return room.member_x_quarantine_room.all().filter(~Q(label=MemberLabel.F0)).count()
+        return 0
+
     def do_after_change_room_of_member_work(self, member, old_room):
         """
         run this function after moving a member from null room to a room, old room to new room or a room to out quarantine;
@@ -2541,7 +2546,7 @@ class MemberAPI(AbstractView):
             if is_need_change_room_because_be_positive == True:
                 # filter user that positive_test_now = True and need change room
                 result_users = list(query_set)
-                remain_result_users = [user for user in result_users if self.count_positive_test_now_not_true_in_room(user.member_x_custom_user.quarantine_room) >= 1]
+                remain_result_users = [user for user in result_users if self.count_label_not_f0_in_room(user.member_x_custom_user.quarantine_room) >= 1]
                 serializer = FilterMemberSerializer(remain_result_users, many=True)
 
             paginated_data = paginate_data(request, serializer.data)
