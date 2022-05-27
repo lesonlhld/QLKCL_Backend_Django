@@ -563,6 +563,9 @@ class MemberAPI(AbstractView):
     def is_room_full(self, room):
         return room.member_x_quarantine_room.all().count() >= room.capacity
 
+    def is_room_empty(self, room):
+        return room.member_x_quarantine_room.all().count() == 0
+
     def is_room_close(self, room, num_day_to_close_room):
         # All members in this room must have quarantined at >= 'num_day_to_close_room' day ago.
         time_now = timezone.now()
@@ -579,8 +582,8 @@ class MemberAPI(AbstractView):
     def count_average_number_of_vaccine_doses(self, room):
         return_value = room.member_x_quarantine_room.all().aggregate(Avg('number_of_vaccine_doses'))['number_of_vaccine_doses__avg']
         if not return_value:
-            # Nobody in room
-            return_value = 1
+            # Nobody in room or 0
+            return_value = 0
         return return_value
 
     def count_members_same_gender(self, room, gender):
@@ -669,23 +672,29 @@ class MemberAPI(AbstractView):
                 return_dict['warning'] = 'All rooms are not accept any more member'
                 return return_dict
 
-        # tieu_chi label
-        count_each_room = [self.count_members_same_label(room, input_dict['label']) for room in rooms]
-        max_same_label_in_room = max(count_each_room)
-        remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_label_in_room]
-        rooms = remain_rooms
-        
-        # tieu_chi vaccine
-        difference_each_room = [abs(self.count_average_number_of_vaccine_doses(room) - input_dict['number_of_vaccine_doses']) for room in rooms]
-        min_difference_each_room = min(difference_each_room)
-        remain_rooms = [rooms[i] for i in range(len(rooms)) if difference_each_room[i] == min_difference_each_room]
-        rooms = remain_rooms
+        empty_rooms = [room for room in rooms if self.is_room_empty(room)]
+        rooms = [room for room in rooms if room not in empty_rooms]
 
-        # tieu_chi gender
-        count_each_room = [self.count_members_same_gender(room, input_dict['gender']) for room in rooms]
-        max_same_gender_in_room = max(count_each_room)
-        remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_gender_in_room]
-        rooms = remain_rooms
+        if rooms:
+            # tieu_chi label
+            count_each_room = [self.count_members_same_label(room, input_dict['label']) for room in rooms]
+            max_same_label_in_room = max(count_each_room)
+            remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_label_in_room]
+            rooms = remain_rooms
+            
+            # tieu_chi vaccine
+            difference_each_room = [abs(self.count_average_number_of_vaccine_doses(room) - input_dict['number_of_vaccine_doses']) for room in rooms]
+            min_difference_each_room = min(difference_each_room)
+            remain_rooms = [rooms[i] for i in range(len(rooms)) if difference_each_room[i] == min_difference_each_room]
+            rooms = remain_rooms
+
+            # tieu_chi gender
+            count_each_room = [self.count_members_same_gender(room, input_dict['gender']) for room in rooms]
+            max_same_gender_in_room = max(count_each_room)
+            remain_rooms = [rooms[i] for i in range(len(rooms)) if count_each_room[i] == max_same_gender_in_room]
+            rooms = remain_rooms
+
+        rooms += empty_rooms
 
         # tieu_chi less_slot
         count_each_room = [self.count_available_slot(room) for room in rooms]
@@ -762,6 +771,11 @@ class MemberAPI(AbstractView):
             return room.member_x_quarantine_room.all().filter(Q(positive_test_now=False) | Q(positive_test_now__isnull=True)).count()
         return 0
 
+    def count_label_not_f0_in_room(self, room):
+        if room:
+            return room.member_x_quarantine_room.all().filter(~Q(label=MemberLabel.F0)).count()
+        return 0
+
     def do_after_change_room_of_member_work(self, member, old_room):
         """
         run this function after moving a member from null room to a room, old room to new room or a room to out quarantine;
@@ -806,21 +820,22 @@ class MemberAPI(AbstractView):
                 if number_of_other_members_in_new_room >= 1:
                     quarantine_ward = new_room.quarantine_floor.quarantine_building.quarantine_ward
                     for each_member in all_members_in_new_room:
-                        if quarantine_ward.pandemic:
-                            if each_member.number_of_vaccine_doses < 2:
-                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_not_vac
+                        if each_member.label != MemberLabel.F0:
+                            if quarantine_ward.pandemic:
+                                if each_member.number_of_vaccine_doses < 2:
+                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_not_vac
+                                else:
+                                    remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_vac
                             else:
-                                remain_qt = quarantine_ward.pandemic.remain_qt_cc_not_pos_vac
-                        else:
-                            if each_member.number_of_vaccine_doses < 2:
-                                remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_NOT_VAC', 7))
-                            else:
-                                remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_VAC', 5))
-                        old_quarantined_finish_expected_at = each_member.quarantined_finish_expected_at
-                        new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
-                        if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
-                            each_member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
-                            each_member.save()
+                                if each_member.number_of_vaccine_doses < 2:
+                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_NOT_VAC', 7))
+                                else:
+                                    remain_qt = int(os.environ.get('REMAIN_QT_CC_NOT_POS_VAC', 5))
+                            old_quarantined_finish_expected_at = each_member.quarantined_finish_expected_at
+                            new_quarantined_finish_expected_at = timezone.now() + datetime.timedelta(days=remain_qt)
+                            if not old_quarantined_finish_expected_at or old_quarantined_finish_expected_at < new_quarantined_finish_expected_at:
+                                each_member.quarantined_finish_expected_at = new_quarantined_finish_expected_at
+                                each_member.save()
 
                 # set label
                 label_tool = LabelTool()
@@ -2531,7 +2546,7 @@ class MemberAPI(AbstractView):
             if is_need_change_room_because_be_positive == True:
                 # filter user that positive_test_now = True and need change room
                 result_users = list(query_set)
-                remain_result_users = [user for user in result_users if self.count_positive_test_now_not_true_in_room(user.member_x_custom_user.quarantine_room) >= 1]
+                remain_result_users = [user for user in result_users if self.count_label_not_f0_in_room(user.member_x_custom_user.quarantine_room) >= 1]
                 serializer = FilterMemberSerializer(remain_result_users, many=True)
 
             paginated_data = paginate_data(request, serializer.data)
