@@ -182,7 +182,7 @@ class FilterQuarantineWardSerializer(serializers.ModelSerializer):
         model = QuarantineWard
         fields = ['id', 'main_manager', 'full_name', 'image', 'pandemic',
                   'city', 'country', 'district', 'ward', 'address',
-                  'latitude', 'longitude',
+                  'latitude', 'longitude', 'phone_number',
                   'created_at', 'updated_at']
     
     def to_representation(self, instance):
