@@ -4473,6 +4473,12 @@ class HomeAPI(AbstractView):
 
             return_data = serializer.data
 
+            last_health_status_time = None
+            last_medical_declaration = MedicalDeclaration.objects.filter(user=request.user).order_by('created_at').last()
+            if last_medical_declaration:
+                last_health_status_time = last_medical_declaration.created_at
+            return_data['last_health_status_time'] = last_health_status_time
+
             if member:
                 if member.custom_user.status == CustomUserStatus.LEAVE and member.quarantined_status == MemberQuarantinedStatus.HOSPITALIZE:
                     # if this member is hospitalize
