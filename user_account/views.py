@@ -1387,23 +1387,31 @@ class MemberAPI(AbstractView):
 
             response_data['custom_user'] = custom_user_serializer.data
 
+            last_health_status_time = None
+            last_medical_declaration = MedicalDeclaration.objects.filter(user=custom_user).order_by('created_at').last()
+            if last_medical_declaration:
+                last_health_status_time = last_medical_declaration.created_at
+
             if hasattr(custom_user, 'member_x_custom_user'):
                 member = custom_user.member_x_custom_user
                 member_serializer = MemberSerializer(member, many=False)
 
                 response_data['member'] = member_serializer.data
+                response_data['member']['last_health_status_time'] = last_health_status_time
 
             if hasattr(custom_user, 'manager_x_custom_user'):
                 manager = custom_user.manager_x_custom_user
                 manager_serializer = ManagerSerializer(manager, many=False)
 
                 response_data['manager'] = manager_serializer.data
+                response_data['manager']['last_health_status_time'] = last_health_status_time
 
             if hasattr(custom_user, 'staff_x_custom_user'):
                 staff = custom_user.staff_x_custom_user
                 staff_serializer = StaffSerializer(staff, many=False)
 
                 response_data['staff'] = staff_serializer.data
+                response_data['staff']['last_health_status_time'] = last_health_status_time
             
             return self.response_handler.handle(data=response_data)
         
